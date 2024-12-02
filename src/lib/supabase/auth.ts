@@ -26,4 +26,14 @@ export async function resetPassword(email: string) {
     redirectTo: window.location.origin + '/update-password',
   });
   return { data, error };
+}
+
+export async function signInWithGitHub() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'github',
+    options: {
+      redirectTo: `${window.location.origin}/account/dashboard`
+    }
+  });
+  return { data, error };
 } 
