@@ -54,8 +54,8 @@ export function Login() {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-6">
-              <GitHubButton />
-              <GoogleButton />
+              <GitHubButton key="github-login" />
+              <GoogleButton key="google-login" />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300" />

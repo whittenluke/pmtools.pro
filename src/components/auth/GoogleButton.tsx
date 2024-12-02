@@ -3,10 +3,7 @@ import { supabase } from '../../lib/supabase/client';
 export function GoogleButton() {
   async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/account/dashboard`
-      }
+      provider: 'google'
     });
 
     if (error) {

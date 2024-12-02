@@ -12,8 +12,8 @@ import { UpdatePassword } from './pages/auth/UpdatePassword';
 
 function App(): JSX.Element {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
@@ -32,8 +32,8 @@ function App(): JSX.Element {
             />
           </Route>
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

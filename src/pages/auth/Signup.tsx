@@ -56,8 +56,8 @@ export function Signup() {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-6">
-              <GitHubButton />
-              <GoogleButton />
+              <GitHubButton key="github-signup" />
+              <GoogleButton key="google-signup" />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300" />
