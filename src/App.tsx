@@ -1,34 +1,36 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { Tools } from './pages/Tools';
 import { Dashboard } from './pages/Dashboard';
-import { testConnection } from './lib/supabase/client';
+import { Login } from './pages/auth/Login';
+import { Signup } from './pages/auth/Signup';
+import { AuthProvider } from './lib/supabase/AuthProvider';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
-function App() {
-  useEffect(() => {
-    // Test Supabase connection on app load
-    testConnection()
-      .then(isConnected => {
-        if (isConnected) {
-          console.log('✅ Connected to Supabase');
-        } else {
-          console.log('❌ Failed to connect to Supabase');
-        }
-      });
-  }, []);
-
+function App(): JSX.Element {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="tools" element={<Tools />} />
-          <Route path="account/dashboard" element={<Dashboard />} />
-        </Route>
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="login" element={<Login />} />
+            <Route path="signup" element={<Signup />} />
+            <Route path="tools" element={<Tools />} />
+            <Route
+              path="account/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

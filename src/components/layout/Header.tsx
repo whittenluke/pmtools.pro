@@ -1,9 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import { useAuth } from '../../lib/supabase/AuthProvider';
+import { signOut } from '../../lib/supabase/auth';
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const { user } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <header className="bg-white shadow-sm">
@@ -20,9 +27,34 @@ export function Header() {
             <Link to="/tools" className="text-gray-700 hover:text-gray-900">
               Tools
             </Link>
-            <Link to="/account/dashboard" className="text-gray-700 hover:text-gray-900">
-              Dashboard
-            </Link>
+            {user ? (
+              <>
+                <Link to="/account/dashboard" className="text-gray-700 hover:text-gray-900">
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="text-gray-700 hover:text-gray-900"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="text-gray-700 hover:text-gray-900"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -37,22 +69,47 @@ export function Header() {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile menu */}
         {isMenuOpen && (
           <div className="sm:hidden">
             <div className="pt-2 pb-3 space-y-1">
               <Link
                 to="/tools"
-                className="block px-3 py-2 text-gray-700 hover:text-gray-900"
+                className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
               >
                 Tools
               </Link>
-              <Link
-                to="/account/dashboard"
-                className="block px-3 py-2 text-gray-700 hover:text-gray-900"
-              >
-                Dashboard
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    to="/account/dashboard"
+                    className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    Sign Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="block px-3 py-2 text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         )}
