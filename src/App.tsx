@@ -8,6 +8,8 @@ import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { AuthProvider } from './lib/supabase/AuthProvider';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { ResetPassword } from './pages/auth/ResetPassword';
+import { UpdatePassword } from './pages/auth/UpdatePassword';
 
 function App(): JSX.Element {
   return (
@@ -18,6 +20,8 @@ function App(): JSX.Element {
             <Route index element={<Home />} />
             <Route path="login" element={<Login />} />
             <Route path="signup" element={<Signup />} />
+            <Route path="reset-password" element={<ResetPassword />} />
+            <Route path="update-password" element={<UpdatePassword />} />
             <Route path="tools" element={<Tools />} />
             <Route
               path="account/dashboard"
