@@ -3,7 +3,16 @@ import { supabase } from '../../lib/supabase/client';
 export function GoogleButton() {
   async function signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google'
+      provider: 'google',
+      options: {
+        redirectTo: window.location.hostname === 'localhost' 
+          ? 'http://localhost:8888/account/dashboard'
+          : 'https://pmtools.pro/account/dashboard',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent'
+        }
+      }
     });
 
     if (error) {
