@@ -306,6 +306,78 @@ function registerTool(tool: ToolRegistration) {
 
 PMTools.pro is designed as a scalable, modern, and user-centric productivity platform with a clear vision for long-term success and continuous improvement.
 
+## 17. Project Structure
+
+```
+pmtools.pro/
+├── .github/                    # GitHub specific configurations
+│   └── workflows/             # CI/CD workflow definitions
+├── public/                    # Static assets
+│   ├── assets/               # Media assets
+│   │   ├── icons/           # Application icons
+│   │   └── images/          # Static images
+│   └── fonts/               # Custom fonts
+├── src/                      # Source code
+│   ├── app/                 # Next.js App Router
+│   │   ├── account/        # Account related pages
+│   │   │   ├── dashboard/  # User dashboard
+│   │   │   ├── login/     # Login page
+│   │   │   └── signup/    # Signup page
+│   │   └── tools/         # Tool pages
+│   │       ├── calculator/ # Calculator tool
+│   │       ├── estimation/ # Estimation tool
+│   │       └── time-tracker/ # Time tracking tool
+│   ├── components/         # Reusable components
+│   │   ├── common/        # Shared components
+│   │   ├── layout/        # Layout components
+│   │   └── tools/         # Tool-specific components
+│   ├── config/            # Configuration files
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/              # Utility libraries
+│   │   ├── supabase/     # Supabase client and utilities
+│   │   └── utils/        # Helper functions
+│   ├── store/            # State management (Zustand)
+│   ├── styles/           # Global styles and themes
+│   └── types/            # TypeScript type definitions
+├── tests/                 # Test suites
+│   ├── e2e/              # End-to-end tests
+│   └── unit/             # Unit tests
+└── docs/                 # Documentation files
+```
+
+### 17.1 Directory Purposes
+
+- **`.github/`**: Contains GitHub-specific configurations and CI/CD workflows
+- **`public/`**: Static assets served directly by Next.js
+- **`src/`**: Main source code directory
+  - **`app/`**: Next.js App Router pages and routing
+  - **`components/`**: Reusable React components
+  - **`config/`**: Application configuration files
+  - **`hooks/`**: Custom React hooks for shared logic
+  - **`lib/`**: Utility functions and external service integrations
+  - **`store/`**: State management using Zustand
+  - **`styles/`**: Global styles and theming
+  - **`types/`**: TypeScript type definitions
+- **`tests/`**: Test suites for both unit and e2e testing
+- **`docs/`**: Project documentation and guides
+
+### 17.2 Component Organization
+
+Components are organized following a feature-first approach:
+
+- Common components are shared across the application
+- Layout components handle the application structure
+- Tool-specific components are isolated within their respective tool directories
+
+### 17.3 Routing Structure
+
+The application follows Next.js 14+ App Router conventions:
+
+- Each route is a directory under `src/app`
+- Layout files control the page structure
+- Page files define the main content
+- Loading and error states are handled at the route level
+
 ---
 
 **Version**: 1.0
