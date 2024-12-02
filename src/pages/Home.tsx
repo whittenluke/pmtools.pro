@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Calculator, Calendar, FileText } from 'lucide-react';
 import { Testimonials } from '../components/sections/Testimonials';

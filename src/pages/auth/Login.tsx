@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signIn } from '../../lib/supabase/auth';
 import { GitHubButton } from '../../components/auth/GitHubButton';
+import { GoogleButton } from '../../components/auth/GoogleButton';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -54,6 +55,7 @@ export function Login() {
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-6">
               <GitHubButton />
+              <GoogleButton />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300" />

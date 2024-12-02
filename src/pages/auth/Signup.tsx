@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { signUp } from '../../lib/supabase/auth';
 import { GitHubButton } from '../../components/auth/GitHubButton';
+import { GoogleButton } from '../../components/auth/GoogleButton';
 
 export function Signup() {
   const [email, setEmail] = useState('');
@@ -55,7 +56,8 @@ export function Signup() {
 
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div className="space-y-6">
-              <GitHubButton isSignUp />
+              <GitHubButton />
+              <GoogleButton />
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300" />
