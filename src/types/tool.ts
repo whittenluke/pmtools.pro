@@ -16,9 +16,10 @@ export interface ToolUsage {
 }
 
 export type ToolCategory = 
-  | 'Calculation'
-  | 'Time Management'
   | 'Project Planning'
+  | 'Time Management'
+  | 'Analysis'
+  | 'Calculation'
   | 'Documentation'
   | 'Productivity'
   | 'Automation';

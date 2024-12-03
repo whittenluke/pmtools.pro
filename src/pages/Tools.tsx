@@ -3,12 +3,12 @@ import {
   Calculator, 
   Clock, 
   LineChart, 
-  Calendar, 
   FileText, 
   Kanban, 
   Target, 
   Repeat, 
-  Workflow
+  Workflow, 
+  Scale
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToolStore } from '../store/toolStore';
@@ -46,12 +46,12 @@ export function Tools() {
       category: 'Project Planning'
     },
     {
-      id: 'meeting-planner',
-      name: 'Meeting Planner',
-      description: 'Schedule and organize meetings across time zones',
-      icon: Calendar,
-      path: '/tools/meeting-planner',
-      category: 'Time Management'
+      id: 'decision-matrix',
+      name: 'Decision Matrix',
+      description: 'Compare options and make data-driven decisions with weighted criteria analysis',
+      icon: Scale,
+      path: '/tools/decision-matrix',
+      category: 'Analysis'
     },
     {
       id: 'note-taking',

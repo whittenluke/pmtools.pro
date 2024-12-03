@@ -11,6 +11,8 @@ import { ResetPassword } from './pages/auth/ResetPassword';
 import { UpdatePassword } from './pages/auth/UpdatePassword';
 import { Calculator } from './pages/tools/Calculator';
 import { PomodoroTimer } from './pages/tools/PomodoroTimer';
+import { ProjectEstimation } from './pages/tools/ProjectEstimation.tsx';
+import { DecisionMatrix } from './pages/tools/DecisionMatrix';
 
 function App(): JSX.Element {
   return (
@@ -26,6 +28,8 @@ function App(): JSX.Element {
             <Route path="tools" element={<Tools />} />
             <Route path="tools/calculator" element={<Calculator />} />
             <Route path="tools/pomodoro" element={<PomodoroTimer />} />
+            <Route path="tools/estimation" element={<ProjectEstimation />} />
+            <Route path="tools/decision-matrix" element={<DecisionMatrix />} />
             <Route
               path="account/dashboard"
               element={

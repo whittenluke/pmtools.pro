@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Calculator, Calendar, FileText } from 'lucide-react';
+import { Calculator, FileText, Scale } from 'lucide-react';
 import { Testimonials } from '../components/sections/Testimonials';
 import { Stats } from '../components/sections/Stats';
 import { useAuth } from '../lib/supabase/AuthProvider';
@@ -94,15 +94,15 @@ export function Home() {
                 </div>
               </div>
 
-              {/* Meeting Planner Tool */}
+              {/* Decision Matrix Tool */}
               <div className="relative">
                 <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                  <Calendar className="h-6 w-6" aria-hidden="true" />
+                  <Scale className="h-6 w-6" aria-hidden="true" />
                 </div>
                 <div className="ml-16">
-                  <h3 className="text-lg font-medium text-gray-900">Meeting Planner</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Decision Matrix</h3>
                   <p className="mt-2 text-base text-gray-500">
-                    Schedule and organize meetings across time zones effortlessly.
+                    Compare options and make data-driven decisions with weighted criteria analysis.
                   </p>
                 </div>
               </div>
