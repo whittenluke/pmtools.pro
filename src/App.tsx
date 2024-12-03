@@ -9,6 +9,7 @@ import { AuthProvider } from './lib/supabase/AuthProvider';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { UpdatePassword } from './pages/auth/UpdatePassword';
+import { Calculator } from './pages/tools/Calculator';
 
 function App(): JSX.Element {
   return (
@@ -22,6 +23,7 @@ function App(): JSX.Element {
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="update-password" element={<UpdatePassword />} />
             <Route path="tools" element={<Tools />} />
+            <Route path="tools/calculator" element={<Calculator />} />
             <Route
               path="account/dashboard"
               element={
