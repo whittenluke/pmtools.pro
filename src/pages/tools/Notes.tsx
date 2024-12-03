@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Search, Tag, Pin, PinOff, Trash2, Loader2, RotateCcw } from 'lucide-react';
+import { Plus, Search, Tag, Pin, Trash2, Loader2, RotateCcw } from 'lucide-react';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { useNavigate } from 'react-router-dom';
 
