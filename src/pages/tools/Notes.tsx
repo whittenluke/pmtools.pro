@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, Tag, Pin, PinOff, Trash2, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Search, Tag, Pin, PinOff, Trash2, Loader2, RotateCcw } from 'lucide-react';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,17 +23,19 @@ export function Notes() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'notes' | 'trash'>('notes');
 
   // Fetch notes on component mount
   useEffect(() => {
     fetchNotes();
-  }, []);
+  }, [activeTab]);
 
   const fetchNotes = async () => {
     try {
       const { data, error } = await supabase
         .from('notes')
         .select('*')
+        .eq('status', activeTab === 'notes' ? 'active' : 'trash')
         .order('is_pinned', { ascending: false })
         .order('updated_at', { ascending: false });
 
@@ -49,9 +51,13 @@ export function Notes() {
   const addNote = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
+      sessionStorage.setItem('returnTo', '/tools/notes');
       setShowAuthPrompt(true);
       return;
     }
+
+    // Switch to Notes tab first
+    setActiveTab('notes');
 
     setIsSaving(true);
     try {
@@ -60,7 +66,8 @@ export function Notes() {
         content: '',
         tags: [],
         is_pinned: false,
-        user_id: user.id
+        user_id: user.id,
+        status: 'active'
       };
 
       const { data, error } = await supabase
@@ -71,7 +78,7 @@ export function Notes() {
 
       if (error) throw error;
       
-      setNotes([data, ...notes]);
+      setNotes(currentNotes => [data, ...currentNotes]);
       setSelectedNote(data);
     } catch (error) {
       console.error('Error adding note:', error);
@@ -79,6 +86,19 @@ export function Notes() {
       setIsSaving(false);
     }
   };
+
+  const debouncedSave = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (id: string, updates: Partial<Note>) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          saveNote(id, updates);
+        }, 1000); // Wait 1 second after last keystroke before saving
+      };
+    })(),
+    []
+  );
 
   const saveNote = async (id: string, updates: Partial<Note>) => {
     setIsSaving(true);
@@ -90,11 +110,13 @@ export function Notes() {
 
       if (error) throw error;
 
-      setNotes(notes.map(note => 
-        note.id === id 
-          ? { ...note, ...updates, updated_at: new Date().toISOString() }
-          : note
-      ));
+      setNotes(currentNotes => 
+        currentNotes.map(note => 
+          note.id === id 
+            ? { ...note, ...updates, updated_at: new Date().toISOString() }
+            : note
+        )
+      );
 
       if (selectedNote?.id === id) {
         setSelectedNote(prev => prev ? { ...prev, ...updates } : null);
@@ -110,17 +132,63 @@ export function Notes() {
     try {
       const { error } = await supabase
         .from('notes')
+        .update({ 
+          status: 'trash',
+          deleted_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      if (activeTab === 'notes') {
+        setNotes(notes.filter(note => note.id !== id));
+        if (selectedNote?.id === id) {
+          setSelectedNote(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error moving note to trash:', error);
+    }
+  };
+
+  const restoreNote = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({ 
+          status: 'active',
+          deleted_at: null
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      if (activeTab === 'trash') {
+        setNotes(notes.filter(note => note.id !== id));
+        if (selectedNote?.id === id) {
+          setSelectedNote(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring note:', error);
+    }
+  };
+
+  const permanentlyDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
-
+      
       setNotes(notes.filter(note => note.id !== id));
       if (selectedNote?.id === id) {
         setSelectedNote(null);
       }
     } catch (error) {
-      console.error('Error deleting note:', error);
+      console.error('Error permanently deleting note:', error);
     }
   };
 
@@ -157,14 +225,14 @@ export function Notes() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-[calc(100vh-200px)]">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto mt-10 p-4">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
       {showAuthPrompt && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full mx-4 transform transition-all">
@@ -213,6 +281,32 @@ export function Notes() {
         <div className="flex gap-6">
           {/* Notes List */}
           <div className="w-1/3 border-r pr-6">
+            {/* Tab Navigation */}
+            <div className="flex mb-4 border-b">
+              <button
+                onClick={() => setActiveTab('notes')}
+                className={`px-4 py-2 -mb-px ${
+                  activeTab === 'notes'
+                    ? 'border-b-2 border-indigo-500 text-indigo-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Notes
+              </button>
+              <button
+                onClick={() => setActiveTab('trash')}
+                className={`px-4 py-2 -mb-px flex items-center gap-1 ${
+                  activeTab === 'trash'
+                    ? 'border-b-2 border-indigo-500 text-indigo-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Trash2 className="h-4 w-4" />
+                Trash
+              </button>
+            </div>
+
+            {/* Search Bar */}
             <div className="mb-4">
               <div className="relative">
                 <Search className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -226,35 +320,73 @@ export function Notes() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* Notes List */}
+            <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-300px)]">
+              {activeTab === 'trash' && (
+                <p className="text-sm text-gray-500 mb-4">
+                  Notes in trash will be permanently deleted after 3 days
+                </p>
+              )}
               {filteredNotes.map(note => (
                 <div
                   key={note.id}
                   onClick={() => setSelectedNote(note)}
-                  className={`p-3 rounded cursor-pointer ${
-                    selectedNote?.id === note.id
-                      ? 'bg-indigo-50 border-indigo-500'
-                      : 'hover:bg-gray-50'
+                  className={`p-3 rounded cursor-pointer transition-colors ${
+                    selectedNote?.id === note.id ? 'bg-indigo-50' : 'hover:bg-gray-50'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-medium">{note.title}</h3>
-                      <p className="text-sm text-gray-500 truncate">{note.content}</p>
+                      <h3 className="font-medium truncate">{note.title || 'Untitled Note'}</h3>
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{note.content}</p>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePin(note.id);
-                      }}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      {note.is_pinned ? (
-                        <Pin className="h-4 w-4" />
+                    <div className="flex items-center gap-2 ml-2">
+                      {activeTab === 'notes' ? (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              togglePin(note.id);
+                            }}
+                            className={`p-1 rounded hover:bg-gray-100 transition-colors ${
+                              note.is_pinned ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
+                            }`}
+                          >
+                            <Pin className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNote(note.id);
+                            }}
+                            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
                       ) : (
-                        <PinOff className="h-4 w-4" />
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              restoreNote(note.id);
+                            }}
+                            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-indigo-600 transition-colors"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              permanentlyDelete(note.id);
+                            }}
+                            className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
                       )}
-                    </button>
+                    </div>
                   </div>
                   {note.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
@@ -284,7 +416,7 @@ export function Notes() {
                     onChange={(e) => {
                       const newTitle = e.target.value;
                       setSelectedNote(prev => prev ? { ...prev, title: newTitle } : null);
-                      saveNote(selectedNote.id, { title: newTitle });
+                      debouncedSave(selectedNote.id, { title: newTitle });
                     }}
                     placeholder="Untitled Note"
                     className="text-xl font-bold bg-transparent border-none focus:ring-0 p-0 w-full placeholder-gray-400"
@@ -331,7 +463,7 @@ export function Notes() {
                   onChange={(e) => {
                     const newContent = e.target.value;
                     setSelectedNote(prev => prev ? { ...prev, content: newContent } : null);
-                    saveNote(selectedNote.id, { content: newContent });
+                    debouncedSave(selectedNote.id, { content: newContent });
                   }}
                   className="w-full h-[calc(100vh-400px)] p-4 border rounded focus:ring-2 focus:ring-indigo-500 resize-none"
                   placeholder="Start writing..."

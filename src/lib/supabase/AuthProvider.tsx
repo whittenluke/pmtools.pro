@@ -26,27 +26,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     async function initializeAuth() {
       try {
-        // Check active sessions and sets the user
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
         
         if (mounted) {
-          console.log('Initial session check:', session);
           setUser(session?.user ?? null);
           setLoading(false);
+          
+          if (accessToken && session?.user) {
+            const returnTo = sessionStorage.getItem('returnTo');
+            if (returnTo) {
+              sessionStorage.removeItem('returnTo');
+              navigate(returnTo, { replace: true });
+              return;
+            }
+          }
         }
 
-        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event: AuthChangeEvent, session: Session | null) => {
             if (!mounted) return;
             
-            console.log('Auth state changed:', { event, session });
             setUser(session?.user ?? null);
             setLoading(false);
 
             if (event === 'SIGNED_IN') {
-              navigate('/account/dashboard', { replace: true });
+              const returnTo = sessionStorage.getItem('returnTo');
+              if (returnTo) {
+                sessionStorage.removeItem('returnTo');
+                navigate(returnTo, { replace: true });
+              } else {
+                navigate('/account/dashboard', { replace: true });
+              }
             }
           }
         );
