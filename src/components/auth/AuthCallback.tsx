@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import type { FC } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-export function AuthCallback() {
+export const AuthCallback: FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,4 +20,4 @@ export function AuthCallback() {
       <div className="text-gray-600">Redirecting...</div>
     </div>
   );
-} 
+}; 
