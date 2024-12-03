@@ -5,19 +5,10 @@
 [build.environment]
   NODE_VERSION = "20"
 
-[dev]
-  framework = "#custom"
-  targetPort = 5173
-  port = 8888
-  command = "npm run dev"
+[functions]
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-[functions]
-  node_bundler = "esbuild"
-
-[build.processing]
-  skip_processing = false

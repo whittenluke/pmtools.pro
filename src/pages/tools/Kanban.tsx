@@ -5,6 +5,16 @@ import { KanbanView } from '../../components/kanban/KanbanView';
 import { TableView } from '../../components/kanban/TableView';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { useNavigate } from 'react-router-dom';
+import { ErrorBoundary } from 'react-error-boundary';
+
+function ErrorFallback({ error }: { error: Error }) {
+  return (
+    <div className="p-4 text-red-500">
+      <h2>Something went wrong:</h2>
+      <pre>{error.message}</pre>
+    </div>
+  );
+}
 
 export default function Kanban() {
   const { supabase } = useSupabase();
@@ -22,8 +32,17 @@ export default function Kanban() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error('Auth error:', error);
+        throw error;
+      }
+      if (!user) {
+        setShowAuthPrompt(true);
+      }
+    } catch (error) {
+      console.error('Failed to check auth:', error);
       setShowAuthPrompt(true);
     }
   };
@@ -95,40 +114,42 @@ export default function Kanban() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <input
-            type="text"
-            value={board.title}
-            onChange={(e) => setBoard({ ...board, title: e.target.value })}
-            className="text-2xl font-bold bg-transparent border-none focus:ring-0"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
-              className="p-2 hover:bg-gray-100 rounded"
-            >
-              {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
-            </button>
-            <button
-              onClick={addColumn}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-            >
-              <Plus className="h-4 w-4" />
-              Add Column
-            </button>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <div className="max-w-7xl mx-auto p-4">
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {/* Header */}
+          <div className="flex justify-between items-center mb-6">
+            <input
+              type="text"
+              value={board.title}
+              onChange={(e) => setBoard({ ...board, title: e.target.value })}
+              className="text-2xl font-bold bg-transparent border-none focus:ring-0"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
+                className="p-2 hover:bg-gray-100 rounded"
+              >
+                {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
+              </button>
+              <button
+                onClick={addColumn}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add Column
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Views */}
-        {viewMode === 'kanban' ? (
-          <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
-        ) : (
-          <TableView board={board} setBoard={setBoard} />
-        )}
+          {/* Views */}
+          {viewMode === 'kanban' ? (
+            <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
+          ) : (
+            <TableView board={board} setBoard={setBoard} />
+          )}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 } 
