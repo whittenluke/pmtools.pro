@@ -10,6 +10,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { UpdatePassword } from './pages/auth/UpdatePassword';
 import { Calculator } from './pages/tools/Calculator';
+import { PomodoroTimer } from './pages/tools/PomodoroTimer';
 
 function App(): JSX.Element {
   return (
@@ -24,6 +25,7 @@ function App(): JSX.Element {
             <Route path="update-password" element={<UpdatePassword />} />
             <Route path="tools" element={<Tools />} />
             <Route path="tools/calculator" element={<Calculator />} />
+            <Route path="tools/pomodoro" element={<PomodoroTimer />} />
             <Route
               path="account/dashboard"
               element={

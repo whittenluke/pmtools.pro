@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export function Calculator() {
   const [display, setDisplay] = useState('0');

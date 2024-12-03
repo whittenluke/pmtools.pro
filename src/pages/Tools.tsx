@@ -30,11 +30,11 @@ export function Tools() {
       category: 'Calculation'
     },
     {
-      id: 'time-tracker',
-      name: 'Time Tracker',
-      description: 'Track your time with Pomodoro technique',
+      id: 'pomodoro-timer',
+      name: 'Pomodoro Timer',
+      description: 'Focus and time management with Pomodoro technique',
       icon: Clock,
-      path: '/tools/time-tracker',
+      path: '/tools/pomodoro',
       category: 'Time Management'
     },
     {
