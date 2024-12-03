@@ -107,15 +107,15 @@ export function Home() {
                 </div>
               </div>
 
-              {/* Smart Notes Tool */}
+              {/* Notes Tool */}
               <div className="relative">
                 <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
                   <FileText className="h-6 w-6" aria-hidden="true" />
                 </div>
                 <div className="ml-16">
-                  <h3 className="text-lg font-medium text-gray-900">Smart Notes</h3>
+                  <h3 className="text-lg font-medium text-gray-900">Notes</h3>
                   <p className="mt-2 text-base text-gray-500">
-                    Intelligent note-taking with AI-powered organization.
+                    Organize your thoughts and ideas with simple note-taking.
                   </p>
                 </div>
               </div>

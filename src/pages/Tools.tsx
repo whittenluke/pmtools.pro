@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Calculator, 
   Clock, 
@@ -54,12 +54,12 @@ export function Tools() {
       category: 'Analysis'
     },
     {
-      id: 'note-taking',
-      name: 'Smart Notes',
-      description: 'Intelligent note-taking with AI assistance',
+      id: 'notes',
+      name: 'Notes',
+      description: 'Organize your thoughts and ideas with simple note-taking.',
       icon: FileText,
       path: '/tools/notes',
-      category: 'Documentation'
+      category: 'Productivity'
     },
     {
       id: 'kanban-board',
@@ -92,6 +92,14 @@ export function Tools() {
       icon: Workflow,
       path: '/tools/workflow',
       category: 'Automation'
+    },
+    {
+      id: 'notes',
+      name: 'Notes',
+      description: 'Organize your thoughts and ideas with simple note-taking.',
+      icon: FileText,
+      path: '/tools/notes',
+      category: 'Productivity'
     }
   ];
 

@@ -21,11 +21,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/tools/notes" className="text-gray-500 hover:text-gray-900">
-                  Smart Notes
-                </Link>
-              </li>
-              <li>
                 <Link to="/tools/kanban" className="text-gray-500 hover:text-gray-900">
                   Kanban Board
                 </Link>
