@@ -5,20 +5,17 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[context.production]
+  command = "npm run build"
+
+[context.deploy-preview]
+  command = "npm run build"
+
+[context.branch-deploy]
+  command = "npm run build"
+
 [functions]
   node_bundler = "esbuild"
-
-[[redirects]]
-  from = "http://*"
-  to = "https://:splat"
-  status = 301
-  force = true
-
-[[redirects]]
-  from = "https://pmtools.pro/*"
-  to = "https://www.pmtools.pro/:splat"
-  status = 301
-  force = true
 
 [[redirects]]
   from = "/*"
