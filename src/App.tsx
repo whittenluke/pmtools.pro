@@ -15,6 +15,7 @@ import { ProjectEstimation } from './pages/tools/ProjectEstimation.tsx';
 import { DecisionMatrix } from './pages/tools/DecisionMatrix';
 import { Notes } from './pages/tools/Notes';
 import { SupabaseProvider } from './lib/supabase/supabase-context';
+import Kanban from './pages/tools/Kanban';
 
 function App(): JSX.Element {
   return (
@@ -34,6 +35,7 @@ function App(): JSX.Element {
               <Route path="tools/estimation" element={<ProjectEstimation />} />
               <Route path="tools/decision-matrix" element={<DecisionMatrix />} />
               <Route path="tools/notes" element={<Notes />} />
+              <Route path="tools/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
               <Route
                 path="account/dashboard"
                 element={

@@ -8,7 +8,7 @@ import {
   Target, 
   Repeat, 
   Workflow, 
-  Scale
+  Scale 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToolStore } from '../store/toolStore';
@@ -62,7 +62,7 @@ export function Tools() {
       category: 'Productivity'
     },
     {
-      id: 'kanban-board',
+      id: 'kanban',
       name: 'Kanban Board',
       description: 'Visual project management with drag-and-drop',
       icon: Kanban,
@@ -92,14 +92,6 @@ export function Tools() {
       icon: Workflow,
       path: '/tools/workflow',
       category: 'Automation'
-    },
-    {
-      id: 'notes',
-      name: 'Notes',
-      description: 'Organize your thoughts and ideas with simple note-taking.',
-      icon: FileText,
-      path: '/tools/notes',
-      category: 'Productivity'
     }
   ];
 
