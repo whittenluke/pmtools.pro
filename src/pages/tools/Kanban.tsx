@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, List, LayoutDashboard } from 'lucide-react';
-import type { KanbanBoard, KanbanTask, ViewMode } from '../../types/kanban';
+import type { KanbanBoard, ViewMode } from '../../types/kanban';
 import { KanbanView } from '../../components/kanban/KanbanView';
 import { TableView } from '../../components/kanban/TableView';
 import { useSupabase } from '../../lib/supabase/supabase-context';
@@ -47,6 +47,95 @@ export default function Kanban() {
     }
   };
 
+  // Load board data
+  useEffect(() => {
+    loadBoard();
+  }, []);
+
+  const loadBoard = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get or create default board
+      let { data: boards } = await supabase
+        .from('kanban_boards')
+        .select('*')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      let boardId;
+      if (!boards?.length) {
+        const { data: newBoard } = await supabase
+          .from('kanban_boards')
+          .insert({ user_id: user.id, title: 'My Project' })
+          .select()
+          .single();
+        boardId = newBoard?.id;
+      } else {
+        boardId = boards[0].id;
+      }
+
+      // Load columns with tasks
+      const { data: columns } = await supabase
+        .from('kanban_columns')
+        .select(`
+          id,
+          title,
+          position,
+          tasks:kanban_tasks(
+            id,
+            title,
+            description,
+            tags,
+            position,
+            column_id,
+            created_at,
+            updated_at
+          )
+        `)
+        .eq('board_id', boardId)
+        .order('position');
+
+      // Transform the data to ensure columnId matches and dates are properly typed
+      const transformedColumns = columns?.map(column => ({
+        ...column,
+        tasks: column.tasks.map(task => ({
+          ...task,
+          columnId: column.id,
+          createdAt: new Date(task.created_at),
+          updatedAt: new Date(task.updated_at)
+        }))
+      }));
+
+      setBoard({
+        id: boardId,
+        title: boards?.[0]?.title || 'My Project',
+        columns: transformedColumns || []
+      });
+    } catch (error) {
+      console.error('Error loading board:', error);
+    }
+  };
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('kanban_changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'kanban_tasks' 
+      }, () => {
+        // Handle real-time updates
+        loadBoard();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   if (showAuthPrompt) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -78,39 +167,55 @@ export default function Kanban() {
     );
   }
 
-  const addColumn = () => {
-    const newColumn = {
-      id: crypto.randomUUID(),
-      title: 'New Column',
-      order: board.columns.length,
-      tasks: []
-    };
-    setBoard({
-      ...board,
-      columns: [...board.columns, newColumn]
-    });
+  // Update functions
+  const addColumn = async () => {
+    try {
+      const { data: newColumn } = await supabase
+        .from('kanban_columns')
+        .insert({
+          board_id: board.id,
+          title: 'New Column',
+          position: board.columns.length
+        })
+        .select()
+        .single();
+
+      if (newColumn) {
+        setBoard({
+          ...board,
+          columns: [...board.columns, { ...newColumn, tasks: [] }]
+        });
+      }
+    } catch (error) {
+      console.error('Error adding column:', error);
+    }
   };
 
-  const addTask = (columnId: string) => {
-    const newTask: KanbanTask = {
-      id: crypto.randomUUID(),
-      title: 'New Task',
-      description: '',
-      tags: [],
-      columnId,
-      order: board.columns.find(col => col.id === columnId)?.tasks.length || 0,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+  const addTask = async (columnId: string) => {
+    try {
+      const { data: newTask } = await supabase
+        .from('kanban_tasks')
+        .insert({
+          column_id: columnId,
+          title: 'New Task',
+          position: board.columns.find(col => col.id === columnId)?.tasks.length || 0
+        })
+        .select()
+        .single();
 
-    setBoard({
-      ...board,
-      columns: board.columns.map(col => 
-        col.id === columnId 
-          ? { ...col, tasks: [...col.tasks, newTask] }
-          : col
-      )
-    });
+      if (newTask) {
+        setBoard({
+          ...board,
+          columns: board.columns.map(col =>
+            col.id === columnId
+              ? { ...col, tasks: [...col.tasks, newTask] }
+              : col
+          )
+        });
+      }
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
   };
 
   return (

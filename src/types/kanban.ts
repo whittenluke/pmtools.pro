@@ -4,7 +4,7 @@ export interface KanbanTask {
   description: string;
   tags: string[];
   columnId: string;
-  order: number;
+  position: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -12,7 +12,7 @@ export interface KanbanTask {
 export interface KanbanColumn {
   id: string;
   title: string;
-  order: number;
+  position: number;
   tasks: KanbanTask[];
 }
 

@@ -1,6 +1,7 @@
 import { Plus, X } from 'lucide-react';
 import type { KanbanBoard, KanbanTask } from '../../types/kanban';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
+import { useSupabase } from '../../lib/supabase/supabase-context';
 
 interface KanbanViewProps {
   board: KanbanBoard;
@@ -9,6 +10,8 @@ interface KanbanViewProps {
 }
 
 export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
+  const { supabase } = useSupabase();
+
   const deleteColumn = (columnId: string) => {
     setBoard({
       ...board,
@@ -39,51 +42,61 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
     });
   };
 
-  const onDragEnd = (result: any) => {
-    if (!result.destination) return;
+  const onDragEnd = async (result: DropResult) => {
+    const { destination, source } = result;
+    if (!destination) return;
+
+    // Same position
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    // Create new board state
+    const newBoard = structuredClone(board);
+    const sourceCol = newBoard.columns.find(col => col.id === source.droppableId);
+    const destCol = newBoard.columns.find(col => col.id === destination.droppableId);
     
-    const { source, destination } = result;
-    
-    // Moving between columns
-    if (source.droppableId !== destination.droppableId) {
-      const sourceColumn = board.columns.find(col => col.id === source.droppableId);
-      const destColumn = board.columns.find(col => col.id === destination.droppableId);
-      
-      if (sourceColumn && destColumn) {
-        const sourceTasks = [...sourceColumn.tasks];
-        const destTasks = [...destColumn.tasks];
-        const [movedTask] = sourceTasks.splice(source.index, 1);
-        
-        destTasks.splice(destination.index, 0, { ...movedTask, columnId: destination.droppableId });
-        
-        setBoard({
-          ...board,
-          columns: board.columns.map(col => {
-            if (col.id === source.droppableId) {
-              return { ...col, tasks: sourceTasks };
-            }
-            if (col.id === destination.droppableId) {
-              return { ...col, tasks: destTasks };
-            }
-            return col;
-          })
-        });
-      }
-    } else {
-      // Moving within the same column
-      const column = board.columns.find(col => col.id === source.droppableId);
-      if (column) {
-        const copiedTasks = [...column.tasks];
-        const [movedTask] = copiedTasks.splice(source.index, 1);
-        copiedTasks.splice(destination.index, 0, movedTask);
-        
-        setBoard({
-          ...board,
-          columns: board.columns.map(col =>
-            col.id === source.droppableId ? { ...col, tasks: copiedTasks } : col
-          )
-        });
-      }
+    if (!sourceCol || !destCol) return;
+
+    // Remove task from source
+    const [task] = sourceCol.tasks.splice(source.index, 1);
+    // Add task to destination
+    destCol.tasks.splice(destination.index, 0, task);
+
+    // Update positions
+    destCol.tasks.forEach((task, index) => {
+      task.position = index;
+    });
+
+    // Update UI immediately
+    setBoard(newBoard);
+
+    try {
+      // Update task in database
+      await supabase
+        .from('kanban_tasks')
+        .update({ 
+          column_id: destination.droppableId,
+          position: destination.index 
+        })
+        .eq('id', task.id);
+
+      // Update positions of other tasks in the destination column
+      const updates = destCol.tasks.map((task, index) => ({
+        id: task.id,
+        position: index
+      }));
+
+      await supabase
+        .from('kanban_tasks')
+        .upsert(updates, { onConflict: 'id' });
+
+    } catch (error) {
+      console.error('Error updating task positions:', error);
+      // Could add error handling/rollback here
     }
   };
 
