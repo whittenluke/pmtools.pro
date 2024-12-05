@@ -2,6 +2,8 @@ import { Plus, X } from 'lucide-react';
 import type { KanbanBoard, KanbanTask } from '../../types/kanban';
 import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-beautiful-dnd';
 import { useSupabase } from '../../lib/supabase/supabase-context';
+import { useState } from 'react';
+import { TaskDetailsModal } from './TaskDetailsModal';
 
 interface KanbanViewProps {
   board: KanbanBoard;
@@ -11,15 +13,32 @@ interface KanbanViewProps {
 
 export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   const { supabase } = useSupabase();
+  const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
 
-  const deleteColumn = (columnId: string) => {
+  const deleteColumn = async (columnId: string) => {
+    // Update UI immediately
     setBoard({
       ...board,
       columns: board.columns.filter(col => col.id !== columnId)
     });
+
+    // Delete from database
+    try {
+      await supabase
+        .from('kanban_columns')
+        .delete()
+        .eq('id', columnId);
+      
+      // Note: We don't need to explicitly delete tasks
+      // because we set up ON DELETE CASCADE in the database
+    } catch (error) {
+      console.error('Error deleting column:', error);
+      // Could add error handling/rollback here
+    }
   };
 
-  const updateTask = (taskId: string, columnId: string, updates: Partial<KanbanTask>) => {
+  const updateTask = async (taskId: string, columnId: string, updates: Partial<KanbanTask>) => {
+    // Update UI immediately
     setBoard({
       ...board,
       columns: board.columns.map(col => 
@@ -31,6 +50,19 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
         } : col
       )
     });
+
+    // Persist to database
+    try {
+      await supabase
+        .from('kanban_tasks')
+        .update({
+          ...updates,
+          updated_at: new Date()
+        })
+        .eq('id', taskId);
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
   };
 
   const updateColumnTitle = (columnId: string, title: string) => {
@@ -139,7 +171,8 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className="bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow"
+                            onClick={() => setSelectedTask(task)}
+                            className="bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                           >
                             <input
                               type="text"
@@ -187,6 +220,18 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
           ))}
         </div>
       </div>
+
+      <TaskDetailsModal
+        task={selectedTask}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        onUpdate={(updatedTask: KanbanTask) => {
+          const column = board.columns.find(col => col.id === updatedTask.columnId);
+          if (column) {
+            updateTask(updatedTask.id, column.id, updatedTask);
+          }
+        }}
+      />
     </DragDropContext>
   );
 } 
