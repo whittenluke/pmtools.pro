@@ -40,25 +40,18 @@ export function setupDropTarget(
   onDragLeave: () => void,
   getData: () => { id: string; index: number }
 ) {
-  let currentSource: DragSource | null = null;
-
   return dropTargetForElements({
     element,
     getData,
     onDrag: (args) => {
       const source = args.source as unknown as DragSource;
-      currentSource = source;  // Store the source
       
       if (source.data.type === 'task') {
         const rect = element.getBoundingClientRect();
         const mouseY = args.location.current.input.clientY;
-
-        // Calculate relative position within the task
         const relativeY = mouseY - rect.top;
         const height = rect.height;
         const index = getData().index;
-
-        // Insert before if in the top half, after if in the bottom half
         const insertIndex = relativeY < height / 2 ? index : index + 1;
 
         element.dispatchEvent(new CustomEvent('updateInsertPosition', {
@@ -66,7 +59,6 @@ export function setupDropTarget(
           detail: { index: insertIndex }
         }));
       } else if (source.data.type === 'column') {
-        // Add column drag handling
         element.dispatchEvent(new CustomEvent('updateInsertPosition', {
           bubbles: true,
           detail: { type: 'column', index: getData().index }
@@ -75,7 +67,6 @@ export function setupDropTarget(
     },
     onDragEnter: (args) => {
       const source = args.source as unknown as DragSource;
-      currentSource = source;  // Store the source
       
       if (source.data.type === 'task') {
         const rect = element.getBoundingClientRect();
@@ -103,18 +94,16 @@ export function setupDropTarget(
     onDragLeave: () => {
       element.dispatchEvent(new CustomEvent('updateInsertPosition', {
         bubbles: true,
-        detail: { type: currentSource?.data.type, index: null }
+        detail: { type: null, index: null }
       }));
       onDragLeave();
-      currentSource = null;  // Clear the source
     },
     onDropTargetChange: () => {
       element.dispatchEvent(new CustomEvent('updateInsertPosition', {
         bubbles: true,
-        detail: { type: currentSource?.data.type, index: null }
+        detail: { type: null, index: null }
       }));
       onDragLeave();
-      currentSource = null;  // Clear the source
     }
   });
 }

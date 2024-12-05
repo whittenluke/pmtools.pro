@@ -65,28 +65,31 @@ function KanbanTask({
           e.stopPropagation();
           onDeleteClick();
         }}
-        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
       >
         <X className="h-4 w-4" />
       </button>
-      <div className="text-sm sm:text-base font-medium pointer-events-none truncate">
-        {task.title || 'Untitled Task'}
-      </div>
-      <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500 pointer-events-none line-clamp-6 overflow-hidden">
-        {task.description || 'Add description...'}
-      </div>
-      {task.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1 sm:mt-2 pointer-events-none max-h-[40px] overflow-hidden">
-          {task.tags.map(tag => (
-            <span
-              key={tag}
-              className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-gray-100 text-gray-600 rounded"
-            >
-              {tag}
-            </span>
-          ))}
+
+      <div>
+        <div className="text-sm sm:text-base font-medium truncate">
+          {task.title || 'Untitled Task'}
         </div>
-      )}
+        <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500 line-clamp-6 overflow-hidden">
+          {task.description || 'Add description...'}
+        </div>
+        {task.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1 sm:mt-2 max-h-[40px] overflow-hidden">
+            {task.tags.map(tag => (
+              <span
+                key={tag}
+                className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-gray-100 text-gray-600 rounded"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
