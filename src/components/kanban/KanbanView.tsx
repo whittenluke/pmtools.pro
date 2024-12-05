@@ -17,7 +17,6 @@ interface KanbanColumnProps {
   columnIndex: number;
   onTitleChange: (title: string) => void;
   onDeleteClick: () => void;
-  onTaskUpdate: (taskId: string, updates: Partial<KanbanTask>) => void;
   onTaskClick: (task: KanbanTask) => void;
   onTaskDeleteClick: (taskId: string) => void;
   onAddTaskClick: () => void;
@@ -27,7 +26,6 @@ interface KanbanTaskProps {
   task: KanbanTask;
   taskIndex: number;
   columnId: string;
-  onUpdate: (updates: Partial<KanbanTask>) => void;
   onClick: () => void;
   onDeleteClick: () => void;
   isDragging: boolean;
@@ -37,7 +35,6 @@ function KanbanTask({
   task,
   taskIndex,
   columnId,
-  onUpdate,
   onClick,
   onDeleteClick,
   isDragging,
@@ -59,7 +56,7 @@ function KanbanTask({
     <div
       ref={taskRef}
       onClick={onClick}
-      className={`bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing relative group ${
+      className={`bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group select-none ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
@@ -72,26 +69,14 @@ function KanbanTask({
       >
         <X className="h-4 w-4" />
       </button>
-      <input
-        type="text"
-        id={`task-title-${task.id}`}
-        name={`task-title-${task.id}`}
-        value={task.title || ''}
-        onChange={(e) => onUpdate({ title: e.target.value })}
-        className="text-sm sm:text-base font-medium w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 cursor-text"
-        placeholder="Task Title"
-      />
-      <textarea
-        id={`task-description-${task.id}`}
-        name={`task-description-${task.id}`}
-        value={task.description || ''}
-        onChange={(e) => onUpdate({ description: e.target.value })}
-        className="mt-1 sm:mt-2 w-full text-xs sm:text-sm text-gray-500 bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 resize-none"
-        placeholder="Add description..."
-        rows={2}
-      />
+      <div className="text-sm sm:text-base font-medium pointer-events-none truncate">
+        {task.title || 'Untitled Task'}
+      </div>
+      <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500 pointer-events-none line-clamp-6 overflow-hidden">
+        {task.description || 'Add description...'}
+      </div>
       {task.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-1 sm:mt-2">
+        <div className="flex flex-wrap gap-1 mt-1 sm:mt-2 pointer-events-none max-h-[40px] overflow-hidden">
           {task.tags.map(tag => (
             <span
               key={tag}
@@ -111,7 +96,6 @@ function KanbanColumn({
   columnIndex,
   onTitleChange,
   onDeleteClick,
-  onTaskUpdate,
   onTaskClick,
   onTaskDeleteClick,
   onAddTaskClick,
@@ -251,10 +235,10 @@ function KanbanColumn({
       </div>
 
       <div className="space-y-2 min-h-[50px] relative">
-        {/* Top drop target */}
+        {/* Invisible drop targets that just work */}
         <div 
           id={`task-drop-${column.id}-top`}
-          className="h-2"
+          className="h-8 -mt-4" // Taller hit zone, positioned to overlap
         />
         
         {column.tasks.map((task, taskIndex) => (
@@ -270,13 +254,18 @@ function KanbanColumn({
               task={task}
               taskIndex={taskIndex}
               columnId={column.id}
-              onUpdate={(updates) => onTaskUpdate(task.id, updates)}
               onClick={() => onTaskClick(task)}
               onDeleteClick={() => onTaskDeleteClick(task.id)}
               isDragging={task.id === draggingTaskId}
             />
           </div>
         ))}
+
+        {/* Bottom drop target */}
+        <div 
+          id={`task-drop-${column.id}-empty`}
+          className="h-8" // Just a hit zone, no visual
+        />
       </div>
 
       <button
@@ -531,7 +520,7 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
         {/* Leftmost drop target */}
         <div 
           id="column-drop-start"
-          className="absolute left-0 top-0 bottom-0 w-12 -ml-6"
+          className="absolute left-0 top-0 bottom-0 w-36 -ml-16"
         />
         
         {board.columns.map((column: KanbanColumn, columnIndex: number) => (
@@ -544,7 +533,7 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
             }}
           >
             <div 
-              className="absolute left-0 top-0 bottom-0 w-12 -ml-6"
+              className="absolute left-0 top-0 bottom-0 w-36 -ml-16"
               ref={el => leftDropRefs.current[columnIndex] = el}
             />
             <KanbanColumn
@@ -552,13 +541,12 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
               columnIndex={columnIndex}
               onTitleChange={(title) => updateColumnTitle(column.id, title)}
               onDeleteClick={() => setDeleteTarget({ type: 'column', id: column.id })}
-              onTaskUpdate={(taskId, updates) => updateTask(taskId, column.id, updates)}
               onTaskClick={setSelectedTask}
               onTaskDeleteClick={(taskId) => setDeleteTarget({ type: 'task', id: taskId, columnId: column.id })}
               onAddTaskClick={() => addTask(column.id)}
             />
             <div 
-              className="absolute right-0 top-0 bottom-0 w-12 -mr-6"
+              className="absolute right-0 top-0 bottom-0 w-36 -mr-16"
               ref={el => rightDropRefs.current[columnIndex] = el}
             />
           </div>

@@ -128,7 +128,7 @@ export function setupDragMonitor(
   return monitorForElements({
     onDrag(args) {
       // Keep track of the current active drop target
-      const event = args.location.current.dropTargets[0]?.data as { index: number } | undefined;
+      const event = args.location.current.dropTargets[0]?.data as { index: number; id?: string } | undefined;
       if (event) {
         activeDropTarget = event.index;
       }
@@ -137,9 +137,9 @@ export function setupDragMonitor(
     onDrop(args: BaseEventPayload<ElementDragType>) {
       const source = args.source as unknown as DragSource;
       const sourceData = source.data;
+      const dropTarget = args.location.current.dropTargets[0]?.data as { id: string; index: number };
       
-      // Only drop if we have an active target
-      if (activeDropTarget === null) return;
+      if (!dropTarget || activeDropTarget === null) return;
       
       const newBoard = structuredClone(board);
 
@@ -166,8 +166,31 @@ export function setupDragMonitor(
 
         newBoard.columns = columns;
         onDrop(newBoard);
+      } else if (sourceData.type === 'task') {
+        // Handle task reordering
+        const sourceCol = newBoard.columns.find(col => col.id === sourceData.columnId);
+        const destCol = newBoard.columns.find(col => col.id === dropTarget.id);
+        
+        if (!sourceCol || !destCol) return;
+
+        // Remove task from source column
+        const [task] = sourceCol.tasks.splice(sourceData.sourceIndex, 1);
+
+        // Add task to destination column at the exact position where the space opened
+        destCol.tasks.splice(activeDropTarget, 0, task);
+        
+        // Update task positions
+        destCol.tasks.forEach((task, index) => {
+          task.position = index;
+        });
+
+        newBoard.columns = newBoard.columns.map(col => 
+          col.id === destCol.id ? destCol : 
+          col.id === sourceCol.id ? sourceCol : col
+        );
+
+        onDrop(newBoard);
       }
-      // ... task handling ...
     },
   });
 } 

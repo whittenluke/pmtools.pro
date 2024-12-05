@@ -39,7 +39,8 @@ export function TaskDetailsModal({ task, isOpen, onClose, onUpdate, onDelete }: 
           title,
           description,
           tags,
-          updated_at: new Date()
+          column_id: task.columnId,
+          updated_at: new Date().toISOString()
         })
         .eq('id', task.id)
         .select()
@@ -47,7 +48,14 @@ export function TaskDetailsModal({ task, isOpen, onClose, onUpdate, onDelete }: 
 
       if (error) throw error;
       if (data) {
-        onUpdate(data);
+        const updatedTask: KanbanTask = {
+          ...task,
+          title,
+          description,
+          tags,
+          updatedAt: new Date(data.updated_at)
+        };
+        onUpdate(updatedTask);
         onClose();
       }
     } catch (error) {
