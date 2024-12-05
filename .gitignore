@@ -34,6 +34,7 @@ yarn-error.log*
 .env.production.local
 
 # Project specific
+PragmaticDocs.md  
 Roadmap.md
 TODO.md
 NOTES.md
