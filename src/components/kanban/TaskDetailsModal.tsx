@@ -8,9 +8,10 @@ interface TaskDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdate: (task: KanbanTask) => void;
+  onDelete: (task: KanbanTask) => void;
 }
 
-export function TaskDetailsModal({ task, isOpen, onClose, onUpdate }: TaskDetailsModalProps) {
+export function TaskDetailsModal({ task, isOpen, onClose, onUpdate, onDelete }: TaskDetailsModalProps) {
   const { supabase } = useSupabase();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState(task?.title || '');
@@ -135,6 +136,13 @@ export function TaskDetailsModal({ task, isOpen, onClose, onUpdate }: TaskDetail
           </div>
 
           <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => task && onDelete(task)}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+            >
+              Delete Task
+            </button>
             <button
               type="button"
               onClick={onClose}

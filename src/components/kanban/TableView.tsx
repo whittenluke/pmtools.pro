@@ -96,6 +96,21 @@ export function TableView({ board, setBoard }: TableViewProps) {
             });
           }
         }}
+        onDelete={(task) => {
+          setSelectedTask(null);
+          const column = board.columns.find(col => col.id === task.columnId);
+          if (column) {
+            setBoard({
+              ...board,
+              columns: board.columns.map(col =>
+                col.id === column.id ? {
+                  ...col,
+                  tasks: col.tasks.filter(t => t.id !== task.id)
+                } : col
+              )
+            });
+          }
+        }}
       />
     </div>
   );

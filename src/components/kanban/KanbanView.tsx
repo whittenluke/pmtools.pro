@@ -4,6 +4,7 @@ import { DragDropContext, Droppable, Draggable, type DropResult } from 'react-be
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { useState } from 'react';
 import { TaskDetailsModal } from './TaskDetailsModal';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 interface KanbanViewProps {
   board: KanbanBoard;
@@ -14,6 +15,7 @@ interface KanbanViewProps {
 export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   const { supabase } = useSupabase();
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'column' | 'task', id: string, columnId?: string } | null>(null);
 
   const deleteColumn = async (columnId: string) => {
     // Update UI immediately
@@ -72,6 +74,28 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
         col.id === columnId ? { ...col, title } : col
       )
     });
+  };
+
+  const deleteTask = async (taskId: string, columnId: string) => {
+    // Update UI immediately
+    setBoard({
+      ...board,
+      columns: board.columns.map(col =>
+        col.id === columnId
+          ? { ...col, tasks: col.tasks.filter(t => t.id !== taskId) }
+          : col
+      )
+    });
+
+    // Delete from database
+    try {
+      await supabase
+        .from('kanban_tasks')
+        .delete()
+        .eq('id', taskId);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
   };
 
   const onDragEnd = async (result: DropResult) => {
@@ -150,7 +174,7 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
                   placeholder="Column Title"
                 />
                 <button
-                  onClick={() => deleteColumn(column.id)}
+                  onClick={() => setDeleteTarget({ type: 'column', id: column.id })}
                   className="text-gray-400 hover:text-red-500 ml-2"
                 >
                   <X className="h-4 w-4" />
@@ -172,8 +196,17 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             onClick={() => setSelectedTask(task)}
-                            className="bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                            className="bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group"
                           >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget({ type: 'task', id: task.id, columnId: column.id });
+                              }}
+                              className="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
                             <input
                               type="text"
                               value={task.title}
@@ -221,6 +254,20 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
         </div>
       </div>
 
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget?.type === 'column') {
+            deleteColumn(deleteTarget.id);
+          } else if (deleteTarget?.type === 'task' && deleteTarget.columnId) {
+            deleteTask(deleteTarget.id, deleteTarget.columnId);
+          }
+        }}
+        title={`Delete ${deleteTarget?.type === 'column' ? 'Column' : 'Task'}`}
+        message={`Are you sure you want to delete this ${deleteTarget?.type}? This action cannot be undone.`}
+      />
+
       <TaskDetailsModal
         task={selectedTask}
         isOpen={!!selectedTask}
@@ -230,6 +277,10 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
           if (column) {
             updateTask(updatedTask.id, column.id, updatedTask);
           }
+        }}
+        onDelete={(task) => {
+          setSelectedTask(null);
+          setDeleteTarget({ type: 'task', id: task.id, columnId: task.columnId });
         }}
       />
     </DragDropContext>
