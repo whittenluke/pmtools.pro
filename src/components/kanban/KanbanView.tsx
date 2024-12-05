@@ -217,20 +217,11 @@ function KanbanColumn({
     return () => cleanups.forEach(cleanup => cleanup());
   }, [column.id, column.tasks.length]);
 
-  const renderTaskInsertionLine = (index: number) => (
-    <div 
-      className="absolute left-0 right-0 h-0.5 bg-indigo-500 transform -translate-y-1/2"
-      style={{ 
-        position: 'absolute',
-        left: '0',
-        right: '0',
-        height: '2px',
-        backgroundColor: '#6366f1',
-        zIndex: 9999,
-        pointerEvents: 'none'
-      }}
-    />
-  );
+  const getTaskShift = (taskIndex: number) => {
+    if (!draggingTaskId || insertTaskAtIndex === null) return 0;
+    if (taskIndex >= insertTaskAtIndex) return 80;
+    return 0;
+  };
 
   return (
     <div
@@ -263,26 +254,18 @@ function KanbanColumn({
         {/* Top drop target */}
         <div 
           id={`task-drop-${column.id}-top`}
-          className="h-2 -mt-1 relative"
-        >
-          {draggingTaskId && insertTaskAtIndex === 0 && (
-            <div className="absolute inset-x-0 top-1/2">
-              {renderTaskInsertionLine(0)}
-            </div>
-          )}
-        </div>
-
+          className="h-2"
+        />
+        
         {column.tasks.map((task, taskIndex) => (
           <div 
             key={task.id} 
             id={`task-drop-${task.id}`}
-            className="relative"
+            className="relative transition-transform duration-200"
+            style={{ 
+              transform: `translateY(${getTaskShift(taskIndex)}px)`,
+            }}
           >
-            {draggingTaskId && insertTaskAtIndex === taskIndex && (
-              <div className="absolute inset-x-0 top-0">
-                {renderTaskInsertionLine(0)}
-              </div>
-            )}
             <KanbanTask
               task={task}
               taskIndex={taskIndex}
@@ -292,25 +275,8 @@ function KanbanColumn({
               onDeleteClick={() => onTaskDeleteClick(task.id)}
               isDragging={task.id === draggingTaskId}
             />
-            {draggingTaskId && insertTaskAtIndex === taskIndex + 1 && (
-              <div className="absolute inset-x-0 bottom-0">
-                {renderTaskInsertionLine(1)}
-              </div>
-            )}
           </div>
         ))}
-
-        {/* Bottom drop target */}
-        <div 
-          id={`task-drop-${column.id}-empty`}
-          className="h-2 -mb-1 relative"
-        >
-          {draggingTaskId && insertTaskAtIndex === column.tasks.length && (
-            <div className="absolute inset-x-0 top-1/2">
-              {renderTaskInsertionLine(0)}
-            </div>
-          )}
-        </div>
       </div>
 
       <button
@@ -329,10 +295,10 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   const [selectedTask, setSelectedTask] = useState<KanbanTask | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'column' | 'task', id: string, columnId?: string } | null>(null);
   const [isDraggingColumn, setIsDraggingColumn] = useState(false);
-  const [insertColumnAtIndex, setInsertColumnAtIndex] = useState<number | null>(null);
   const leftDropRefs = useRef<(HTMLDivElement | null)[]>([]);
   const rightDropRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
+  const [activeDropTarget, setActiveDropTarget] = useState<number | null>(null);
 
   // Setup drag monitor
   useEffect(() => {
@@ -390,30 +356,33 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   useEffect(() => {
     const cleanups: (() => void)[] = [];
 
-    leftDropRefs.current.forEach((element, index) => {
-      if (!element) return;
-      const cleanup = setupDropTarget(
-        element,
-        () => setInsertColumnAtIndex(index),
-        () => setInsertColumnAtIndex(null),
-        () => ({ type: 'column', id: 'column-drop', index })
-      );
-      cleanups.push(cleanup);
-    });
+    board.columns.forEach((_, index) => {
+      const leftElement = leftDropRefs.current[index];
+      const rightElement = rightDropRefs.current[index];
 
-    rightDropRefs.current.forEach((element, index) => {
-      if (!element) return;
-      const cleanup = setupDropTarget(
-        element,
-        () => setInsertColumnAtIndex(index + 1),
-        () => setInsertColumnAtIndex(null),
-        () => ({ type: 'column', id: 'column-drop', index: index + 1 })
-      );
-      cleanups.push(cleanup);
+      if (leftElement) {
+        const cleanup = setupDropTarget(
+          leftElement,
+          () => setActiveDropTarget(index),
+          () => {}, // Don't clear on leave
+          () => ({ type: 'column', id: 'column-drop', index })
+        );
+        cleanups.push(cleanup);
+      }
+
+      if (rightElement) {
+        const cleanup = setupDropTarget(
+          rightElement,
+          () => setActiveDropTarget(index + 1),
+          () => {}, // Don't clear on leave
+          () => ({ type: 'column', id: 'column-drop', index: index + 1 })
+        );
+        cleanups.push(cleanup);
+      }
     });
 
     return () => cleanups.forEach(cleanup => cleanup());
-  }, [board.columns.length]);
+  }, [board.columns]);
 
   useEffect(() => {
     const handleDragStart = (event: Event) => {
@@ -427,13 +396,16 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
     const handleDragEnd = () => {
       setIsDraggingColumn(false);
       setDraggingColumnId(null);
-      setInsertColumnAtIndex(null);
+      setActiveDropTarget(null);
     };
 
     const handleUpdateInsertPosition = (event: Event) => {
       const e = event as CustomEvent;
       if (e.detail.type === 'column') {
-        setInsertColumnAtIndex(e.detail.index);
+        const newIndex = e.detail.index;
+        if (newIndex !== null) {
+          setActiveDropTarget(newIndex);
+        }
       }
     };
 
@@ -446,7 +418,7 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
       document.removeEventListener('dragEnd', handleDragEnd);
       document.removeEventListener('updateInsertPosition', handleUpdateInsertPosition);
     };
-  }, [board.columns, draggingColumnId]);
+  }, [board.columns, draggingColumnId, isDraggingColumn]);
 
   const deleteColumn = async (columnId: string) => {
     setBoard({
@@ -528,37 +500,53 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
     }
   };
 
-  const renderColumnInsertionLine = () => (
-    <div 
-      className="absolute h-full w-1 bg-indigo-500 transform -translate-x-1/2"
-      style={{ 
-        position: 'absolute',
-        top: '0',
-        bottom: '0',
-        width: '4px',
-        backgroundColor: '#6366f1',
-        zIndex: 9999,
-        pointerEvents: 'none',
-        borderRadius: '9999px',
-      }}
-    />
-  );
+  const getColumnShift = (columnIndex: number) => {
+    if (!isDraggingColumn || !draggingColumnId || activeDropTarget === null) return 0;
+    const draggedColumnIndex = board.columns.findIndex(col => col.id === draggingColumnId);
+    
+    // Don't move the dragged column
+    if (columnIndex === draggedColumnIndex) return 0;
+    
+    // When initially picking up a column, no other columns should move
+    if (activeDropTarget === draggedColumnIndex) return 0;
+    
+    // Create space between columns where we're trying to drop
+    if (activeDropTarget === columnIndex) {
+      // Don't move if this is the original adjacent column
+      if (columnIndex === draggedColumnIndex + 1) return 0;
+      return 40;
+    }
+    if (activeDropTarget - 1 === columnIndex) {
+      // Don't move if this is the original adjacent column
+      if (columnIndex === draggedColumnIndex - 1) return 0;
+      return -40;
+    }
+    
+    return 0;
+  };
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 relative">
+        {/* Leftmost drop target */}
+        <div 
+          id="column-drop-start"
+          className="absolute left-0 top-0 bottom-0 w-12 -ml-6"
+        />
+        
         {board.columns.map((column: KanbanColumn, columnIndex: number) => (
-          <div key={column.id} className="relative w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]">
+          <div 
+            key={column.id} 
+            className="relative w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)] transition-transform duration-200 ease-in-out"
+            style={{ 
+              transform: `translateX(${getColumnShift(columnIndex)}px)`,
+              opacity: draggingColumnId === column.id ? '0.5' : '1',
+            }}
+          >
             <div 
-              className="absolute left-0 top-0 bottom-0 w-6 -ml-3 z-10" 
+              className="absolute left-0 top-0 bottom-0 w-12 -ml-6"
               ref={el => leftDropRefs.current[columnIndex] = el}
-            >
-              {isDraggingColumn && insertColumnAtIndex === columnIndex && (
-                <div className="absolute inset-y-0 left-1/2">
-                  {renderColumnInsertionLine()}
-                </div>
-              )}
-            </div>
+            />
             <KanbanColumn
               column={column}
               columnIndex={columnIndex}
@@ -570,15 +558,9 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
               onAddTaskClick={() => addTask(column.id)}
             />
             <div 
-              className="absolute right-0 top-0 bottom-0 w-6 -mr-3 z-10" 
+              className="absolute right-0 top-0 bottom-0 w-12 -mr-6"
               ref={el => rightDropRefs.current[columnIndex] = el}
-            >
-              {isDraggingColumn && insertColumnAtIndex === columnIndex + 1 && (
-                <div className="absolute inset-y-0 left-1/2">
-                  {renderColumnInsertionLine()}
-                </div>
-              )}
-            </div>
+            />
           </div>
         ))}
       </div>

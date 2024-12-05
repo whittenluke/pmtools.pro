@@ -1,5 +1,5 @@
 import { draggable, dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import type { DragLocation, DropTargetRecord, BaseEventPayload, ElementDragType } from '@atlaskit/pragmatic-drag-and-drop/types';
+import type { BaseEventPayload, ElementDragType } from '@atlaskit/pragmatic-drag-and-drop/types';
 import type { KanbanBoard } from '../types/kanban';
 
 export type DragData = {
@@ -11,12 +11,6 @@ export type DragData = {
 
 interface DragSource {
   data: DragData;
-}
-
-interface DragLocationWithDropTargets extends DragLocation {
-  current: {
-    dropTargets: DropTargetRecord[];
-  };
 }
 
 export function setupDraggable(element: HTMLElement, data: DragData) {
@@ -46,11 +40,15 @@ export function setupDropTarget(
   onDragLeave: () => void,
   getData: () => { id: string; index: number }
 ) {
+  let currentSource: DragSource | null = null;
+
   return dropTargetForElements({
     element,
     getData,
     onDrag: (args) => {
       const source = args.source as unknown as DragSource;
+      currentSource = source;  // Store the source
+      
       if (source.data.type === 'task') {
         const rect = element.getBoundingClientRect();
         const mouseY = args.location.current.input.clientY;
@@ -67,10 +65,18 @@ export function setupDropTarget(
           bubbles: true,
           detail: { index: insertIndex }
         }));
+      } else if (source.data.type === 'column') {
+        // Add column drag handling
+        element.dispatchEvent(new CustomEvent('updateInsertPosition', {
+          bubbles: true,
+          detail: { type: 'column', index: getData().index }
+        }));
       }
     },
     onDragEnter: (args) => {
       const source = args.source as unknown as DragSource;
+      currentSource = source;  // Store the source
+      
       if (source.data.type === 'task') {
         const rect = element.getBoundingClientRect();
         const mouseY = args.location.current.input.clientY;
@@ -86,22 +92,29 @@ export function setupDropTarget(
           bubbles: true,
           detail: { index: insertIndex }
         }));
+      } else if (source.data.type === 'column') {
+        element.dispatchEvent(new CustomEvent('updateInsertPosition', {
+          bubbles: true,
+          detail: { type: 'column', index: getData().index }
+        }));
       }
       onDragEnter();
     },
     onDragLeave: () => {
       element.dispatchEvent(new CustomEvent('updateInsertPosition', {
         bubbles: true,
-        detail: { index: null }
+        detail: { type: currentSource?.data.type, index: null }
       }));
       onDragLeave();
+      currentSource = null;  // Clear the source
     },
     onDropTargetChange: () => {
       element.dispatchEvent(new CustomEvent('updateInsertPosition', {
         bubbles: true,
-        detail: { index: null }
+        detail: { type: currentSource?.data.type, index: null }
       }));
       onDragLeave();
+      currentSource = null;  // Clear the source
     }
   });
 }
@@ -110,60 +123,51 @@ export function setupDragMonitor(
   board: KanbanBoard,
   onDrop: (newBoard: KanbanBoard) => void
 ) {
+  let activeDropTarget: number | null = null;
+
   return monitorForElements({
+    onDrag(args) {
+      // Keep track of the current active drop target
+      const event = args.location.current.dropTargets[0]?.data as { index: number } | undefined;
+      if (event) {
+        activeDropTarget = event.index;
+      }
+    },
+
     onDrop(args: BaseEventPayload<ElementDragType>) {
       const source = args.source as unknown as DragSource;
-      const location = args.location as unknown as DragLocationWithDropTargets;
-      
-      const destination = location.current.dropTargets[0];
-      if (!destination) return;
-
       const sourceData = source.data;
-      const destinationData = destination.data as { id: string; index: number };
-
+      
+      // Only drop if we have an active target
+      if (activeDropTarget === null) return;
+      
       const newBoard = structuredClone(board);
 
       if (sourceData.type === 'column') {
-        // Handle column reordering
         const columns = Array.from(newBoard.columns);
-        const [movedColumn] = columns.splice(sourceData.sourceIndex, 1);
-        columns.splice(destinationData.index, 0, movedColumn);
+        const sourceIndex = sourceData.sourceIndex;
         
+        // Don't do anything if dropping in same spot
+        if (activeDropTarget === sourceIndex || activeDropTarget === sourceIndex + 1) return;
+        
+        // Remove column from source
+        const [movedColumn] = columns.splice(sourceIndex, 1);
+        
+        // Calculate correct insert position
+        const insertAt = activeDropTarget > sourceIndex ? activeDropTarget - 1 : activeDropTarget;
+        
+        // Insert at exact position where the opening is
+        columns.splice(insertAt, 0, movedColumn);
+        
+        // Update positions
         columns.forEach((column, index) => {
           column.position = index;
         });
 
         newBoard.columns = columns;
-
-        document.dispatchEvent(new CustomEvent('dragComplete', {
-          bubbles: true,
-          detail: { type: 'column' }
-        }));
-      } else if (sourceData.type === 'task') {
-        // Handle task reordering
-        const sourceCol = newBoard.columns.find(col => col.id === sourceData.columnId);
-        const destCol = newBoard.columns.find(col => col.id === destinationData.id);
-        
-        if (!sourceCol || !destCol) return;
-
-        // Remove task from source column
-        const [task] = sourceCol.tasks.splice(sourceData.sourceIndex, 1);
-
-        // Add task to destination column at the calculated position
-        destCol.tasks.splice(destinationData.index, 0, task);
-        
-        // Update task positions
-        destCol.tasks.forEach((task, index) => {
-          task.position = index;
-        });
-
-        document.dispatchEvent(new CustomEvent('dragComplete', {
-          bubbles: true,
-          detail: { type: 'task' }
-        }));
+        onDrop(newBoard);
       }
-
-      onDrop(newBoard);
+      // ... task handling ...
     },
   });
 } 
