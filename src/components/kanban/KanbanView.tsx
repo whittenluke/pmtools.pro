@@ -74,13 +74,17 @@ function KanbanTask({
       </button>
       <input
         type="text"
-        value={task.title}
+        id={`task-title-${task.id}`}
+        name={`task-title-${task.id}`}
+        value={task.title || ''}
         onChange={(e) => onUpdate({ title: e.target.value })}
         className="text-sm sm:text-base font-medium w-full bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 cursor-text"
         placeholder="Task Title"
       />
       <textarea
-        value={task.description}
+        id={`task-description-${task.id}`}
+        name={`task-description-${task.id}`}
+        value={task.description || ''}
         onChange={(e) => onUpdate({ description: e.target.value })}
         className="mt-1 sm:mt-2 w-full text-xs sm:text-sm text-gray-500 bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 resize-none"
         placeholder="Add description..."
@@ -116,6 +120,15 @@ function KanbanColumn({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [insertAtIndex, setInsertAtIndex] = useState<number | null>(null);
+  const dropTargetsRef = useRef<Map<string, () => void>>(new Map());
+
+  // Cleanup drop targets on unmount
+  useEffect(() => {
+    return () => {
+      dropTargetsRef.current.forEach(cleanup => cleanup());
+      dropTargetsRef.current.clear();
+    };
+  }, []);
 
   useEffect(() => {
     const handleDragStart = (event: Event) => {
@@ -177,6 +190,29 @@ function KanbanColumn({
     });
   }, [column.id, columnIndex]);
 
+  const setupTaskDropTarget = (element: HTMLElement | null, taskId: string, index: number) => {
+    if (!element) {
+      // Cleanup old drop target if element is removed
+      const cleanup = dropTargetsRef.current.get(taskId);
+      if (cleanup) {
+        cleanup();
+        dropTargetsRef.current.delete(taskId);
+      }
+      return;
+    }
+
+    // Setup new drop target
+    const cleanup = setupDropTarget(
+      element,
+      () => {},
+      () => {},
+      () => ({ id: column.id, index })
+    );
+
+    // Store cleanup function
+    dropTargetsRef.current.set(taskId, cleanup);
+  };
+
   const renderInsertionLine = (index: number) => (
     <div 
       className={`absolute h-0.5 left-0 right-0 bg-indigo-500 ${
@@ -195,6 +231,8 @@ function KanbanColumn({
       <div className="flex justify-between items-center mb-4">
         <input
           type="text"
+          id={`column-title-${column.id}`}
+          name={`column-title-${column.id}`}
           value={column.title}
           onChange={(e) => onTitleChange(e.target.value)}
           onClick={(e) => e.stopPropagation()}
@@ -217,16 +255,7 @@ function KanbanColumn({
           <div 
             key={task.id} 
             className="relative"
-            ref={(el) => {
-              if (el) {
-                setupDropTarget(
-                  el,
-                  () => {},
-                  () => {},
-                  () => ({ id: column.id, index: taskIndex })
-                );
-              }
-            }}
+            ref={el => setupTaskDropTarget(el, task.id, taskIndex)}
           >
             {isDraggingOver && insertAtIndex === taskIndex && renderInsertionLine(0)}
             <KanbanTask
@@ -245,16 +274,7 @@ function KanbanColumn({
         {/* Empty column drop target */}
         <div 
           className="min-h-[50px]"
-          ref={(el) => {
-            if (el) {
-              setupDropTarget(
-                el,
-                () => setIsDraggingOver(true),
-                () => setIsDraggingOver(false),
-                () => ({ id: column.id, index: column.tasks.length })
-              );
-            }
-          }}
+          ref={el => setupTaskDropTarget(el, `${column.id}-empty`, column.tasks.length)}
         />
       </div>
 
@@ -305,15 +325,20 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
         task.columnId !== oldTasks[i]?.columnId
       )) {
         try {
+          const now = new Date().toISOString();
           const updates = allTasks.map((task: KanbanTask) => ({
             id: task.id,
             position: task.position,
-            column_id: task.columnId
+            column_id: task.columnId,
+            title: task.title,
+            description: task.description,
+            tags: task.tags,
+            updated_at: now
           }));
 
           await supabase
             .from('kanban_tasks')
-            .upsert(updates, { onConflict: 'id' });
+            .upsert(updates);
         } catch (error) {
           console.error('Error updating task positions:', error);
         }

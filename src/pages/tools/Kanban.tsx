@@ -229,6 +229,9 @@ export default function Kanban() {
               value={board.title}
               onChange={(e) => setBoard({ ...board, title: e.target.value })}
               className="text-2xl font-bold bg-transparent border-none focus:ring-0"
+              id="board-title"
+              name="board-title"
+              aria-label="Board title"
             />
             <div className="flex gap-2">
               <button
