@@ -221,8 +221,8 @@ export default function Kanban() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="w-full [&~footer]:hidden">
-        <div className="p-4 pb-0">
-          {/* Header - keep this in a padded container */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header with exact same container as main nav */}
           <div className="flex justify-between items-center mb-6">
             <input
               type="text"
@@ -251,7 +251,7 @@ export default function Kanban() {
           </div>
         </div>
 
-        {/* Remove padding from board container */}
+        {/* Board container */}
         <div className="w-full">
           {viewMode === 'kanban' ? (
             <KanbanView board={board} setBoard={setBoard} addTask={addTask} />

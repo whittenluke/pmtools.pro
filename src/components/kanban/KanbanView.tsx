@@ -214,28 +214,30 @@ function KanbanColumn({
   return (
     <div
       ref={columnRef}
-      className="bg-gray-50 rounded-lg p-4 cursor-grab active:cursor-grabbing h-[36rem]"
+      className="bg-gray-50 rounded-lg p-4 cursor-grab active:cursor-grabbing h-screen"
     >
       <div className="flex justify-between items-center mb-4">
         <input
           type="text"
-          id={`column-title-${column.id}`}
-          name={`column-title-${column.id}`}
           value={column.title}
           onChange={(e) => onTitleChange(e.target.value)}
-          onClick={(e) => e.stopPropagation()}
           className="text-base sm:text-lg font-medium bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 w-full cursor-text"
           placeholder="Column Title"
         />
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDeleteClick();
-          }}
-          className="text-gray-400 hover:text-red-500 ml-2 cursor-pointer"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={onAddTaskClick}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+          <button
+            onClick={onDeleteClick}
+            className="text-gray-400 hover:text-red-500"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2 relative h-[calc(100%-7rem)] overflow-y-auto">
@@ -282,14 +284,6 @@ function KanbanColumn({
         />
         */}
       </div>
-
-      <button
-        onClick={onAddTaskClick}
-        className="w-full mt-3 sm:mt-4 p-1.5 sm:p-2 text-gray-500 hover:bg-gray-100 rounded flex items-center justify-center gap-1 text-sm sm:text-base cursor-pointer"
-      >
-        <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-        Add Task
-      </button>
     </div>
   );
 }
@@ -543,12 +537,12 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   };
 
   return (
-    <div className="w-full overflow-x-auto" ref={containerRef}>
+    <div className="w-full overflow-x-auto overflow-y-visible" ref={containerRef}>
       <div className="flex gap-4 relative pl-4">
         {board.columns.map((column: KanbanColumn, columnIndex: number) => (
           <div 
             key={column.id} 
-            className="relative w-[280px] flex-shrink-0 transition-transform duration-200 ease-in-out overflow-visible"
+            className="relative w-[280px] flex-shrink-0 transition-transform duration-200 ease-in-out overflow-visible h-full"
             style={{ 
               transform: `translateX(${getColumnShift(columnIndex)}px)`,
               opacity: draggingColumnId === column.id ? '0.5' : '1',
