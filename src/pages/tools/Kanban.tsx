@@ -6,6 +6,7 @@ import { TableView } from '../../components/kanban/TableView';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
+import { KanbanSidebar } from '../../components/kanban/KanbanSidebar';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -26,6 +27,7 @@ export default function Kanban() {
   });
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const navigate = useNavigate();
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   useEffect(() => {
     checkAuth();
@@ -221,43 +223,52 @@ export default function Kanban() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="w-full [&~footer]:hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header with exact same container as main nav */}
-          <div className="flex justify-between items-center mb-6">
-            <input
-              type="text"
-              value={board.title}
-              onChange={(e) => setBoard({ ...board, title: e.target.value })}
-              className="text-2xl font-bold bg-transparent border-none focus:ring-0"
-              id="board-title"
-              name="board-title"
-              aria-label="Board title"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
-                className="p-2 hover:bg-gray-100 rounded"
-              >
-                {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
-              </button>
-              <button
-                onClick={addColumn}
-                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-              >
-                <Plus className="h-4 w-4" />
-                Add Column
-              </button>
+        <KanbanSidebar 
+          isExpanded={isSidebarExpanded} 
+          onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} 
+        />
+        
+        <div className={`transition-all duration-300 ease-in-out ${
+          isSidebarExpanded ? 'ml-64' : 'ml-0'
+        }`}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Header with exact same container as main nav */}
+            <div className="flex justify-between items-center mb-6">
+              <input
+                type="text"
+                value={board.title}
+                onChange={(e) => setBoard({ ...board, title: e.target.value })}
+                className="text-2xl font-bold bg-transparent border-none focus:ring-0"
+                id="board-title"
+                name="board-title"
+                aria-label="Board title"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
+                  className="p-2 hover:bg-gray-100 rounded"
+                >
+                  {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
+                </button>
+                <button
+                  onClick={addColumn}
+                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Column
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Board container */}
-        <div className="w-full">
-          {viewMode === 'kanban' ? (
-            <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
-          ) : (
-            <TableView board={board} setBoard={setBoard} />
-          )}
+          {/* Board container */}
+          <div className="w-full">
+            {viewMode === 'kanban' ? (
+              <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
+            ) : (
+              <TableView board={board} setBoard={setBoard} />
+            )}
+          </div>
         </div>
       </div>
     </ErrorBoundary>
