@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { TaskDetailsModal } from './TaskDetailsModal';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import { setupDraggable, setupDropTarget, setupDragMonitor } from '../../lib/drag-and-drop';
+import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/element';
 
 interface KanbanViewProps {
   board: KanbanBoard;
@@ -302,6 +303,17 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   const rightDropRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [draggingColumnId, setDraggingColumnId] = useState<string | null>(null);
   const [activeDropTarget, setActiveDropTarget] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Add auto-scroll functionality
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    return autoScrollForElements({
+      element: containerRef.current,
+      getAllowedAxis: () => 'horizontal' // only allow horizontal scrolling
+    });
+  }, []);
 
   // Setup drag monitor
   useEffect(() => {
@@ -531,19 +543,12 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   };
 
   return (
-    <div className="w-full">
-      <div className="flex flex-wrap gap-4 relative">
-        {/* Commenting out leftmost drop target
-        <div 
-          id="column-drop-start"
-          className="absolute left-0 top-0 bottom-0 w-36 -ml-16"
-        />
-        */}
-        
+    <div className="w-full overflow-x-auto" ref={containerRef}>
+      <div className="flex gap-4 relative pl-4">
         {board.columns.map((column: KanbanColumn, columnIndex: number) => (
           <div 
             key={column.id} 
-            className="relative w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)] transition-transform duration-200 ease-in-out overflow-visible"
+            className="relative w-[280px] flex-shrink-0 transition-transform duration-200 ease-in-out overflow-visible"
             style={{ 
               transform: `translateX(${getColumnShift(columnIndex)}px)`,
               opacity: draggingColumnId === column.id ? '0.5' : '1',
