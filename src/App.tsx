@@ -17,7 +17,7 @@ import { Notes } from './pages/tools/Notes';
 import { SupabaseProvider } from './lib/supabase/supabase-context';
 import Kanban from './pages/tools/Kanban';
 import { Settings } from './pages/settings/Settings';
-import { ThemeProvider } from './components/theme/ThemeProvider';
+import { ThemeProvider } from './store/themeStore';
 
 function App(): JSX.Element {
   return (
