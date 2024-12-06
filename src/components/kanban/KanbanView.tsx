@@ -244,7 +244,9 @@ function KanbanColumn({
         </div>
       </div>
 
-      <div className="space-y-2 relative h-[calc(100%-7rem)] overflow-y-auto">
+      <div className="space-y-2 relative h-[calc(100%-7rem)] overflow-y-auto
+                      scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-600 
+                      scrollbar-track-transparent">
         {/* Top drop target for tasks */}
         <div 
           id={`task-drop-${column.id}-top`}
