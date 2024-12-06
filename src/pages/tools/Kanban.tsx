@@ -228,12 +228,12 @@ export default function Kanban() {
           onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} 
         />
         
-        <div className={`transition-all duration-300 ease-in-out ${
-          isSidebarExpanded ? 'ml-64' : 'ml-0'
-        }`}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Header with exact same container as main nav */}
-            <div className="flex justify-between items-center mb-6">
+        {/* Fixed header */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center mb-6">
+            <div className={`transition-all duration-300 ease-in-out ${
+              isSidebarExpanded ? 'ml-64' : 'ml-0'
+            }`}>
               <input
                 type="text"
                 value={board.title}
@@ -243,25 +243,29 @@ export default function Kanban() {
                 name="board-title"
                 aria-label="Board title"
               />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
-                  className="p-2 hover:bg-gray-100 rounded"
-                >
-                  {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
-                </button>
-                <button
-                  onClick={addColumn}
-                  className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Column
-                </button>
-              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
+                className="p-2 hover:bg-gray-100 rounded"
+              >
+                {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
+              </button>
+              <button
+                onClick={addColumn}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add Column
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Board container */}
+        {/* Board container that slides with sidebar */}
+        <div className={`transition-all duration-300 ease-in-out ${
+          isSidebarExpanded ? 'ml-64' : 'ml-0'
+        }`}>
           <div className="w-full">
             {viewMode === 'kanban' ? (
               <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
