@@ -213,7 +213,7 @@ function KanbanColumn({
   return (
     <div
       ref={columnRef}
-      className="bg-gray-50 rounded-lg p-4 cursor-grab active:cursor-grabbing"
+      className="bg-gray-50 rounded-lg p-4 cursor-grab active:cursor-grabbing h-[36rem]"
     >
       <div className="flex justify-between items-center mb-4">
         <input
@@ -237,7 +237,7 @@ function KanbanColumn({
         </button>
       </div>
 
-      <div className="space-y-2 min-h-[50px] relative">
+      <div className="space-y-2 relative h-[calc(100%-7rem)] overflow-y-auto">
         {/* Top drop target for tasks */}
         <div 
           id={`task-drop-${column.id}-top`}

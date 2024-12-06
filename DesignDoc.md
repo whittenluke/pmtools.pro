@@ -16,6 +16,7 @@ PMTools.pro is a progressive web application (PWA) designed to provide productiv
 - **UI Framework**: Shadcn/UI
 - **Styling**: Tailwind CSS
 - **Analytics**: Plausible (privacy-focused)
+- **Drag and Drop**: @atlaskit/pragmatic-drag-and-drop
 
 ### 2.2 Architectural Principles
 
@@ -24,6 +25,36 @@ PMTools.pro is a progressive web application (PWA) designed to provide productiv
 - Comprehensive SEO optimization
 - Performance-first approach
 - Accessibility compliance (WCAG 2.1)
+
+### 2.3 Drag and Drop Implementation
+
+The application uses @atlaskit/pragmatic-drag-and-drop for all drag-and-drop functionality, chosen for:
+
+- **Performance**: ~4.7kB core with incremental loading
+- **Framework Agnostic**: Works with any frontend framework
+- **Accessibility**: Built-in accessibility support
+- **Cross-Platform**: Full feature support across browsers and devices
+- **Virtualization Support**: Compatible with virtual scrolling implementations
+
+Key drag-and-drop features:
+
+- Element dragging with customizable previews
+- Drop target management
+- External file drag-and-drop support
+- Text selection dragging
+- Cross-iframe dragging support
+- Automatic scrolling
+- Customizable drop effects
+
+Implementation approach:
+
+- Core package for essential operations
+- Optional adapters loaded on demand:
+  - Element adapter for UI components
+  - Text selection adapter for text operations
+  - External adapter for file uploads
+- Custom preview rendering for optimal UX
+- Accessibility-first implementation using ARIA
 
 ## 3. Initial Tool Suite
 
