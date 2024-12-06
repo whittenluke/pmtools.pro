@@ -62,20 +62,32 @@ export function Calculator() {
 
   return (
     <div className="max-w-md mx-auto mt-10 p-4">
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
         <div className="mb-4">
-          <div className="text-gray-500 text-sm h-6">{equation}</div>
-          <div className="text-3xl font-bold text-right">{display}</div>
+          <div className="text-gray-500 dark:text-gray-400 text-sm h-6">{equation}</div>
+          <div className="text-3xl font-bold text-right text-gray-900 dark:text-white">{display}</div>
         </div>
         
         <div className="grid grid-cols-4 gap-2">
-          <button onClick={clear} className="col-span-2 bg-red-500 text-white p-4 rounded hover:bg-red-600">
+          <button 
+            onClick={clear} 
+            className="col-span-2 bg-red-500 dark:bg-red-600 text-white p-4 rounded 
+                     hover:bg-red-600 dark:hover:bg-red-700"
+          >
             Clear
           </button>
-          <button onClick={() => handleOperator('÷')} className="bg-indigo-500 text-white p-4 rounded hover:bg-indigo-600">
+          <button 
+            onClick={() => handleOperator('÷')} 
+            className="bg-indigo-500 dark:bg-indigo-600 text-white p-4 rounded 
+                     hover:bg-indigo-600 dark:hover:bg-indigo-700"
+          >
             ÷
           </button>
-          <button onClick={() => handleOperator('×')} className="bg-indigo-500 text-white p-4 rounded hover:bg-indigo-600">
+          <button 
+            onClick={() => handleOperator('×')} 
+            className="bg-indigo-500 dark:bg-indigo-600 text-white p-4 rounded 
+                     hover:bg-indigo-600 dark:hover:bg-indigo-700"
+          >
             ×
           </button>
           
@@ -83,12 +95,18 @@ export function Calculator() {
             <button
               key={num}
               onClick={() => handleNumber(num.toString())}
-              className="bg-gray-200 p-4 rounded hover:bg-gray-300"
+              className="bg-gray-200 dark:bg-gray-700 p-4 rounded 
+                       hover:bg-gray-300 dark:hover:bg-gray-600
+                       text-gray-900 dark:text-white"
             >
               {num}
             </button>
           ))}
-          <button onClick={() => handleOperator('-')} className="bg-indigo-500 text-white p-4 rounded hover:bg-indigo-600">
+          <button 
+            onClick={() => handleOperator('-')} 
+            className="bg-indigo-500 dark:bg-indigo-600 text-white p-4 rounded 
+                     hover:bg-indigo-600 dark:hover:bg-indigo-700"
+          >
             -
           </button>
           
@@ -96,12 +114,18 @@ export function Calculator() {
             <button
               key={num}
               onClick={() => handleNumber(num.toString())}
-              className="bg-gray-200 p-4 rounded hover:bg-gray-300"
+              className="bg-gray-200 dark:bg-gray-700 p-4 rounded 
+                       hover:bg-gray-300 dark:hover:bg-gray-600
+                       text-gray-900 dark:text-white"
             >
               {num}
             </button>
           ))}
-          <button onClick={() => handleOperator('+')} className="bg-indigo-500 text-white p-4 rounded hover:bg-indigo-600">
+          <button 
+            onClick={() => handleOperator('+')} 
+            className="bg-indigo-500 dark:bg-indigo-600 text-white p-4 rounded 
+                     hover:bg-indigo-600 dark:hover:bg-indigo-700"
+          >
             +
           </button>
           
@@ -109,24 +133,34 @@ export function Calculator() {
             <button
               key={num}
               onClick={() => handleNumber(num.toString())}
-              className="bg-gray-200 p-4 rounded hover:bg-gray-300"
+              className="bg-gray-200 dark:bg-gray-700 p-4 rounded 
+                       hover:bg-gray-300 dark:hover:bg-gray-600
+                       text-gray-900 dark:text-white"
             >
               {num}
             </button>
           ))}
-          <button onClick={calculate} className="bg-green-500 text-white p-4 rounded hover:bg-green-600">
+          <button 
+            onClick={calculate} 
+            className="bg-indigo-500 dark:bg-indigo-600 text-white p-4 rounded 
+                     hover:bg-indigo-600 dark:hover:bg-indigo-700"
+          >
             =
           </button>
           
           <button
             onClick={() => handleNumber('0')}
-            className="col-span-2 bg-gray-200 p-4 rounded hover:bg-gray-300"
+            className="col-span-2 bg-gray-200 dark:bg-gray-700 p-4 rounded 
+                     hover:bg-gray-300 dark:hover:bg-gray-600
+                     text-gray-900 dark:text-white"
           >
             0
           </button>
           <button
             onClick={() => handleNumber('.')}
-            className="bg-gray-200 p-4 rounded hover:bg-gray-300"
+            className="bg-gray-200 dark:bg-gray-700 p-4 rounded 
+                     hover:bg-gray-300 dark:hover:bg-gray-600
+                     text-gray-900 dark:text-white"
           >
             .
           </button>

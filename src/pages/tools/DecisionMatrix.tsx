@@ -127,8 +127,8 @@ export function DecisionMatrix() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10 p-4">
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-2xl font-bold mb-6">Decision Matrix</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Decision Matrix</h2>
 
         {/* Matrix Title */}
         <div className="mb-8">
@@ -137,9 +137,12 @@ export function DecisionMatrix() {
             value={matrix.title}
             onChange={(e) => setMatrix({ ...matrix, title: e.target.value })}
             placeholder="Enter decision title..."
-            className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500"
+            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded 
+                     bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                     placeholder-gray-400 dark:placeholder-gray-500
+                     focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
           />
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Start by adding criteria (factors to consider) and options (choices to compare)
           </p>
         </div>
@@ -148,28 +151,32 @@ export function DecisionMatrix() {
         <div className="flex gap-4 mb-8">
           <button
             onClick={addCriterion}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+            className="flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white px-4 py-2 rounded 
+                     hover:bg-indigo-700 dark:hover:bg-indigo-600"
           >
             <Plus className="h-4 w-4" />
             Add Criterion
           </button>
           <button
             onClick={addOption}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+            className="flex items-center gap-2 bg-indigo-600 dark:bg-indigo-500 text-white px-4 py-2 rounded 
+                     hover:bg-indigo-700 dark:hover:bg-indigo-600"
           >
             <Plus className="h-4 w-4" />
             Add Option
           </button>
           <button
             onClick={resetMatrix}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+            className="flex items-center gap-2 bg-red-600 dark:bg-red-500 text-white px-4 py-2 rounded 
+                     hover:bg-red-700 dark:hover:bg-red-600"
           >
             <RotateCcw className="h-4 w-4" />
             Reset
           </button>
           <button
             onClick={copyResults}
-            className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+            className="flex items-center gap-2 bg-gray-600 dark:bg-gray-500 text-white px-4 py-2 rounded 
+                     hover:bg-gray-700 dark:hover:bg-gray-600"
           >
             <Copy className="h-4 w-4" />
             Copy Results
@@ -178,14 +185,15 @@ export function DecisionMatrix() {
 
         {/* Matrix Grid */}
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead>
               <tr>
-                <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium 
+                             text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Options / Criteria
                 </th>
                 {matrix.criteria.map((criterion) => (
-                  <th key={criterion.id} className="px-6 py-3 bg-gray-50">
+                  <th key={criterion.id} className="px-6 py-3 bg-gray-50 dark:bg-gray-700">
                     <div className="space-y-2">
                       <div className="flex justify-between items-start gap-2">
                         <input
@@ -193,11 +201,14 @@ export function DecisionMatrix() {
                           value={criterion.name}
                           onChange={(e) => updateCriterion(criterion.id, 'name', e.target.value)}
                           placeholder="Enter criterion..."
-                          className="w-full p-1 text-sm border rounded"
+                          className="w-full p-1 text-sm border border-gray-300 dark:border-gray-600 rounded 
+                                   bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                                   placeholder-gray-400 dark:placeholder-gray-500
+                                   focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
                         />
                         <button
                           onClick={() => deleteCriterion(criterion.id)}
-                          className="text-red-500 hover:text-red-700"
+                          className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -209,19 +220,22 @@ export function DecisionMatrix() {
                           onChange={(e) => updateCriterion(criterion.id, 'weight', parseFloat(e.target.value))}
                           min="1"
                           max="10"
-                          className="w-20 p-1 text-sm border rounded"
+                          className="w-20 p-1 text-sm border border-gray-300 dark:border-gray-600 rounded 
+                                   bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                                   focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
                         />
-                        <span className="text-xs text-gray-500">Weight</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Weight</span>
                       </div>
                     </div>
                   </th>
                 ))}
-                <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium 
+                             text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Total Score
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {matrix.options.map((option) => (
                 <tr key={option.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -236,29 +250,34 @@ export function DecisionMatrix() {
                           )
                         })}
                         placeholder="Enter option..."
-                        className="w-full p-1 text-sm border rounded"
+                        className="w-full p-1 text-sm border border-gray-300 dark:border-gray-600 rounded 
+                                 bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                                 placeholder-gray-400 dark:placeholder-gray-500
+                                 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
                       />
                       <button
                         onClick={() => deleteOption(option.id)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
                   {matrix.criteria.map((criterion) => (
-                    <td key={criterion.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td key={criterion.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       <input
                         type="number"
                         min="0"
                         max="10"
                         value={option.scores[criterion.id] || 0}
                         onChange={(e) => updateScore(option.id, criterion.id, parseInt(e.target.value) || 0)}
-                        className="w-full p-1 border rounded"
+                        className="w-full p-1 border border-gray-300 dark:border-gray-600 rounded 
+                                 bg-white dark:bg-gray-700 text-gray-900 dark:text-white
+                                 focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400"
                       />
                     </td>
                   ))}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                     {calculateTotalScore(option).toFixed(1)}
                   </td>
                 </tr>

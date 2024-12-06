@@ -247,7 +247,7 @@ export default function Kanban() {
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
-                className="p-2 hover:bg-gray-100 rounded"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 rounded"
               >
                 {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
               </button>
