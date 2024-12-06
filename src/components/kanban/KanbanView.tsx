@@ -57,25 +57,26 @@ function KanbanTask({
     <div
       ref={taskRef}
       onClick={onClick}
-      className={`bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group select-none z-40 ${
-        isDragging ? 'opacity-50' : ''
-      }`}
+      className={`bg-white dark:bg-gray-800 p-2 sm:p-3 rounded shadow-sm hover:shadow-md 
+                  transition-shadow cursor-pointer relative group select-none z-40 
+                  ${isDragging ? 'opacity-50' : ''}`}
     >
       <button
         onClick={(e) => {
           e.stopPropagation();
           onDeleteClick();
         }}
-        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-30"
+        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 
+                  opacity-0 group-hover:opacity-100 transition-opacity z-30"
       >
         <X className="h-4 w-4" />
       </button>
 
       <div className="pointer-events-none">
-        <div className="text-sm sm:text-base font-medium truncate">
+        <div className="text-sm sm:text-base font-medium truncate text-gray-900 dark:text-white">
           {task.title || 'Untitled Task'}
         </div>
-        <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500 line-clamp-6 overflow-hidden">
+        <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-6">
           {task.description || 'Add description...'}
         </div>
         {task.tags.length > 0 && (
@@ -83,7 +84,8 @@ function KanbanTask({
             {task.tags.map(tag => (
               <span
                 key={tag}
-                className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-gray-100 text-gray-600 rounded"
+                className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-gray-100 dark:bg-gray-700 
+                          text-gray-600 dark:text-gray-300 rounded"
               >
                 {tag}
               </span>
@@ -214,26 +216,28 @@ function KanbanColumn({
   return (
     <div
       ref={columnRef}
-      className="bg-gray-50 rounded-lg p-4 cursor-grab active:cursor-grabbing h-screen"
+      className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 cursor-grab active:cursor-grabbing h-screen"
     >
       <div className="flex justify-between items-center mb-4">
         <input
           type="text"
           value={column.title}
           onChange={(e) => onTitleChange(e.target.value)}
-          className="text-base sm:text-lg font-medium bg-transparent border-none focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 w-full cursor-text"
+          className="text-base sm:text-lg font-medium bg-transparent border-none 
+                    focus:ring-2 focus:ring-indigo-500 rounded px-2 py-1 w-full cursor-text
+                    text-gray-900 dark:text-white"
           placeholder="Column Title"
         />
         <div className="flex gap-2">
           <button
             onClick={onAddTaskClick}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
           >
             <Plus className="h-4 w-4" />
           </button>
           <button
             onClick={onDeleteClick}
-            className="text-gray-400 hover:text-red-500"
+            className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
           >
             <X className="h-4 w-4" />
           </button>

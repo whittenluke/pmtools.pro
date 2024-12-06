@@ -7,9 +7,9 @@ export function Layout() {
   const isKanbanPage = location.pathname === '/tools/kanban';
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow text-gray-900 dark:text-white">
         <Outlet />
       </main>
       {!isKanbanPage && <Footer />}

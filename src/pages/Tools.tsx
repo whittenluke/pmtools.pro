@@ -113,10 +113,10 @@ export function Tools() {
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
       <div className="text-center">
-        <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">
           Productivity Tools
         </h1>
-        <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
+        <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 dark:text-gray-400 sm:mt-4">
           Choose from our collection of professional tools
         </p>
       </div>
@@ -139,24 +139,28 @@ export function Tools() {
             <Link
               key={tool.id}
               to={tool.path}
-              className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col"
+              className="relative group bg-white dark:bg-gray-800 p-6 focus-within:ring-2 
+                         focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg 
+                         shadow-sm hover:shadow-md transition-shadow flex flex-col"
               onClick={() => addUsage(tool.id)}
             >
               <div>
-                <span className="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 ring-4 ring-white">
+                <span className="rounded-lg inline-flex p-3 bg-indigo-50 dark:bg-indigo-900 
+                                 text-indigo-700 dark:text-indigo-300 ring-4 ring-white dark:ring-gray-800">
                   <Icon className="h-6 w-6" aria-hidden="true" />
                 </span>
               </div>
               <div className="mt-8 flex-grow flex flex-col">
-                <h3 className="text-lg font-medium">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                   <span className="absolute inset-0" aria-hidden="true" />
                   {tool.name}
                 </h3>
-                <p className="mt-2 text-sm text-gray-500 flex-grow line-clamp-2">
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 flex-grow line-clamp-2">
                   {tool.description}
                 </p>
                 <div className="mt-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                  bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300">
                     {tool.category}
                   </span>
                 </div>
@@ -168,7 +172,7 @@ export function Tools() {
 
       {filteredTools.length === 0 && (
         <div className="text-center mt-12">
-          <p className="text-gray-500">No tools found matching your criteria.</p>
+          <p className="text-gray-500 dark:text-gray-400">No tools found matching your criteria.</p>
         </div>
       )}
     </div>
