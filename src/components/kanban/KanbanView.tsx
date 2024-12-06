@@ -56,7 +56,7 @@ function KanbanTask({
     <div
       ref={taskRef}
       onClick={onClick}
-      className={`bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group select-none ${
+      className={`bg-white p-2 sm:p-3 rounded shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group select-none z-40 ${
         isDragging ? 'opacity-50' : ''
       }`}
     >
@@ -65,12 +65,12 @@ function KanbanTask({
           e.stopPropagation();
           onDeleteClick();
         }}
-        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+        className="absolute top-2 right-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity z-30"
       >
         <X className="h-4 w-4" />
       </button>
 
-      <div>
+      <div className="pointer-events-none">
         <div className="text-sm sm:text-base font-medium truncate">
           {task.title || 'Untitled Task'}
         </div>
@@ -238,10 +238,20 @@ function KanbanColumn({
       </div>
 
       <div className="space-y-2 min-h-[50px] relative">
-        {/* Invisible drop targets that just work */}
+        {/* Top drop target for tasks */}
         <div 
           id={`task-drop-${column.id}-top`}
-          className="h-8 -mt-4" // Taller hit zone, positioned to overlap
+          className="h-6 -mt-5"
+          ref={el => {
+            if (!el) return;
+            setupDropTarget(
+              el,
+              () => setInsertTaskAtIndex(0),
+              () => setInsertTaskAtIndex(null),
+              () => ({ type: 'task', id: column.id, index: 0 }),
+              { canDrop: ({ source }) => source.data.type === 'task' }
+            );
+          }}
         />
         
         {column.tasks.map((task, taskIndex) => (
@@ -264,11 +274,12 @@ function KanbanColumn({
           </div>
         ))}
 
-        {/* Bottom drop target */}
+        {/* Commenting out bottom task drop target
         <div 
           id={`task-drop-${column.id}-empty`}
-          className="h-8" // Just a hit zone, no visual
+          className="h-8"
         />
+        */}
       </div>
 
       <button
@@ -356,8 +367,9 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
         const cleanup = setupDropTarget(
           leftElement,
           () => setActiveDropTarget(index),
-          () => {}, // Don't clear on leave
-          () => ({ type: 'column', id: 'column-drop', index })
+          () => setActiveDropTarget(null),
+          () => ({ type: 'column', id: 'column-drop', index }),
+          { canDrop: ({ source }) => source.data.type === 'column' }
         );
         cleanups.push(cleanup);
       }
@@ -366,8 +378,9 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
         const cleanup = setupDropTarget(
           rightElement,
           () => setActiveDropTarget(index + 1),
-          () => {}, // Don't clear on leave
-          () => ({ type: 'column', id: 'column-drop', index: index + 1 })
+          () => setActiveDropTarget(null),
+          () => ({ type: 'column', id: 'column-drop', index: index + 1 }),
+          { canDrop: ({ source }) => source.data.type === 'column' }
         );
         cleanups.push(cleanup);
       }
@@ -520,38 +533,52 @@ export function KanbanView({ board, setBoard, addTask }: KanbanViewProps) {
   return (
     <div className="w-full">
       <div className="flex flex-wrap gap-4 relative">
-        {/* Leftmost drop target */}
+        {/* Commenting out leftmost drop target
         <div 
           id="column-drop-start"
           className="absolute left-0 top-0 bottom-0 w-36 -ml-16"
         />
+        */}
         
         {board.columns.map((column: KanbanColumn, columnIndex: number) => (
           <div 
             key={column.id} 
-            className="relative w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)] transition-transform duration-200 ease-in-out"
+            className="relative w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)] transition-transform duration-200 ease-in-out overflow-visible"
             style={{ 
               transform: `translateX(${getColumnShift(columnIndex)}px)`,
               opacity: draggingColumnId === column.id ? '0.5' : '1',
             }}
           >
+            {/* Left column drop zone */}
             <div 
-              className="absolute left-0 top-0 bottom-0 w-36 -ml-16"
+              className={`absolute left-0 top-0 bottom-0 w-36 -ml-16 ${
+                isDraggingColumn ? 'pointer-events-auto' : 'pointer-events-none'
+              } z-20`}
               ref={el => leftDropRefs.current[columnIndex] = el}
             />
-            <KanbanColumn
-              column={column}
-              columnIndex={columnIndex}
-              onTitleChange={(title) => updateColumnTitle(column.id, title)}
-              onDeleteClick={() => setDeleteTarget({ type: 'column', id: column.id })}
-              onTaskClick={setSelectedTask}
-              onTaskDeleteClick={(taskId) => setDeleteTarget({ type: 'task', id: taskId, columnId: column.id })}
-              onAddTaskClick={() => addTask(column.id)}
-            />
+            
+            {/* Column content with higher z-index */}
+            <div className="relative z-30 w-full">
+              <KanbanColumn
+                column={column}
+                columnIndex={columnIndex}
+                onTitleChange={(title) => updateColumnTitle(column.id, title)}
+                onDeleteClick={() => setDeleteTarget({ type: 'column', id: column.id })}
+                onTaskClick={setSelectedTask}
+                onTaskDeleteClick={(taskId) => setDeleteTarget({ type: 'task', id: taskId, columnId: column.id })}
+                onAddTaskClick={() => addTask(column.id)}
+              />
+            </div>
+
+            {/* Right column drop zone */}
             <div 
-              className="absolute right-0 top-0 bottom-0 w-36 -mr-16"
+              className={`absolute right-0 top-0 bottom-0 w-36 -mr-16 ${
+                isDraggingColumn ? 'pointer-events-auto' : 'pointer-events-none'
+              } z-20`}
               ref={el => rightDropRefs.current[columnIndex] = el}
-            />
+            >
+              <div className="w-4 h-full ml-auto" />
+            </div>
           </div>
         ))}
       </div>

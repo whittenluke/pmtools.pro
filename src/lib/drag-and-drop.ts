@@ -1,4 +1,4 @@
-import { draggable, dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import { draggable, dropTargetForElements, monitorForElements, type ElementDropTargetGetFeedbackArgs } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import type { BaseEventPayload, ElementDragType } from '@atlaskit/pragmatic-drag-and-drop/types';
 import type { KanbanBoard } from '../types/kanban';
 
@@ -35,14 +35,18 @@ export function setupDraggable(element: HTMLElement, data: DragData) {
 }
 
 export function setupDropTarget(
-  element: HTMLElement, 
-  onDragEnter: () => void,
-  onDragLeave: () => void,
-  getData: () => { id: string; index: number }
-) {
+  element: HTMLElement,
+  onEnter: () => void,
+  onLeave: () => void,
+  getData: () => any,
+  options?: {
+    canDrop?: (args: ElementDropTargetGetFeedbackArgs) => boolean;
+  }
+): () => void {
   return dropTargetForElements({
     element,
     getData,
+    canDrop: options?.canDrop,
     onDrag: (args) => {
       const source = args.source as unknown as DragSource;
       
@@ -89,21 +93,21 @@ export function setupDropTarget(
           detail: { type: 'column', index: getData().index }
         }));
       }
-      onDragEnter();
+      onEnter();
     },
     onDragLeave: () => {
       element.dispatchEvent(new CustomEvent('updateInsertPosition', {
         bubbles: true,
         detail: { type: null, index: null }
       }));
-      onDragLeave();
+      onLeave();
     },
     onDropTargetChange: () => {
       element.dispatchEvent(new CustomEvent('updateInsertPosition', {
         bubbles: true,
         detail: { type: null, index: null }
       }));
-      onDragLeave();
+      onLeave();
     }
   });
 }
