@@ -13,7 +13,17 @@ export default {
     },
   ],
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        'fade-out': {
+          '0%, 75%': { opacity: '1' },
+          '100%': { opacity: '0' }
+        }
+      },
+      animation: {
+        'fade-out': 'fade-out 1.5s ease-out forwards'
+      }
+    },
   },
   plugins: [
     require('tailwind-scrollbar')({ nocompatible: true }),

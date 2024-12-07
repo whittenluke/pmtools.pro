@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Plus, Trash2, Loader2, Pin, RotateCcw } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Trash2, Loader2, Pin, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { Link } from 'react-router-dom';
+import { debounce } from '../../lib/utils';
 
 interface Note {
   id: string;
@@ -11,6 +12,8 @@ interface Note {
   is_pinned: boolean;
   created_at: string;
   updated_at: string;
+  is_zen_mode?: boolean;
+  is_saving?: boolean;
 }
 
 export function Notes() {
@@ -21,11 +24,23 @@ export function Notes() {
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<'notes' | 'trash'>('notes');
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
 
   // Fetch notes on component mount
   useEffect(() => {
     fetchNotes();
   }, [activeTab]);
+
+  useEffect(() => {
+    // Clear "saved" status after 2 seconds
+    if (saveStatus === 'saved') {
+      const timer = setTimeout(() => {
+        setSaveStatus(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus]);
 
   const fetchNotes = async () => {
     try {
@@ -87,36 +102,6 @@ export function Notes() {
       setSelectedNote(data);
     } catch (error) {
       console.error('Error adding note:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const updateNote = async (updatedNote: Note) => {
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('notes')
-        .update({ 
-          title: updatedNote.title,
-          content: updatedNote.content,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', updatedNote.id);
-
-      if (error) throw error;
-
-      setNotes(currentNotes => 
-        currentNotes.map(note => 
-          note.id === updatedNote.id 
-            ? { ...note, ...updatedNote, updated_at: new Date().toISOString() }
-            : note
-        )
-      );
-
-      setSelectedNote(updatedNote);
-    } catch (error) {
-      console.error('Error updating note:', error);
     } finally {
       setIsSaving(false);
     }
@@ -199,7 +184,7 @@ export function Notes() {
           })
         );
 
-        // Update selected note if it's the one being pinned
+        // Update selected note if it's the one being pinning
         if (selectedNote?.id === id) {
           setSelectedNote(prev => prev ? { ...prev, is_pinned: !prev.is_pinned } : null);
         }
@@ -226,6 +211,70 @@ export function Notes() {
       console.error('Error permanently deleting note:', error);
     }
   };
+
+  // Update the debounce time constant
+  const SAVE_DEBOUNCE_MS = 750;
+
+  // Add immediate save function (for blur events)
+  const saveNote = async (noteId: string, updates: Partial<Note>) => {
+    setSaveStatus('saving');
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update(updates)
+        .eq('id', noteId);
+
+      if (error) throw error;
+      
+      setNotes(notes => notes.map(note => 
+        note.id === noteId ? { ...note, ...updates } : note
+      ));
+      setSaveStatus('saved');
+    } catch (error) {
+      console.error('Error saving note:', error);
+      setSaveStatus('error');
+    }
+  };
+
+  // Update the handlers to include blur saves
+  const handleTitleChange = (noteId: string, newTitle: string) => {
+    setSaveStatus('saving');
+    setSelectedNote(prev => 
+      prev?.id === noteId ? { ...prev, title: newTitle } : prev
+    );
+    debouncedSaveTitle(noteId, newTitle);
+  };
+
+  const handleTitleBlur = (noteId: string, title: string) => {
+    saveNote(noteId, { title });
+  };
+
+  const handleContentChange = (noteId: string, newContent: string) => {
+    setSaveStatus('saving');
+    setSelectedNote(prev => 
+      prev?.id === noteId ? { ...prev, content: newContent } : prev
+    );
+    debouncedSaveContent(noteId, newContent);
+  };
+
+  const handleContentBlur = (noteId: string, content: string) => {
+    saveNote(noteId, { content });
+  };
+
+  // Update the debounced functions with new timing
+  const debouncedSaveTitle = useCallback(
+    debounce(async (noteId: string, newTitle: string) => {
+      saveNote(noteId, { title: newTitle });
+    }, SAVE_DEBOUNCE_MS),
+    [supabase]
+  );
+
+  const debouncedSaveContent = useCallback(
+    debounce(async (noteId: string, newContent: string) => {
+      saveNote(noteId, { content: newContent });
+    }, SAVE_DEBOUNCE_MS),
+    [supabase]
+  );
 
   if (isLoading) {
     return (
@@ -332,7 +381,7 @@ export function Notes() {
                         {note.title || 'Untitled Note'}
                       </h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                        {note.content || 'No content'}
+                        {note.content ? note.content.slice(0, 100) : 'No content'}
                       </p>
                     </div>
                     
@@ -397,23 +446,78 @@ export function Notes() {
             </div>
 
             {/* Note Editor */}
-            <div className="flex-1">
+            <div className={`transition-all duration-300 ease-in-out ${
+              isZenMode ? 'fixed inset-0 bg-white dark:bg-gray-900 z-50' : 'flex-1'
+            }`}>
               {selectedNote ? (
-                <div className="space-y-4">
-                  <input
-                    type="text"
-                    value={selectedNote.title}
-                    onChange={(e) => updateNote({ ...selectedNote, title: e.target.value })}
-                    placeholder="Note title"
-                    className="w-full text-xl font-bold bg-transparent border-none focus:ring-0 
-                             text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                  />
+                <div className={`space-y-4 ${isZenMode ? 'max-w-3xl mx-auto p-8' : ''}`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1">
+                      <input
+                        type="text"
+                        value={selectedNote.title}
+                        onChange={(e) => handleTitleChange(selectedNote.id, e.target.value)}
+                        onBlur={(e) => handleTitleBlur(selectedNote.id, e.target.value)}
+                        placeholder="Note title"
+                        className="flex-1 text-xl font-bold bg-transparent border-none outline-none 
+                                 focus:outline-none focus:ring-0 hover:bg-gray-50 dark:hover:bg-gray-800/50
+                                 focus:bg-gray-50 dark:focus:bg-gray-800/50 rounded px-2 -ml-2
+                                 transition-colors duration-150 ease-in-out
+                                 text-gray-900 dark:text-white placeholder-gray-400 
+                                 dark:placeholder-gray-500"
+                      />
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          {(saveStatus || saveStatus === 'saved') && (
+                            <div className={`flex items-center gap-1.5 text-xs font-medium transition-all duration-300
+                              ${saveStatus === 'saved' ? 'animate-fade-out' : 'opacity-100'}`}
+                            >
+                              {saveStatus === 'saving' ? (
+                                <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" />
+                                  Saving
+                                </div>
+                              ) : saveStatus === 'saved' ? (
+                                <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 dark:bg-emerald-500" />
+                                  Saved
+                                </div>
+                              ) : saveStatus === 'error' ? (
+                                <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400" />
+                                  Failed to save
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setIsZenMode(!isZenMode)}
+                      className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 
+                               dark:hover:text-gray-200 rounded-lg transition-colors"
+                      title={isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"}
+                    >
+                      {isZenMode ? 
+                        <Minimize2 className="h-5 w-5" /> : 
+                        <Maximize2 className="h-5 w-5" />
+                      }
+                    </button>
+                  </div>
+                  
                   <textarea
                     value={selectedNote.content}
-                    onChange={(e) => updateNote({ ...selectedNote, content: e.target.value })}
+                    onChange={(e) => handleContentChange(selectedNote.id, e.target.value)}
+                    onBlur={(e) => handleContentBlur(selectedNote.id, e.target.value)}
                     placeholder="Start writing..."
-                    className="w-full h-[calc(100vh-20rem)] bg-transparent border-none focus:ring-0 resize-none 
-                             text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                    className={`w-full bg-transparent border-none resize-none outline-none focus:outline-none focus:ring-0 
+                              text-gray-900 dark:text-white placeholder-gray-400 
+                              dark:placeholder-gray-500 ${
+                                isZenMode 
+                                  ? 'h-[calc(100vh-10rem)]'
+                                  : 'h-[calc(100vh-24rem)]'
+                              }`}
                   />
                 </div>
               ) : (
