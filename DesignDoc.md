@@ -85,6 +85,21 @@ Implementation approach:
   - Comparative analysis
   - Template saving
 
+### 3.8 Project Tables
+
+- **Identifier**: `/tools/tables`
+- **Features**:
+  - Multiple table views per project
+  - Configurable columns (status, dates, assignees, etc.)
+  - Row grouping and filtering
+  - Seamless switching between table and kanban views
+  - Real-time collaboration
+  - Customizable status colors and labels
+  - Drag and drop row reordering
+  - Bulk actions and editing
+  - Search and filter capabilities
+  - Integration with other tools
+
 ## 4. URL Structure
 
 ```
@@ -93,7 +108,9 @@ https://pmtools.pro/
 │   ├── /calculator
 │   ├── /time-tracker
 │   ├── /estimation
-│   └── [dynamic-tool-slug]
+│   ├── /tables
+│   ├── /kanban
+│   └── /notes
 └── /account
     ├── login
     ├── signup
@@ -357,7 +374,10 @@ pmtools.pro/
 │   │   └── tools/         # Tool pages
 │   │       ├── calculator/ # Calculator tool
 │   │       ├── estimation/ # Estimation tool
-│   │       └── time-tracker/ # Time tracking tool
+│   │       ├── time-tracker/ # Time tracking tool
+│   │       ├── tables/     # Project tables tool
+│   │       ├── kanban/    # Kanban tool
+│   │       └── notes/     # Notes tool
 │   ├── components/         # Reusable components
 │   │   ├── common/        # Shared components
 │   │   ├── layout/        # Layout components
