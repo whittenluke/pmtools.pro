@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { Layout } from './components/layout/Layout';
 import { Home } from './pages/Home';
 import { Tools } from './pages/Tools';
@@ -18,6 +18,7 @@ import { SupabaseProvider } from './lib/supabase/supabase-context';
 import Kanban from './pages/tools/Kanban';
 import { Settings } from './pages/settings/Settings';
 import { ThemeProvider } from './store/themeStore';
+import PMTable from './pages/tools/PMTable';
 
 function App(): JSX.Element {
   return (
@@ -33,12 +34,15 @@ function App(): JSX.Element {
                 <Route path="reset-password" element={<ResetPassword />} />
                 <Route path="update-password" element={<UpdatePassword />} />
                 <Route path="tools" element={<Tools />} />
-                <Route path="tools/calculator" element={<Calculator />} />
-                <Route path="tools/pomodoro" element={<PomodoroTimer />} />
-                <Route path="tools/estimation" element={<ProjectEstimation />} />
-                <Route path="tools/decision-matrix" element={<DecisionMatrix />} />
-                <Route path="tools/notes" element={<Notes />} />
-                <Route path="tools/kanban" element={<ProtectedRoute><Kanban /></ProtectedRoute>} />
+                <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+                  <Route path="tools/calculator" element={<Calculator />} />
+                  <Route path="tools/pomodoro" element={<PomodoroTimer />} />
+                  <Route path="tools/estimation" element={<ProjectEstimation />} />
+                  <Route path="tools/decision-matrix" element={<DecisionMatrix />} />
+                  <Route path="tools/notes" element={<Notes />} />
+                  <Route path="tools/kanban" element={<Kanban />} />
+                  <Route path="tools/pm-table" element={<PMTable />} />
+                </Route>
                 <Route
                   path="account/dashboard"
                   element={

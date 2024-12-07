@@ -4,7 +4,6 @@ import type { KanbanBoard, ViewMode } from '../../types/kanban';
 import { KanbanView } from '../../components/kanban/KanbanView';
 import { TableView } from '../../components/kanban/TableView';
 import { useSupabase } from '../../lib/supabase/supabase-context';
-import { useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import { KanbanSidebar } from '../../components/kanban/KanbanSidebar';
 
@@ -25,35 +24,24 @@ export default function Kanban() {
     title: 'My Project',
     columns: []
   });
-  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
-  const navigate = useNavigate();
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
-    try {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
+    const checkAuthAndLoad = async () => {
+      try {
+        const { error } = await supabase.auth.getUser();
+        if (error) throw error;
+        
+        await loadBoard();
+      } catch (error) {
         console.error('Auth error:', error);
-        throw error;
       }
-      if (!user) {
-        setShowAuthPrompt(true);
-      }
-    } catch (error) {
-      console.error('Failed to check auth:', error);
-      setShowAuthPrompt(true);
-    }
-  };
+    };
+
+    checkAuthAndLoad();
+  }, []);
 
   // Load board data
-  useEffect(() => {
-    loadBoard();
-  }, []);
-
   const loadBoard = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -137,37 +125,6 @@ export default function Kanban() {
       supabase.removeChannel(channel);
     };
   }, []);
-
-  if (showAuthPrompt) {
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full mx-4 transform transition-all">
-          <div className="text-center">
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Sign in to Use Kanban Board
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Create a free account to start organizing your projects with our Kanban board.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={() => navigate('/signup')}
-                className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Get Started
-              </button>
-              <button
-                onClick={() => setShowAuthPrompt(false)}
-                className="w-full sm:w-auto text-gray-600 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-              >
-                Maybe Later
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Update functions
   const addColumn = async () => {

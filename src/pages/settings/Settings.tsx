@@ -1,7 +1,13 @@
 import { useThemeStore } from '../../store/themeStore';
+import { useAuth } from '../../lib/supabase/AuthProvider';
 
 export function Settings() {
   const { theme, setTheme } = useThemeStore();
+  const { user } = useAuth();
+
+  const handleThemeChange = async (newTheme: 'light' | 'dark' | 'system') => {
+    await setTheme(newTheme, user?.id);
+  };
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -14,7 +20,7 @@ export function Settings() {
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Theme</label>
           <select
             value={theme}
-            onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
+            onChange={(e) => handleThemeChange(e.target.value as 'light' | 'dark' | 'system')}
             className="mt-1 block rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 
                      text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           >

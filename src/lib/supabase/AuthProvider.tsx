@@ -35,14 +35,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setUser(session?.user ?? null);
           setLoading(false);
+        }
+        
+        if (session?.expires_at) {
+          const expiresAt = new Date(session.expires_at * 1000);
+          const now = new Date();
+          const timeUntilExpiry = expiresAt.getTime() - now.getTime();
           
-          if (accessToken && session?.user) {
-            const returnTo = sessionStorage.getItem('returnTo');
-            if (returnTo) {
-              sessionStorage.removeItem('returnTo');
-              navigate(returnTo, { replace: true });
-              return;
+          if (timeUntilExpiry < 300000) {
+            const { data: { session: newSession }, error: refreshError } = 
+              await supabase.auth.refreshSession();
+            if (refreshError) throw refreshError;
+            if (mounted && newSession) {
+              setUser(newSession.user);
             }
+          }
+        }
+        
+        if (accessToken && session?.user) {
+          const returnTo = sessionStorage.getItem('returnTo');
+          if (returnTo) {
+            sessionStorage.removeItem('returnTo');
+            navigate(returnTo, { replace: true });
+            return;
           }
         }
 

@@ -8,7 +8,8 @@ import {
   Target, 
   Repeat, 
   Workflow, 
-  Scale 
+  Scale, 
+  Table 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useToolStore } from '../store/toolStore';
@@ -21,6 +22,22 @@ export function Tools() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const tools: Tool[] = [
+    {
+      id: 'pm-table',
+      name: 'Project Table',
+      description: 'Flexible project management with table and kanban views',
+      icon: Table,
+      path: '/tools/pm-table',
+      category: 'Project Planning'
+    },
+    {
+      id: 'kanban',
+      name: 'Kanban Board',
+      description: 'Visual project management with drag-and-drop',
+      icon: Kanban,
+      path: '/tools/kanban',
+      category: 'Project Planning'
+    },
     {
       id: 'calculator',
       name: 'Calculator',
@@ -60,14 +77,6 @@ export function Tools() {
       icon: FileText,
       path: '/tools/notes',
       category: 'Productivity'
-    },
-    {
-      id: 'kanban',
-      name: 'Kanban Board',
-      description: 'Visual project management with drag-and-drop',
-      icon: Kanban,
-      path: '/tools/kanban',
-      category: 'Project Planning'
     },
     {
       id: 'goal-tracker',

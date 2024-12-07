@@ -4,7 +4,7 @@ import { Footer } from './Footer';
 
 export function Layout() {
   const location = useLocation();
-  const isKanbanPage = location.pathname === '/tools/kanban';
+  const isFullPageApp = location.pathname === '/tools/kanban' || location.pathname === '/tools/pm-table';
 
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900">
@@ -12,7 +12,7 @@ export function Layout() {
       <main className="flex-grow text-gray-900 dark:text-white">
         <Outlet />
       </main>
-      {!isKanbanPage && <Footer />}
+      {!isFullPageApp && <Footer />}
     </div>
   );
 }
