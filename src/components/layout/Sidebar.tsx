@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Folder } from 'lucide-react';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import type { Project } from '../../types/project';
@@ -8,24 +8,12 @@ interface SidebarProps {
   onToggle: () => void;
   selectedProject?: string;
   onSelectProject: (projectId: string) => void;
+  projects: Project[];
+  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
 }
 
-export function Sidebar({ isExpanded, onToggle, selectedProject, onSelectProject }: SidebarProps) {
+export function Sidebar({ isExpanded, onToggle, selectedProject, onSelectProject, projects, setProjects }: SidebarProps) {
   const { supabase } = useSupabase();
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  useEffect(() => {
-    loadProjects();
-  }, []);
-
-  const loadProjects = async () => {
-    const { data } = await supabase
-      .from('projects')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (data) setProjects(data);
-  };
 
   const createProject = async () => {
     const { data: { user } } = await supabase.auth.getUser();

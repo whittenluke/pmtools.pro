@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import type { KanbanBoard } from '../../types/kanban';
+import type { Project } from '../../types/project';
 import { TableView } from '../../components/kanban/TableView';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Sidebar } from '../../components/layout/Sidebar';
+import { debounce } from '../../lib/utils';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -22,8 +24,57 @@ export default function PMTable() {
     title: 'My Project',
     columns: []
   });
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
+
+  // Load projects on mount
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    const { data } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (data) setProjects(data);
+  };
+
+  const debouncedSaveTitle = useCallback(
+    debounce(async (projectId: string, newTitle: string) => {
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({ title: newTitle })
+          .eq('id', projectId);
+        
+        if (error) throw error;
+        setSaveStatus('saved');
+      } catch (error) {
+        console.error('Failed to update project title:', error);
+        setSaveStatus('error');
+      }
+    }, 750),
+    [supabase]
+  );
+
+  const updateProjectTitle = (newTitle: string) => {
+    if (!selectedProjectId) return;
+
+    setSaveStatus('saving');
+    setBoard(prev => ({ ...prev, title: newTitle }));
+    
+    setProjects(prev => prev.map(project => 
+      project.id === selectedProjectId 
+        ? { ...project, title: newTitle }
+        : project
+    ));
+
+    debouncedSaveTitle(selectedProjectId, newTitle);
+  };
 
   // Add project selection handler
   const handleProjectSelect = async (projectId: string) => {
@@ -133,23 +184,15 @@ export default function PMTable() {
     }
   };
 
-  const updateBoardTitle = async (newTitle: string) => {
-    try {
-      const { error } = await supabase
-        .from('kanban_boards')
-        .update({ title: newTitle })
-        .eq('id', board.id);
-      
-      if (error) throw error;
-      
-      setBoard(prev => ({
-        ...prev,
-        title: newTitle
-      }));
-    } catch (error) {
-      console.error('Failed to update board title:', error);
+  // Add save status cleanup
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      const timer = setTimeout(() => {
+        setSaveStatus(null);
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [saveStatus]);
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
@@ -159,6 +202,8 @@ export default function PMTable() {
           onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)}
           selectedProject={selectedProjectId}
           onSelectProject={handleProjectSelect}
+          projects={projects}
+          setProjects={setProjects}
         />
         
         <div className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'ml-64' : 'ml-0'}`}>
@@ -168,9 +213,38 @@ export default function PMTable() {
               <input
                 type="text"
                 value={board.title}
-                onChange={(e) => updateBoardTitle(e.target.value)}
-                className="text-2xl font-bold bg-transparent border-none focus:ring-0"
+                onChange={(e) => updateProjectTitle(e.target.value)}
+                className={`text-2xl font-bold bg-transparent border-none outline-none 
+                           focus:outline-none focus:ring-0 hover:bg-gray-50 dark:hover:bg-gray-800/50
+                           focus:bg-gray-50 dark:focus:bg-gray-800/50 rounded px-2 -ml-2
+                           transition-colors duration-150 ease-in-out
+                           text-gray-900 dark:text-white placeholder-gray-400 
+                           dark:placeholder-gray-500`}
               />
+              {saveStatus && (
+                <div className="flex items-center gap-2">
+                  <div className={`flex items-center gap-1.5 text-xs font-medium transition-all duration-300
+                    ${saveStatus === 'saved' ? 'animate-fade-out' : 'opacity-100'}`}
+                  >
+                    {saveStatus === 'saving' ? (
+                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" />
+                        Saving
+                      </div>
+                    ) : saveStatus === 'saved' ? (
+                      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 dark:bg-emerald-500" />
+                        Saved
+                      </div>
+                    ) : saveStatus === 'error' ? (
+                      <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400" />
+                        Failed to save
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={addColumn}
