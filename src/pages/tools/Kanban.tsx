@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, List, LayoutDashboard } from 'lucide-react';
-import type { KanbanBoard, ViewMode } from '../../types/kanban';
+import { Plus } from 'lucide-react';
+import type { KanbanBoard } from '../../types/kanban';
 import { KanbanView } from '../../components/kanban/KanbanView';
-import { TableView } from '../../components/kanban/TableView';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { ErrorBoundary } from 'react-error-boundary';
-import { KanbanSidebar } from '../../components/kanban/KanbanSidebar';
+import { Sidebar } from '../../components/layout/Sidebar';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -18,13 +17,13 @@ function ErrorFallback({ error }: { error: Error }) {
 
 export default function Kanban() {
   const { supabase } = useSupabase();
-  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
   const [board, setBoard] = useState<KanbanBoard>({
     id: '1',
     title: 'My Project',
     columns: []
   });
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>();
 
   useEffect(() => {
     const checkAuthAndLoad = async () => {
@@ -42,16 +41,17 @@ export default function Kanban() {
   }, []);
 
   // Load board data
-  const loadBoard = async () => {
+  const loadBoard = async (projectId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get or create default board
+      // Get or create default board for this project
       let { data: boards } = await supabase
         .from('kanban_boards')
         .select('*')
         .eq('user_id', user.id)
+        .eq('project_id', projectId)
         .limit(1);
 
       let boardId;
@@ -177,12 +177,20 @@ export default function Kanban() {
     }
   };
 
+  // Add project selection handler
+  const handleProjectSelect = async (projectId: string) => {
+    setSelectedProjectId(projectId);
+    await loadBoard(projectId);
+  };
+
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="w-full [&~footer]:hidden">
-        <KanbanSidebar 
+        <Sidebar 
           isExpanded={isSidebarExpanded} 
           onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} 
+          selectedProject={selectedProjectId}
+          onSelectProject={handleProjectSelect}
         />
         
         {/* Fixed header */}
@@ -203,12 +211,6 @@ export default function Kanban() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setViewMode(viewMode === 'kanban' ? 'table' : 'kanban')}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 rounded"
-              >
-                {viewMode === 'kanban' ? <List /> : <LayoutDashboard />}
-              </button>
-              <button
                 onClick={addColumn}
                 className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
               >
@@ -219,16 +221,12 @@ export default function Kanban() {
           </div>
         </div>
 
-        {/* Board container that slides with sidebar */}
+        {/* Board container */}
         <div className={`transition-all duration-300 ease-in-out ${
           isSidebarExpanded ? 'ml-64' : 'ml-0'
         }`}>
           <div className="w-full">
-            {viewMode === 'kanban' ? (
-              <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
-            ) : (
-              <TableView board={board} setBoard={setBoard} />
-            )}
+            <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
           </div>
         </div>
       </div>

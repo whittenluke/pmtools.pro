@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, List, LayoutDashboard } from 'lucide-react';
-import type { KanbanBoard, ViewMode } from '../../types/kanban';
-import { KanbanView } from '../../components/kanban/KanbanView';
+import { Plus } from 'lucide-react';
+import type { KanbanBoard } from '../../types/kanban';
 import { TableView } from '../../components/kanban/TableView';
-import { KanbanSidebar } from '../../components/kanban/KanbanSidebar';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { ErrorBoundary } from 'react-error-boundary';
+import { Sidebar } from '../../components/layout/Sidebar';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -18,13 +17,19 @@ function ErrorFallback({ error }: { error: Error }) {
 
 export default function PMTable() {
   const { supabase } = useSupabase();
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [board, setBoard] = useState<KanbanBoard>({
     id: '1',
     title: 'My Project',
     columns: []
   });
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>();
+
+  // Add project selection handler
+  const handleProjectSelect = async (projectId: string) => {
+    setSelectedProjectId(projectId);
+    await loadBoard(projectId);
+  };
 
   useEffect(() => {
     const checkAuthAndLoad = async () => {
@@ -41,16 +46,17 @@ export default function PMTable() {
     checkAuthAndLoad();
   }, []);
 
-  const loadBoard = async () => {
+  const loadBoard = async (projectId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get or create default board
+      // Get or create default board for this project
       let { data: boards } = await supabase
         .from('kanban_boards')
         .select('*')
         .eq('user_id', user.id)
+        .eq('project_id', projectId)
         .limit(1);
 
       let boardId;
@@ -102,38 +108,6 @@ export default function PMTable() {
     }
   };
 
-  const addTask = async (columnId: string) => {
-    try {
-      const { data: newTask } = await supabase
-        .from('kanban_tasks')
-        .insert([
-          {
-            title: 'New Task',
-            description: '',
-            column_id: columnId,
-            board_id: board.id,
-            position: board.columns.find(col => col.id === columnId)?.tasks.length || 0,
-            tags: []
-          }
-        ])
-        .select()
-        .single();
-
-      if (newTask) {
-        setBoard(prev => ({
-          ...prev,
-          columns: prev.columns.map(col => 
-            col.id === columnId 
-              ? { ...col, tasks: [...col.tasks, newTask] }
-              : col
-          )
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to add task:', error);
-    }
-  };
-
   const addColumn = async () => {
     try {
       const { data: newColumn } = await supabase
@@ -180,7 +154,12 @@ export default function PMTable() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="flex h-[calc(100vh-4rem)]">
-        <KanbanSidebar isExpanded={isSidebarExpanded} onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} />
+        <Sidebar 
+          isExpanded={isSidebarExpanded}
+          onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)}
+          selectedProject={selectedProjectId}
+          onSelectProject={handleProjectSelect}
+        />
         
         <div className={`flex-1 transition-all duration-300 ${isSidebarExpanded ? 'ml-64' : 'ml-0'}`}>
           {/* Header */}
@@ -194,13 +173,6 @@ export default function PMTable() {
               />
               <div className="flex gap-2">
                 <button
-                  onClick={() => setViewMode(viewMode === 'table' ? 'kanban' : 'table')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-400 rounded"
-                  title={`Switch to ${viewMode === 'table' ? 'Kanban' : 'Table'} view`}
-                >
-                  {viewMode === 'table' ? <LayoutDashboard /> : <List />}
-                </button>
-                <button
                   onClick={addColumn}
                   className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
                 >
@@ -211,13 +183,9 @@ export default function PMTable() {
             </div>
           </div>
 
-          {/* View Toggle */}
+          {/* View */}
           <div className="h-full overflow-auto">
-            {viewMode === 'table' ? (
-              <TableView board={board} setBoard={setBoard} />
-            ) : (
-              <KanbanView board={board} setBoard={setBoard} addTask={addTask} />
-            )}
+            <TableView board={board} setBoard={setBoard} />
           </div>
         </div>
       </div>
