@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, Folder } from 'lucide-react';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import type { Project } from '../../types/project';

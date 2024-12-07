@@ -29,10 +29,29 @@ export default function PMTable() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
 
-  // Load projects on mount
+  // Combine all initialization into a single effect
   useEffect(() => {
-    loadProjects();
-  }, []);
+    const initializeBoard = async () => {
+      try {
+        const { error } = await supabase.auth.getUser();
+        if (error) throw error;
+        
+        // First load projects
+        await loadProjects();
+        
+        // Then check for last selected project
+        const lastProjectId = localStorage.getItem('lastSelectedProjectId');
+        if (lastProjectId) {
+          setSelectedProjectId(lastProjectId);
+          await loadBoard(lastProjectId);
+        }
+      } catch (error) {
+        console.error('Initialization error:', error);
+      }
+    };
+
+    initializeBoard();
+  }, []); // Single initialization effect
 
   const loadProjects = async () => {
     const { data } = await supabase
@@ -76,9 +95,10 @@ export default function PMTable() {
     debouncedSaveTitle(selectedProjectId, newTitle);
   };
 
-  // Add project selection handler
+  // Update project selection handler to persist selection
   const handleProjectSelect = async (projectId: string) => {
     setSelectedProjectId(projectId);
+    localStorage.setItem('lastSelectedProjectId', projectId);
     await loadBoard(projectId);
   };
 

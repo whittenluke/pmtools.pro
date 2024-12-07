@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import type { KanbanBoard } from '../../types/kanban';
+import type { Project } from '../../types/project';
 import { KanbanView } from '../../components/kanban/KanbanView';
 import { useSupabase } from '../../lib/supabase/supabase-context';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Sidebar } from '../../components/layout/Sidebar';
+import { debounce } from '../../lib/utils';
 
 function ErrorFallback({ error }: { error: Error }) {
   return (
@@ -24,27 +26,62 @@ export default function Kanban() {
   });
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [selectedProjectId, setSelectedProjectId] = useState<string>();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | null>(null);
 
+  const loadProjects = async () => {
+    try {
+      const { data } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (data) setProjects(data);
+    } catch (error) {
+      console.error('Error loading projects:', error);
+    }
+  };
+
+  // Combine all initialization into a single effect
   useEffect(() => {
-    const checkAuthAndLoad = async () => {
+    const initializeBoard = async () => {
       try {
         const { error } = await supabase.auth.getUser();
         if (error) throw error;
         
-        await loadBoard();
+        // First load projects
+        await loadProjects();
+        
+        // Then check for last selected project
+        const lastProjectId = localStorage.getItem('lastSelectedProjectId');
+        if (lastProjectId) {
+          setSelectedProjectId(lastProjectId);
+          await loadBoard(lastProjectId);
+        }
       } catch (error) {
-        console.error('Auth error:', error);
+        console.error('Initialization error:', error);
       }
     };
 
-    checkAuthAndLoad();
-  }, []);
+    initializeBoard();
+  }, []); // Single initialization effect
 
   // Load board data
   const loadBoard = async (projectId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || !projectId) return; // Early return if no projectId
+
+      // Load project details first
+      const { data: project } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('id', projectId)
+        .single();
+
+      if (project) {
+        setBoard(prev => ({ ...prev, title: project.title }));
+      }
 
       // Get or create default board for this project
       let { data: boards } = await supabase
@@ -56,9 +93,14 @@ export default function Kanban() {
 
       let boardId;
       if (!boards?.length) {
+        // Create default board
         const { data: newBoard } = await supabase
           .from('kanban_boards')
-          .insert({ user_id: user.id, title: 'My Project' })
+          .insert({ 
+            user_id: user.id, 
+            project_id: projectId,
+            title: board.title // Use current board title
+          })
           .select()
           .single();
         boardId = newBoard?.id;
@@ -87,7 +129,7 @@ export default function Kanban() {
         .eq('board_id', boardId)
         .order('position');
 
-      // Transform the data to ensure columnId matches and dates are properly typed
+      // Transform the data
       const transformedColumns = columns?.map(column => ({
         ...column,
         tasks: column.tasks.map(task => ({
@@ -98,13 +140,13 @@ export default function Kanban() {
         }))
       }));
 
-      setBoard({
+      setBoard(prev => ({
+        ...prev,
         id: boardId,
-        title: boards?.[0]?.title || 'My Project',
         columns: transformedColumns || []
-      });
+      }));
     } catch (error) {
-      console.error('Error loading board:', error);
+      console.error('Failed to load board:', error);
     }
   };
 
@@ -180,17 +222,65 @@ export default function Kanban() {
   // Add project selection handler
   const handleProjectSelect = async (projectId: string) => {
     setSelectedProjectId(projectId);
+    localStorage.setItem('lastSelectedProjectId', projectId);
     await loadBoard(projectId);
   };
+
+  // Add debounced save function
+  const debouncedSaveTitle = useCallback(
+    debounce(async (projectId: string, newTitle: string) => {
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .update({ title: newTitle })
+          .eq('id', projectId);
+        
+        if (error) throw error;
+        setSaveStatus('saved');
+      } catch (error) {
+        console.error('Failed to update project title:', error);
+        setSaveStatus('error');
+      }
+    }, 750),
+    [supabase]
+  );
+
+  const updateProjectTitle = (newTitle: string) => {
+    if (!selectedProjectId) return;
+
+    setSaveStatus('saving');
+    setBoard(prev => ({ ...prev, title: newTitle }));
+    
+    // Update projects list immediately for smooth UI
+    setProjects(prev => prev.map(project => 
+      project.id === selectedProjectId 
+        ? { ...project, title: newTitle }
+        : project
+    ));
+
+    debouncedSaveTitle(selectedProjectId, newTitle);
+  };
+
+  // Add save status cleanup
+  useEffect(() => {
+    if (saveStatus === 'saved') {
+      const timer = setTimeout(() => {
+        setSaveStatus(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveStatus]);
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <div className="w-full [&~footer]:hidden">
         <Sidebar 
-          isExpanded={isSidebarExpanded} 
-          onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)} 
+          isExpanded={isSidebarExpanded}
+          onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)}
           selectedProject={selectedProjectId}
           onSelectProject={handleProjectSelect}
+          projects={projects}
+          setProjects={setProjects}
         />
         
         {/* Fixed header */}
@@ -199,15 +289,47 @@ export default function Kanban() {
             <div className={`transition-all duration-300 ease-in-out ${
               isSidebarExpanded ? 'ml-64' : 'ml-0'
             }`}>
-              <input
-                type="text"
-                value={board.title}
-                onChange={(e) => setBoard({ ...board, title: e.target.value })}
-                className="text-2xl font-bold bg-transparent border-none focus:ring-0"
-                id="board-title"
-                name="board-title"
-                aria-label="Board title"
-              />
+              <div className="flex items-center gap-4">
+                <input
+                  type="text"
+                  value={board.title}
+                  onChange={(e) => updateProjectTitle(e.target.value)}
+                  className={`text-2xl font-bold bg-transparent border-none outline-none 
+                             focus:outline-none focus:ring-0 hover:bg-gray-50 dark:hover:bg-gray-800/50
+                             focus:bg-gray-50 dark:focus:bg-gray-800/50 rounded px-2 -ml-2
+                             transition-colors duration-150 ease-in-out
+                             text-gray-900 dark:text-white placeholder-gray-400 
+                             dark:placeholder-gray-500`}
+                  id="board-title"
+                  name="board-title"
+                  aria-label="Board title"
+                />
+                {/* Move save status next to title */}
+                {saveStatus && (
+                  <div className="flex items-center">
+                    <div className={`flex items-center gap-1.5 text-xs font-medium transition-all duration-300
+                      ${saveStatus === 'saved' ? 'animate-fade-out' : 'opacity-100'}`}
+                    >
+                      {saveStatus === 'saving' ? (
+                        <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                          <div className="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 animate-pulse" />
+                          Saving
+                        </div>
+                      ) : saveStatus === 'saved' ? (
+                        <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 dark:bg-emerald-500" />
+                          Saved
+                        </div>
+                      ) : saveStatus === 'error' ? (
+                        <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-400" />
+                          Failed to save
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <button
