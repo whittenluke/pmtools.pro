@@ -57,9 +57,10 @@ function KanbanTask({
     <div
       ref={taskRef}
       onClick={onClick}
-      className={`bg-white dark:bg-gray-800 p-2 sm:p-3 rounded shadow-sm hover:shadow-md 
-                  transition-shadow cursor-pointer relative group select-none z-40 
-                  ${isDragging ? 'opacity-50' : ''}`}
+      className={`bg-white dark:bg-gray-800 p-2 sm:p-3 rounded shadow-sm 
+              dark:border dark:border-gray-700 dark:shadow-[0_2px_4px_rgba(0,0,0,0.3)]
+              hover:shadow-md transition-shadow cursor-pointer relative group select-none z-40 
+              ${isDragging ? 'opacity-50' : ''}`}
     >
       <button
         onClick={(e) => {
@@ -109,6 +110,7 @@ function KanbanColumn({
   const columnRef = useRef<HTMLDivElement>(null);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [insertTaskAtIndex, setInsertTaskAtIndex] = useState<number | null>(null);
+  const [isDropTarget, setIsDropTarget] = useState(false);
 
   // Setup column draggable
   useEffect(() => {
@@ -133,6 +135,7 @@ function KanbanColumn({
     const handleDragEnd = () => {
       setDraggingTaskId(null);
       setInsertTaskAtIndex(null);
+      setIsDropTarget(false);
     };
 
     const handleUpdateInsertPosition = (event: Event) => {
@@ -171,9 +174,16 @@ function KanbanColumn({
     if (topElement) {
       const cleanup = setupDropTarget(
         topElement,
-        () => setInsertTaskAtIndex(0),
-        () => setInsertTaskAtIndex(null),
-        () => ({ type: 'task', id: column.id, index: 0 })
+        () => {
+          setIsDropTarget(true);
+          setInsertTaskAtIndex(0);
+        },
+        () => {
+          setIsDropTarget(false);
+          setInsertTaskAtIndex(null);
+        },
+        () => ({ type: 'task', id: column.id, index: 0 }),
+        { canDrop: ({ source }) => source.data.type === 'task' }
       );
       cleanups.push(cleanup);
     }
@@ -250,13 +260,19 @@ function KanbanColumn({
         {/* Top drop target for tasks */}
         <div 
           id={`task-drop-${column.id}-top`}
-          className="h-6 -mt-5"
+          className="h-16 mt-0 absolute top-0 left-0 right-0"
           ref={el => {
             if (!el) return;
             setupDropTarget(
               el,
-              () => setInsertTaskAtIndex(0),
-              () => setInsertTaskAtIndex(null),
+              () => {
+                setIsDropTarget(true);
+                setInsertTaskAtIndex(0);
+              },
+              () => {
+                setIsDropTarget(false);
+                setInsertTaskAtIndex(null);
+              },
               () => ({ type: 'task', id: column.id, index: 0 }),
               { canDrop: ({ source }) => source.data.type === 'task' }
             );
@@ -283,12 +299,31 @@ function KanbanColumn({
           </div>
         ))}
 
-        {/* Commenting out bottom task drop target
+        {/* Bottom drop target */}
         <div 
-          id={`task-drop-${column.id}-empty`}
-          className="h-8"
+          id={`task-drop-${column.id}-bottom`}
+          className="h-16 mt-2"
+          ref={el => {
+            if (!el) return;
+            setupDropTarget(
+              el,
+              () => setInsertTaskAtIndex(column.tasks.length),
+              () => setInsertTaskAtIndex(null),
+              () => ({ type: 'task', id: column.id, index: column.tasks.length }),
+              { canDrop: ({ source }) => source.data.type === 'task' }
+            );
+          }}
         />
-        */}
+
+        {/* Drop indicator for empty columns */}
+        {column.tasks.length === 0 && isDropTarget && (
+          <div className="mx-1 p-2 sm:p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 
+                         rounded bg-gray-50/50 dark:bg-gray-700/50 transition-opacity duration-200
+                         pointer-events-none absolute top-0 left-0 right-0 mx-4" >
+            <div className="text-sm sm:text-base font-medium text-transparent">New Task</div>
+            <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-transparent">Add description...</div>
+          </div>
+        )}
       </div>
     </div>
   );
