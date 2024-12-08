@@ -42,6 +42,7 @@ NOTES.md
 *.private.tsx
 *.private.ts
 *.private.js
+ProjectPlan.md
 
 # Temporary files
 *.log
