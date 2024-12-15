@@ -23,6 +23,16 @@ export interface Task {
   priority: 'low' | 'medium' | 'high';
 }
 
+export interface Workspace {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  settings: Record<string, unknown> | null;
+}
+
 // View System Types
 export interface ViewColumn {
   id: string;

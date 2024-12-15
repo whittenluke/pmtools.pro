@@ -131,6 +131,35 @@ export interface Database {
           role?: 'owner' | 'admin' | 'member'
         }
       }
+      workspaces: {
+        Row: {
+          id: string
+          created_at: string
+          updated_at: string
+          name: string
+          description: string | null
+          owner_id: string
+          settings: Json | null
+        }
+        Insert: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          name: string
+          description?: string | null
+          owner_id: string
+          settings?: Json | null
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          name?: string
+          description?: string | null
+          owner_id?: string
+          settings?: Json | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

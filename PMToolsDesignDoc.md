@@ -26,7 +26,7 @@ PMTools.pro is a project management platform designed to provide teams with a po
 - Comprehensive SEO optimization
 - ✅ Performance-first approach
 - Accessibility compliance (WCAG 2.1)
-- Automated maintenance through GitHub Actions
+- ✅ Automated maintenance through GitHub Actions
 
 ### 2.3 Drag and Drop Implementation
 
@@ -67,7 +67,7 @@ Implementation approach:
 #### ✅ 2.3.2 Implementation
 
 - ✅ **API Endpoint**: `/api/maintenance` (Next.js API route)
-- ✅ **Authentication**: Secured with CRON_SECRET environment variable
+- ✅ **Authentication**: Secured with MAINTENANCE_SECRET environment variable
 - ✅ **Scheduler**: GitHub Actions workflow running daily at 2 AM UTC
 - ✅ **Monitoring**: GitHub Actions dashboard for execution history
 - ✅ **Manual Trigger**: Available through GitHub Actions workflow_dispatch
