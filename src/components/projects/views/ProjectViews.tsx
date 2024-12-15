@@ -1,15 +1,17 @@
 'use client';
 
-import { useView } from '@/providers/ViewProvider';
+import { useProjectStore } from '@/stores/project';
 import { TableView } from './TableView';
 import { KanbanView } from './KanbanView';
 import { TimelineView } from './TimelineView';
 import { CalendarView } from './CalendarView';
 
 export function ProjectViews() {
-  const { currentView } = useView();
+  const { currentView } = useProjectStore();
 
-  switch (currentView) {
+  if (!currentView) return null;
+
+  switch (currentView.type) {
     case 'table':
       return <TableView />;
     case 'kanban':
