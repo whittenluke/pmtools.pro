@@ -1,4 +1,6 @@
 // Core Types
+import type { Json } from './supabase';
+
 export interface Project {
   id: string;
   created_at: string;
@@ -30,7 +32,7 @@ export interface Workspace {
   name: string;
   description: string | null;
   owner_id: string;
-  settings: Record<string, unknown> | null;
+  settings: Json | null;
 }
 
 // View System Types
