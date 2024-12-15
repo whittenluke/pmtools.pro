@@ -1,0 +1,17 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_USE_NETLIFY_EDGE = "true"
+  NODE_VERSION = "18"
+
+[dev]
+  command = "npm run dev"
+  targetPort = 3000
+  port = 8889
+  publish = ".next"
+  framework = "#custom"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs" 
