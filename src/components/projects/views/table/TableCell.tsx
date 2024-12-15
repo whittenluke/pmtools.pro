@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Task, Column } from '@/types';
+import type { Task, ViewColumn } from '@/types';
 import { TextCell } from './cells/TextCell';
 import { StatusCell } from './cells/StatusCell';
 import { DateCell } from './cells/DateCell';
@@ -7,7 +7,7 @@ import { UserCell } from './cells/UserCell';
 
 interface TableCellProps {
   task: Task;
-  column: Column;
+  column: ViewColumn;
 }
 
 export function TableCell({ task, column }: TableCellProps) {
@@ -20,9 +20,9 @@ export function TableCell({ task, column }: TableCellProps) {
       case 'status':
         return <StatusCell value={task.status} />;
       case 'date':
-        return <DateCell value={task[column.key]} />;
+        return <DateCell value={task[column.key] as string} />;
       case 'user':
-        return <UserCell value={task[column.key]} />;
+        return <UserCell value={task.assignee_id} />;
       default:
         return <TextCell value={task[column.key]} onEdit={setIsEditing} />;
     }

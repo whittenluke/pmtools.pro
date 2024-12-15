@@ -1,10 +1,18 @@
 'use client';
 
+import { useProjectStore } from '@/stores/project';
+import { TableGrid } from './table/TableGrid';
+
 export function TableView() {
+  const { tasks, currentView } = useProjectStore();
+
+  if (!currentView || currentView.type !== 'table') {
+    return null;
+  }
+
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Table View</h2>
-      <p>Table view implementation coming soon...</p>
+      <TableGrid tasks={tasks} view={currentView} />
     </div>
   );
 } 
