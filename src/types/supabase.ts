@@ -251,4 +251,95 @@ export interface Database {
       [_ in never]: never
     }
   }
+  search: {
+    Tables: {
+      documents: {
+        Row: {
+          id: string
+          workspace_id: string
+          object_type: string
+          object_id: string
+          title: string
+          content: string | null
+          metadata: Json
+          searchable_text: unknown
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          workspace_id: string
+          object_type: string
+          object_id: string
+          title: string
+          content?: string | null
+          metadata?: Json
+          searchable_text?: unknown
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          workspace_id?: string
+          object_type?: string
+          object_id?: string
+          title?: string
+          content?: string | null
+          metadata?: Json
+          searchable_text?: unknown
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+    Functions: {
+      search_documents: {
+        Args: {
+          p_workspace_id: string
+          p_query: string
+          p_filters?: Json
+          p_types?: string[]
+          p_offset?: number
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          object_type: string
+          object_id: string
+          title: string
+          content: string | null
+          metadata: Json
+          rank: number
+          highlight_title: string[]
+          highlight_content: string[]
+        }[]
+      }
+      suggest_similar_terms: {
+        Args: {
+          p_workspace_id: string
+          p_term: string
+          p_limit?: number
+        }
+        Returns: {
+          term: string
+          similarity: number
+        }[]
+      }
+      get_popular_searches: {
+        Args: {
+          p_workspace_id: string
+          p_days?: number
+          p_limit?: number
+        }
+        Returns: {
+          query: string
+          search_count: number
+          avg_results: number
+        }[]
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+  }
 } 
