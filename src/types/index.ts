@@ -19,6 +19,7 @@ export interface Task {
   project_id: string;
   assignee_id: string | null;
   due_date: string | null;
+  start_date: string | null;
   priority: 'low' | 'medium' | 'high';
 }
 

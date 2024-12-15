@@ -75,6 +75,7 @@ export interface Database {
           project_id: string
           assignee_id: string | null
           due_date: string | null
+          start_date: string | null
           priority: 'low' | 'medium' | 'high'
         }
         Insert: {
@@ -87,6 +88,7 @@ export interface Database {
           project_id: string
           assignee_id?: string | null
           due_date?: string | null
+          start_date?: string | null
           priority?: 'low' | 'medium' | 'high'
         }
         Update: {
@@ -99,6 +101,7 @@ export interface Database {
           project_id?: string
           assignee_id?: string | null
           due_date?: string | null
+          start_date?: string | null
           priority?: 'low' | 'medium' | 'high'
         }
       }
