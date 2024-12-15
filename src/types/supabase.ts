@@ -165,7 +165,50 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      search_documents: {
+        Args: {
+          p_workspace_id: string
+          p_query: string
+          p_filters?: Json
+          p_types?: string[]
+          p_offset?: number
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          object_type: string
+          object_id: string
+          title: string
+          content: string | null
+          metadata: Json
+          rank: number
+          highlight_title: string[]
+          highlight_content: string[]
+        }[]
+      }
+      suggest_similar_terms: {
+        Args: {
+          p_workspace_id: string
+          p_term: string
+          p_limit?: number
+        }
+        Returns: {
+          term: string
+          similarity: number
+        }[]
+      }
+      get_popular_searches: {
+        Args: {
+          p_workspace_id: string
+          p_days?: number
+          p_limit?: number
+        }
+        Returns: {
+          query: string
+          search_count: number
+          avg_results: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
@@ -173,71 +216,42 @@ export interface Database {
   }
   analytics: {
     Tables: {
-      events: {
+      documents: {
         Row: {
           id: string
-          user_id: string | null
-          workspace_id: string | null
-          event_name: string
-          properties: Json
-          context: Json
-          session_id: string | null
+          workspace_id: string
+          object_type: string
+          object_id: string
+          title: string
+          content: string | null
+          metadata: Json
+          searchable_text: unknown
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
-          user_id?: string | null
-          workspace_id?: string | null
-          event_name: string
-          properties?: Json
-          context?: Json
-          session_id?: string | null
+          workspace_id: string
+          object_type: string
+          object_id: string
+          title: string
+          content?: string | null
+          metadata?: Json
+          searchable_text?: unknown
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
-          user_id?: string | null
-          workspace_id?: string | null
-          event_name?: string
-          properties?: Json
-          context?: Json
-          session_id?: string | null
+          workspace_id?: string
+          object_type?: string
+          object_id?: string
+          title?: string
+          content?: string | null
+          metadata?: Json
+          searchable_text?: unknown
           created_at?: string
-        }
-      }
-      page_views: {
-        Row: {
-          id: string
-          user_id: string | null
-          workspace_id: string | null
-          path: string
-          referrer: string | null
-          user_agent: string | null
-          duration: number | null
-          session_id: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          workspace_id?: string | null
-          path: string
-          referrer?: string | null
-          user_agent?: string | null
-          duration?: number | null
-          session_id?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          workspace_id?: string | null
-          path?: string
-          referrer?: string | null
-          user_agent?: string | null
-          duration?: number | null
-          session_id?: string | null
-          created_at?: string
+          updated_at?: string
         }
       }
     }
@@ -343,23 +357,17 @@ export interface Database {
     }
   }
   rpc: {
-    search_documents: (args: {
-      p_workspace_id: string;
-      p_query: string;
-      p_filters?: Json;
-      p_types?: string[];
-      p_offset?: number;
-      p_limit?: number;
-    }) => Promise<{
-      id: string;
-      object_type: string;
-      object_id: string;
-      title: string;
-      content: string | null;
-      metadata: Json;
-      rank: number;
-      highlight_title: string[];
-      highlight_content: string[];
-    }[]>;
+    search_documents: {
+      Args: Database['public']['Functions']['search_documents']['Args']
+      Returns: Database['public']['Functions']['search_documents']['Returns']
+    }
+    suggest_similar_terms: {
+      Args: Database['public']['Functions']['suggest_similar_terms']['Args']
+      Returns: Database['public']['Functions']['suggest_similar_terms']['Returns']
+    }
+    get_popular_searches: {
+      Args: Database['public']['Functions']['get_popular_searches']['Args']
+      Returns: Database['public']['Functions']['get_popular_searches']['Returns']
+    }
   }
 } 

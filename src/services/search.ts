@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
-type SearchDocumentsArgs = Parameters<Database['rpc']['search_documents']>[0];
-type SearchDocumentsReturns = Awaited<ReturnType<Database['rpc']['search_documents']>>[number];
+type SearchDocumentsArgs = Database['rpc']['search_documents']['Args'];
+type SearchDocumentsReturns = Database['rpc']['search_documents']['Returns'][number];
 
 export class SearchService {
   static async search(
