@@ -2,7 +2,7 @@ interface IconProps {
   className?: string;
 }
 
-export function ChevronDownIcon({ className }: IconProps) {
+export function CheckIcon({ className }: IconProps) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -16,7 +16,7 @@ export function ChevronDownIcon({ className }: IconProps) {
       strokeLinejoin="round"
       className={className}
     >
-      <polyline points="6 9 12 15 18 9" />
+      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 } 

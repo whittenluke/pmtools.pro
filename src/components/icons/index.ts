@@ -1,6 +1,5 @@
 export { ChevronLeftIcon } from './ChevronLeft'
 export { ChevronRightIcon } from './ChevronRight'
-export { ChevronDownIcon } from './ChevronDown'
 export { FilterIcon } from './Filter'
 export { SortIcon } from './Sort'
 export { GroupIcon } from './Group'

@@ -1,7 +1,7 @@
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { cn } from "@/lib/utils"
-import { ChevronDownIcon } from "@/components/icons"
+import { ChevronDown } from "lucide-react"
 
 const Select = React.forwardRef<
   HTMLSelectElement,
