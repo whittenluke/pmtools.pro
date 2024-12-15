@@ -1,30 +1,30 @@
 # PMTools.pro - Website Design Document (v1.0)
 
-## 1. Executive Summary
+## ✅ 1. Executive Summary
 
 PMTools.pro is a project management platform designed to provide teams with a powerful, intuitive workspace for managing projects and tasks. Built with a project-centric approach, the platform emphasizes flexibility in project views, real-time collaboration, and seamless task management. The platform is built with scalability, performance, and user experience as core principles.
 
 ## 2. Technical Architecture
 
-### 2.1 Technology Stack
+### ✅ 2.1 Technology Stack
 
-- **Frontend**: React (Next.js 14+)
-- **Backend**: Supabase
-- **Hosting**: Netlify
-- **Database**: Supabase Postgres
-- **State Management**: Zustand
-- **UI Framework**: Shadcn/UI
-- **Styling**: Tailwind CSS
+- ✅ **Frontend**: React (Next.js 14+)
+- ✅ **Backend**: Supabase
+- ✅ **Hosting**: Netlify
+- ✅ **Database**: Supabase Postgres
+- ✅ **State Management**: Zustand
+- ✅ **UI Framework**: Shadcn/UI
+- ✅ **Styling**: Tailwind CSS
 - **Analytics**: Plausible (privacy-focused)
-- **Drag and Drop**: @atlaskit/pragmatic-drag-and-drop
+- ✅ **Drag and Drop**: @atlaskit/pragmatic-drag-and-drop
 
-### 2.2 Architectural Principles
+### ✅ 2.2 Architectural Principles
 
-- Project-centric architecture
-- Real-time collaboration using Supabase subscriptions
-- Serverless backend design using Next.js API routes
+- ✅ Project-centric architecture
+- ✅ Real-time collaboration using Supabase subscriptions
+- ✅ Serverless backend design using Next.js API routes
 - Comprehensive SEO optimization
-- Performance-first approach
+- ✅ Performance-first approach
 - Accessibility compliance (WCAG 2.1)
 - Automated maintenance through GitHub Actions
 
@@ -53,33 +53,31 @@ Implementation approach:
 - Custom preview rendering for optimal UX
 - Accessibility-first implementation using ARIA
 
-### 2.3 Maintenance Strategy
+### ✅ 2.3 Maintenance Strategy
 
-The system implements automated maintenance tasks through a combination of Next.js API routes and GitHub Actions:
+#### ✅ 2.3.1 Maintenance Tasks
 
-#### 2.3.1 Maintenance Tasks
+- ✅ Clean up old notifications (30+ days)
+- ✅ Archive old activity logs (90+ days)
+- ✅ Clean up expired workspace invites
+- ✅ Clean up old automation logs (30+ days)
+- ✅ Clean up old export jobs (7+ days)
+- ✅ Database optimization (VACUUM ANALYZE)
 
-- Clean up old notifications (30+ days)
-- Archive old activity logs (90+ days)
-- Clean up expired workspace invites
-- Clean up old automation logs (30+ days)
-- Clean up old export jobs (7+ days)
-- Database optimization (VACUUM ANALYZE)
+#### ✅ 2.3.2 Implementation
 
-#### 2.3.2 Implementation
+- ✅ **API Endpoint**: `/api/maintenance` (Next.js API route)
+- ✅ **Authentication**: Secured with CRON_SECRET environment variable
+- ✅ **Scheduler**: GitHub Actions workflow running daily at 2 AM UTC
+- ✅ **Monitoring**: GitHub Actions dashboard for execution history
+- ✅ **Manual Trigger**: Available through GitHub Actions workflow_dispatch
 
-- **API Endpoint**: `/api/maintenance` (Next.js API route)
-- **Authentication**: Secured with CRON_SECRET environment variable
-- **Scheduler**: GitHub Actions workflow running daily at 2 AM UTC
-- **Monitoring**: GitHub Actions dashboard for execution history
-- **Manual Trigger**: Available through GitHub Actions workflow_dispatch
+#### ✅ 2.3.3 Error Handling
 
-#### 2.3.3 Error Handling
-
-- Failed executions logged in GitHub Actions
-- Automatic retry mechanism for transient failures
-- Admin notifications for persistent failures
-- Detailed execution logs for debugging
+- ✅ Failed executions logged in GitHub Actions
+- ✅ Automatic retry mechanism for transient failures
+- ✅ Admin notifications for persistent failures
+- ✅ Detailed execution logs for debugging
 
 ## 3. Core Functionality
 
@@ -89,157 +87,96 @@ Projects are the central organizing unit of the platform, with the following key
 
 - **Multiple View Types**:
 
-  - Table view with grouping and filtering
-  - Kanban board view
+  - ✅ Table view (basic implementation)
+  - Kanban board view (in progress)
   - Dashboard view with customizable widgets
   - Timeline/Gantt view
   - Calendar view
 
 - **View Features**:
-  - Seamless switching between views
-  - View-specific configurations
+  - ✅ Seamless switching between views
+  - View-specific configurations (in progress)
   - Saved view templates
-  - Real-time updates across views
+  - Real-time updates (in progress)
 
-### 3.2 Table View
+### ✅ 3.2 Table View
 
-- **Groups/Tables**:
-  - Collapsible groups
+- ✅ **Groups/Tables**:
+  - Collapsible groups (in progress)
   - Group-level summaries
-  - Custom group styling
-  - Drag-and-drop reordering
-- **Columns**:
-  - Custom column types (status, date, person, etc.)
-  - Column visibility controls
-  - Column reordering
-  - Column-specific filters
-- **Status Column Implementation**:
+  - ✅ Custom group styling
+  - ✅ Drag-and-drop reordering
+- ✅ **Columns**:
+  - ✅ Custom column types (basic types implemented)
+  - ✅ Column visibility controls (in progress)
+  - ✅ Column reordering (in progress)
+  - ✅ Column-specific filters (UI only)
+- ✅ **Status Column Implementation**:
 
-  - Special column type that drives kanban view
-  - Default statuses provided (Not Started, In Progress, Done)
-  - Custom status creation with color picker
-  - Status order preserved across views
-  - Status changes sync between table and kanban
-  - Column type interactions:
-    - Can be grouped by status
-    - Can be filtered alongside other columns
-    - Can be used in formulas (e.g., count by status)
-    - Can trigger automations
-    - Can be referenced by other column types:
-      - Formula columns can reference status
-      - Dependency columns can use status for conditions
-      - Timeline view can color-code by status
-      - Dashboard widgets can aggregate by status
-  - Status metadata stored in project view config:
-    ```typescript
-    interface StatusConfig {
-      statuses: {
-        id: string;
-        title: string;
-        color: string;
-        position: number;
-        type?: "default" | "custom";
-      }[];
-      defaultStatusId: string;
-      interactions: {
-        allowGrouping: boolean;
-        allowFiltering: boolean;
-        allowFormulas: boolean;
-        allowAutomations: boolean;
-        allowDependencies: boolean;
-      };
-    }
-    ```
-  - Database representation:
+  - ✅ Special column type that drives kanban view
+  - ✅ Default statuses provided (Not Started, In Progress, Done)
+  - ✅ Custom status creation with color picker
+  - ✅ Status order preserved across views
+  - ✅ Status changes sync between table and kanban (in progress)
 
-    ```sql
-    -- Add to project_views table
-    ALTER TABLE project_views
-    ADD COLUMN status_config JSONB DEFAULT '{
-      "statuses": [
-        {"id": "not_started", "title": "Not Started", "color": "#c4c4c4", "position": 0, "type": "default"},
-        {"id": "in_progress", "title": "In Progress", "color": "#fdab3d", "position": 1, "type": "default"},
-        {"id": "done", "title": "Done", "color": "#00c875", "position": 2, "type": "default"}
-      ],
-      "defaultStatusId": "not_started",
-      "interactions": {
-        "allowGrouping": true,
-        "allowFiltering": true,
-        "allowFormulas": true,
-        "allowAutomations": true,
-        "allowDependencies": true
-      }
-    }'::jsonb;
+### 🟡 3.3 Task Management
 
-    -- Tasks table uses status_id from config
-    ALTER TABLE tasks
-    ADD COLUMN status_id TEXT NOT NULL DEFAULT 'not_started';
-    ```
+- 🟡 **Task Modal**:
 
-- **Rows**:
-  - Inline editing
-  - Bulk actions
-  - Row reordering within and between groups
-  - Quick task creation
+  - ✅ Single-page layout (no tabs)
+  - 🟡 Rich text description (basic implementation)
+  - ❌ File attachments with previews
+  - 🟡 Collapsible activity log (in progress)
+  - 🟡 Integrated comments section (basic implementation)
+  - 🟡 Custom fields display (in progress)
+  - ❌ Quick actions sidebar
 
-### 3.3 Task Management
+- 🟡 **Comments & Updates**:
+  - 🟡 Rich text support (basic implementation)
+  - ❌ @mentions
+  - ❌ File attachments
+  - ❌ Emoji reactions
+  - ❌ Comment resolution
+  - ❌ Email notifications
 
-- **Task Modal**:
+### ✅ 3.4 Real-time Collaboration
 
-  - Single-page layout (no tabs)
-  - Rich text description
-  - File attachments with previews
-  - Collapsible activity log
-  - Integrated comments section
-  - Custom fields display
-  - Quick actions sidebar
+- ✅ **Live Updates**:
 
-- **Comments & Updates**:
-  - Rich text support
-  - @mentions
-  - File attachments
-  - Emoji reactions
-  - Comment resolution
-  - Email notifications
+  - ✅ Instant task changes
+  - ✅ Real-time field updates
+  - ✅ Comment notifications
+  - 🟡 User presence indicators (in progress)
+  - 🟡 Concurrent editing support (basic implementation)
 
-### 3.4 Real-time Collaboration
+- ✅ **Conflict Resolution**:
+  - ✅ Last-write wins for simple fields
+  - ✅ Merge strategy for complex fields
+  - ✅ Optimistic updates
+  - ✅ Offline support
 
-- **Live Updates**:
+### 🟡 3.5 Templates
 
-  - Instant task changes
-  - Real-time field updates
-  - Comment notifications
-  - User presence indicators
-  - Concurrent editing support
+- 🟡 **Project Templates**:
 
-- **Conflict Resolution**:
-  - Last-write wins for simple fields
-  - Merge strategy for complex fields
-  - Optimistic updates
-  - Offline support
+  - ✅ Pre-defined project structure
+  - ✅ Default columns and views
+  - ❌ Sample tasks and groups
+  - 🟡 Automation rules (in progress)
+  - ✅ Custom fields configuration
 
-### 3.5 Templates
+- ✅ **View Templates**:
+  - ✅ Column configurations
+  - ✅ Filter presets
+  - ✅ Group settings
+  - ✅ Visual preferences
+  - ✅ Saved layouts
 
-- **Project Templates**:
-
-  - Pre-defined project structure
-  - Default columns and views
-  - Sample tasks and groups
-  - Automation rules
-  - Custom fields configuration
-
-- **View Templates**:
-  - Column configurations
-  - Filter presets
-  - Group settings
-  - Visual preferences
-  - Saved layouts
-
-### 3.6 Status Implementation
+### 🟡 3.6 Status Implementation
 
 The status system is a core feature that bridges the Table and Kanban views:
 
-#### 3.6.1 Status Configuration
+#### ✅ 3.6.1 Status Configuration
 
 ```typescript
 interface StatusConfig {
@@ -254,7 +191,7 @@ interface StatusConfig {
 }
 ```
 
-#### 3.6.2 Database Structure
+#### ✅ 3.6.2 Database Structure
 
 ```sql
 -- Status configuration stored in project_views
@@ -273,45 +210,45 @@ ALTER TABLE tasks
 ADD COLUMN status_id TEXT NOT NULL DEFAULT 'not_started';
 ```
 
-#### 3.6.3 View Interactions
+#### 🟡 3.6.3 View Interactions
 
-- **Table View**:
+- 🟡 **Table View**:
 
-  - Status shown as a special column type
-  - Status changes via dropdown or quick-select
-  - Custom status creation in column settings
-  - Status colors shown as indicators
+  - ✅ Status shown as a special column type
+  - ✅ Status changes via dropdown or quick-select
+  - 🟡 Custom status creation in column settings (in progress)
+  - ✅ Status colors shown as indicators
 
-- **Kanban View**:
-  - Each status becomes a column
-  - Column order matches status positions
-  - New statuses create new columns
-  - Drag-and-drop between columns updates status
-  - Column headers show status colors
+- 🟡 **Kanban View**:
+  - 🟡 Each status becomes a column (in progress)
+  - 🟡 Column order matches status positions (in progress)
+  - ❌ New statuses create new columns
+  - 🟡 Drag-and-drop between columns updates status (in progress)
+  - ✅ Column headers show status colors
 
-#### 3.6.4 Status Management
+#### 🟡 3.6.4 Status Management
 
-- Status changes sync instantly across views
-- Status updates trigger real-time notifications
-- Bulk status updates supported
-- Status deletion handled gracefully:
-  - Warning if tasks use the status
-  - Option to move tasks to different status
-  - Prevents deletion of default statuses
+- 🟡 Status changes sync instantly across views (in progress)
+- ✅ Status updates trigger real-time notifications
+- ❌ Bulk status updates supported
+- ❌ Status deletion handled gracefully:
+  - ❌ Warning if tasks use the status
+  - ❌ Option to move tasks to different status
+  - ❌ Prevents deletion of default statuses
 
-### 3.7 Column Types
+### 🟡 3.7 Column Types
 
-#### 3.7.1 Core Column Types
+#### 🟡 3.7.1 Core Column Types
 
-- **Text**:
+- 🟡 **Text**:
 
-  - Single line text
-  - Long text (with rich text editor)
-  - HTML/Markdown support
-  - Mentions support (@users)
-  - URL detection and preview
+  - ✅ Single line text
+  - 🟡 Long text (with rich text editor) (in progress)
+  - ❌ HTML/Markdown support
+  - ❌ Mentions support (@users)
+  - ❌ URL detection and preview
 
-- **Number**:
+- 🟡 **Number**:
 
   ```typescript
   interface NumberColumnConfig {
@@ -326,7 +263,7 @@ ADD COLUMN status_id TEXT NOT NULL DEFAULT 'not_started';
   }
   ```
 
-- **Date**:
+- 🟡 **Date**:
 
   ```typescript
   interface DateColumnConfig {
@@ -341,7 +278,7 @@ ADD COLUMN status_id TEXT NOT NULL DEFAULT 'not_started';
   }
   ```
 
-- **Person**:
+- 🟡 **Person**:
 
   ```typescript
   interface PersonColumnConfig {
@@ -354,9 +291,9 @@ ADD COLUMN status_id TEXT NOT NULL DEFAULT 'not_started';
   }
   ```
 
-- **Status** (Special type, see Status Implementation)
+- 🟡 **Status** (Special type, see Status Implementation)
 
-- **Checkbox**:
+- 🟡 **Checkbox**:
   ```typescript
   interface CheckboxColumnConfig {
     type: "checkbox";
@@ -652,7 +589,7 @@ class ViewManager {
 
 ### 3.9 Workspace System
 
-#### 3.9.1 Workspace Model
+#### 🟡 3.9.1 Workspace Model
 
 ```typescript
 interface Workspace {
@@ -684,7 +621,7 @@ interface WorkspaceBranding {
 }
 ```
 
-#### 3.9.2 Database Structure
+#### ✅ 3.9.2 Database Structure
 
 ```sql
 -- Workspaces
@@ -722,9 +659,9 @@ CREATE TABLE workspace_invites (
 );
 ```
 
-#### 3.9.3 Workspace Hierarchy
+#### 🟡 3.9.3 Workspace Hierarchy
 
-- **Organization**:
+- 🟡 **Organization**:
 
   ```typescript
   interface WorkspaceHierarchy {
@@ -735,7 +672,7 @@ CREATE TABLE workspace_invites (
   }
   ```
 
-- **Teams**:
+- ❌ **Teams**:
   ```typescript
   interface Team {
     id: string;
@@ -747,7 +684,7 @@ CREATE TABLE workspace_invites (
   }
   ```
 
-#### 3.9.4 Access Control
+#### 🟡 3.9.4 Access Control
 
 ```typescript
 interface WorkspacePermissions {
@@ -811,52 +748,43 @@ const DEFAULT_ROLES: Record<string, RoleDefinition> = {
 };
 ```
 
-#### 3.9.5 Workspace Settings
+- ✅ **Permission Levels**:
 
-- **Security**:
+  - ✅ Owner (full access)
+  - ✅ Admin (manage workspace)
+  - ✅ Member (basic access)
+  - ❌ Guest (limited access)
 
-  ```typescript
-  interface SecuritySettings {
-    passwordPolicy: {
-      minLength: number;
-      requireSpecialChars: boolean;
-      requireNumbers: boolean;
-      requireUppercase: boolean;
-      expiration?: number;
-    };
-    sessionPolicy: {
-      maxDuration: number;
-      inactivityTimeout: number;
-      maxConcurrentSessions: number;
-    };
-    mfaPolicy: {
-      required: boolean;
-      allowedMethods: ("totp" | "sms" | "email")[];
-    };
-  }
-  ```
+- 🟡 **Access Control Features**:
+  - ✅ Role-based permissions
+  - ✅ Resource-level permissions
+  - 🟡 Custom permission sets (in progress)
+  - ❌ Permission inheritance
+  - ❌ Time-based access
 
-- **Features and Limits**:
+#### 🟡 3.9.5 Workspace Features
 
-  ```typescript
-  interface WorkspaceLimits {
-    maxProjects: number;
-    maxMembersPerProject: number;
-    maxStorage: number;
-    maxItemsPerView: number;
-    maxCustomFields: number;
-    maxAutomations: number;
-  }
+- 🟡 **Customization**:
 
-  interface EnabledFeatures {
-    customFields: boolean;
-    automations: boolean;
-    apiAccess: boolean;
-    sso: boolean;
-    audit: boolean;
-    backups: boolean;
-  }
-  ```
+  - ✅ Workspace branding
+  - ✅ Custom domain
+  - ❌ Custom email templates
+  - ❌ White-labeling
+
+- 🟡 **Security**:
+
+  - ✅ SSO integration
+  - ✅ 2FA requirement
+  - 🟡 IP restrictions (in progress)
+  - ❌ Session management
+  - ❌ Audit logging
+
+- 🟡 **Administration**:
+  - ✅ Member management
+  - ✅ Role assignment
+  - 🟡 Usage analytics (in progress)
+  - ❌ Backup/restore
+  - ❌ Data export
 
 ## 4. URL Structure
 
@@ -2802,9 +2730,9 @@ pmtools.pro/
 │   │   ├── projects/       # Project routes
 │   │   │   ├── [id]/      # Project-specific routes
 │   │   │   │   ├── table/     # Table view
-│   │   │   │   ├── kanban/    # Kanban view
+│   ���   │   │   ├── kanban/    # Kanban view
 │   │   │   │   └── settings/  # Project settings
-│   │   │   ├── new/       # New project
+��   │   │   ├── new/       # New project
 │   │   │   └── page.tsx   # Projects list
 │   │   └── account/       # Account routes
 │   ├── components/        # React components
@@ -2817,7 +2745,7 @@ pmtools.pro/
 │   └── types/           # TypeScript types
 ├── public/              # Static assets
 ├── tests/              # Test files
-└── docs/              # Documentation
+���── docs/              # Documentation
 ```
 
 ---
@@ -4893,7 +4821,7 @@ const pushConfig = {
 
 ### 9.4 Real-time Updates
 
-```typescript
+````typescript
 // Real-time update manager
 export class RealtimeManager {
   private readonly channels: Map<string, RealtimeChannel>;
@@ -5129,7 +5057,6 @@ export class RealtimeHandler {
     }
   }
 }
-```
 
 // ... continue with remaining sections ...
 
@@ -5201,7 +5128,7 @@ CREATE INDEX idx_workspace_integrations_workspace ON integrations.workspace_inte
 CREATE INDEX idx_workspace_integrations_provider ON integrations.workspace_integrations(provider_id);
 CREATE INDEX idx_webhooks_integration ON integrations.webhooks(integration_id);
 CREATE INDEX idx_sync_logs_integration ON integrations.sync_logs(integration_id, created_at DESC);
-```
+````
 
 ### 10.2 Integration RLS Policies
 
@@ -6118,7 +6045,7 @@ export class AnalyticsManager {
   async trackError(error: Error, metadata: Record<string, any> = {}) {
     const errorRecord = {
       user_id: auth.uid(),
-      workspace_id: this.getCurrentWorkspaceId(),
+      workspaceid: this.getCurrentWorkspaceId(),
       error_type: error.name,
       error_message: error.message,
       stack_trace: error.stack,
@@ -7589,3 +7516,125 @@ Optimization strategies include:
 ## 21. Testing Strategy
 
 [To be completed]
+
+### 🟡 3.10 Import/Export System
+
+#### 🟡 3.10.1 Import System
+
+```typescript
+interface ImportConfig {
+  source: "monday" | "asana" | "jira" | "trello" | "csv" | "excel";
+  workspace_id: string;
+  options: {
+    includeAttachments: boolean;
+    includeHistory: boolean;
+    preserveIds: boolean;
+    mappings: FieldMapping[];
+  };
+}
+
+interface FieldMapping {
+  sourceField: string;
+  targetField: string;
+  transformer?: (value: any) => any;
+}
+```
+
+- 🟡 **Import Features**:
+  - ✅ JSON data format support
+  - 🟡 CSV/Excel import (in progress)
+  - ❌ Platform-specific importers
+  - ❌ Attachment import
+  - ❌ History import
+
+#### ✅ 3.10.2 Export System
+
+```typescript
+interface ExportConfig {
+  format: "csv" | "excel" | "json";
+  workspace_id: string;
+  project_ids: string[];
+  options: {
+    includeAttachments: boolean;
+    includeHistory: boolean;
+    dateRange?: DateRange;
+    fields: string[];
+  };
+}
+```
+
+- ✅ **Export Features**:
+  - ✅ JSON data export
+  - ✅ Project data export
+  - ✅ Task data export
+  - ✅ View configurations export
+  - ✅ Comments export
+
+#### ✅ 3.10.3 Database Structure
+
+```sql
+-- Import Jobs
+CREATE TABLE import_jobs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  source TEXT NOT NULL,
+  config JSONB NOT NULL,
+  progress INTEGER DEFAULT 0,
+  total INTEGER,
+  error TEXT,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Export Jobs
+CREATE TABLE export_jobs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  workspace_id UUID REFERENCES workspaces(id) ON DELETE CASCADE,
+  status TEXT NOT NULL,
+  format TEXT NOT NULL,
+  config JSONB NOT NULL,
+  file_url TEXT,
+  error TEXT,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### 🟡 3.10.4 Platform-Specific Importers
+
+- ❌ **Monday.com**:
+
+  - ❌ API integration
+  - ❌ Data mapping
+  - ❌ Attachment handling
+
+- ❌ **Asana**:
+
+  - ❌ OAuth authentication
+  - ❌ Workspace sync
+  - ❌ Task import
+
+- ❌ **Jira**:
+  - ❌ Server/Cloud support
+  - ❌ Issue mapping
+  - ❌ Custom field support
+
+#### 🟡 3.10.5 Import/Export UI
+
+- 🟡 **Import Interface**:
+
+  - ✅ File upload
+  - 🟡 Source selection (in progress)
+  - ❌ Field mapping
+  - ❌ Preview and validation
+  - ❌ Progress tracking
+
+- ✅ **Export Interface**:
+  - ✅ Format selection
+  - ✅ Data selection
+  - ✅ Export configuration
+  - ✅ Download handling
+  - ✅ Job history

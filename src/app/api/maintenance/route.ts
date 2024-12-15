@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   try {
     // Verify the request is from our cron job
     const authHeader = request.headers.get('Authorization');
-    if (authHeader !== process.env.CRON_SECRET) {
+    if (!authHeader?.startsWith('Bearer ') || authHeader.split(' ')[1] !== process.env.MAINTENANCE_SECRET) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
