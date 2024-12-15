@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
-type SearchDocumentsArgs = Database['search']['Functions']['search_documents']['Args'];
-type SearchDocumentsReturns = Database['search']['Functions']['search_documents']['Returns'][number];
+type SearchDocumentsArgs = Parameters<Database['rpc']['search_documents']>[0];
+type SearchDocumentsReturns = Awaited<ReturnType<Database['rpc']['search_documents']>>[number];
 
 export class SearchService {
   static async search(
@@ -15,7 +15,7 @@ export class SearchService {
         p_workspace_id: workspaceId,
         p_query: query,
         p_filters: filters,
-      } as SearchDocumentsArgs);
+      } satisfies SearchDocumentsArgs);
 
       if (error) throw error;
       return data;

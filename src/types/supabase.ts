@@ -342,4 +342,24 @@ export interface Database {
       [_ in never]: never
     }
   }
+  rpc: {
+    search_documents: (args: {
+      p_workspace_id: string;
+      p_query: string;
+      p_filters?: Json;
+      p_types?: string[];
+      p_offset?: number;
+      p_limit?: number;
+    }) => Promise<{
+      id: string;
+      object_type: string;
+      object_id: string;
+      title: string;
+      content: string | null;
+      metadata: Json;
+      rank: number;
+      highlight_title: string[];
+      highlight_content: string[];
+    }[]>;
+  }
 } 
