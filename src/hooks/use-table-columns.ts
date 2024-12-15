@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import type { Column } from '@/types';
+import type { ViewColumn } from '@/types';
 
-const defaultColumns: Column[] = [
+const defaultColumns: ViewColumn[] = [
   { id: 'title', key: 'title', title: 'Title', type: 'text' },
   { id: 'status', key: 'status', title: 'Status', type: 'status' },
   { id: 'assignee', key: 'assignee_id', title: 'Assignee', type: 'user' },
@@ -9,7 +9,7 @@ const defaultColumns: Column[] = [
 ];
 
 export function useTableColumns() {
-  const [columns, setColumns] = useState<Column[]>(defaultColumns);
+  const [columns, setColumns] = useState<ViewColumn[]>(defaultColumns);
 
   const addColumn = useCallback(() => {
     // Implementation for adding a new column
