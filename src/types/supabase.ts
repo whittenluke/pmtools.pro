@@ -171,4 +171,84 @@ export interface Database {
       [_ in never]: never
     }
   }
+  analytics: {
+    Tables: {
+      events: {
+        Row: {
+          id: string
+          user_id: string | null
+          workspace_id: string | null
+          event_name: string
+          properties: Json
+          context: Json
+          session_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          event_name: string
+          properties?: Json
+          context?: Json
+          session_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          event_name?: string
+          properties?: Json
+          context?: Json
+          session_id?: string | null
+          created_at?: string
+        }
+      }
+      page_views: {
+        Row: {
+          id: string
+          user_id: string | null
+          workspace_id: string | null
+          path: string
+          referrer: string | null
+          user_agent: string | null
+          duration: number | null
+          session_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          path: string
+          referrer?: string | null
+          user_agent?: string | null
+          duration?: number | null
+          session_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          path?: string
+          referrer?: string | null
+          user_agent?: string | null
+          duration?: number | null
+          session_id?: string | null
+          created_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+  }
 } 

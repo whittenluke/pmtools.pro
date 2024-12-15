@@ -1,4 +1,8 @@
 import { supabase } from '@/lib/supabase';
+import type { Database } from '@/types/supabase';
+
+type AnalyticsEvent = Database['analytics']['Tables']['events']['Insert'];
+type PageView = Database['analytics']['Tables']['page_views']['Insert'];
 
 export class AnalyticsService {
   static async trackEvent(
@@ -6,13 +10,16 @@ export class AnalyticsService {
     properties: Record<string, any> = {}
   ) {
     try {
+      const event: AnalyticsEvent = {
+        event_name: eventName,
+        properties,
+        created_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
-        .from('analytics.events')
-        .insert({
-          event_name: eventName,
-          properties,
-          created_at: new Date().toISOString(),
-        });
+        .schema('analytics')
+        .from('events')
+        .insert(event);
 
       if (error) throw error;
     } catch (error) {
@@ -22,12 +29,15 @@ export class AnalyticsService {
 
   static async trackPageView(path: string) {
     try {
+      const pageView: PageView = {
+        path,
+        created_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
-        .from('analytics.page_views')
-        .insert({
-          path,
-          created_at: new Date().toISOString(),
-        });
+        .schema('analytics')
+        .from('page_views')
+        .insert(pageView);
 
       if (error) throw error;
     } catch (error) {
