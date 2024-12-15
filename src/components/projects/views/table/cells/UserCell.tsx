@@ -1,4 +1,4 @@
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { useUser } from '@/hooks/use-user';
 
 interface UserCellProps {
@@ -6,18 +6,29 @@ interface UserCellProps {
 }
 
 export function UserCell({ value }: UserCellProps) {
-  const { user } = useUser(value);
+  const { user, loading } = useUser(value);
 
-  if (!user) return <div className="text-gray-400">Unassigned</div>;
+  if (loading) {
+    return <div className="animate-pulse h-6 w-24 bg-muted rounded" />;
+  }
+
+  if (!user) {
+    return <div className="text-gray-400">Unassigned</div>;
+  }
+
+  const initials = user.full_name
+    ?.split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase() || '?';
 
   return (
     <div className="flex items-center gap-2">
-      <Avatar
-        src={user.avatar_url}
-        alt={user.name}
-        className="h-6 w-6"
-      />
-      <span className="text-sm">{user.name}</span>
+      <Avatar className="h-6 w-6">
+        <AvatarImage src={user.avatar_url || undefined} alt={user.full_name || ''} />
+        <AvatarFallback>{initials}</AvatarFallback>
+      </Avatar>
+      <span className="text-sm">{user.full_name}</span>
     </div>
   );
 }
