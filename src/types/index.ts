@@ -19,6 +19,14 @@ export interface Task {
   updated_at: string;
 }
 
+// Table Types
+export interface Column {
+  key: keyof Task;
+  type: 'text' | 'status' | 'date' | 'user';
+  title: string;
+  width?: number;
+}
+
 // Calendar Types
 export interface CalendarState {
   currentDate: Date;
