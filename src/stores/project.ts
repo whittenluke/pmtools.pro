@@ -1,11 +1,13 @@
 import { create } from 'zustand';
-import type { Project, ProjectState, Task } from '@/types';
+import type { Project, ProjectState, Task, ViewModel } from '@/types';
 
 export const useProjectStore = create<ProjectState>((set) => ({
   projects: [],
   currentProject: null,
   loading: false,
   tasks: [],
+  views: [],
+  currentView: null,
   createProject: async (project) => {
     // TODO: Implement project creation with Supabase
     const newProject: Project = {
@@ -14,6 +16,7 @@ export const useProjectStore = create<ProjectState>((set) => ({
       status: 'active',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      owner_id: '', // TODO: Get from auth context
     };
     set((state) => ({ projects: [...state.projects, newProject] }));
   },
@@ -41,6 +44,8 @@ export const useProjectStore = create<ProjectState>((set) => ({
       status: 'todo',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      assignee_id: null,
+      start_date: null,
     };
     set((state) => ({ tasks: [...state.tasks, newTask] }));
   },
@@ -56,6 +61,15 @@ export const useProjectStore = create<ProjectState>((set) => ({
     // TODO: Implement task deletion with Supabase
     set((state) => ({
       tasks: state.tasks.filter((t) => t.id !== id),
+    }));
+  },
+  setCurrentView: (view) => set({ currentView: view }),
+  updateView: async (id, view) => {
+    // TODO: Implement view update with Supabase
+    set((state) => ({
+      views: state.views.map((v) =>
+        v.id === id ? { ...v, ...view } : v
+      ),
     }));
   },
 }));
