@@ -22,10 +22,11 @@ PMTools.pro is a project management platform designed to provide teams with a po
 
 - Project-centric architecture
 - Real-time collaboration using Supabase subscriptions
-- Serverless backend design
+- Serverless backend design using Next.js API routes
 - Comprehensive SEO optimization
 - Performance-first approach
 - Accessibility compliance (WCAG 2.1)
+- Automated maintenance through GitHub Actions
 
 ### 2.3 Drag and Drop Implementation
 
@@ -51,6 +52,34 @@ Implementation approach:
 - Optional adapters loaded on demand
 - Custom preview rendering for optimal UX
 - Accessibility-first implementation using ARIA
+
+### 2.3 Maintenance Strategy
+
+The system implements automated maintenance tasks through a combination of Next.js API routes and GitHub Actions:
+
+#### 2.3.1 Maintenance Tasks
+
+- Clean up old notifications (30+ days)
+- Archive old activity logs (90+ days)
+- Clean up expired workspace invites
+- Clean up old automation logs (30+ days)
+- Clean up old export jobs (7+ days)
+- Database optimization (VACUUM ANALYZE)
+
+#### 2.3.2 Implementation
+
+- **API Endpoint**: `/api/maintenance` (Next.js API route)
+- **Authentication**: Secured with CRON_SECRET environment variable
+- **Scheduler**: GitHub Actions workflow running daily at 2 AM UTC
+- **Monitoring**: GitHub Actions dashboard for execution history
+- **Manual Trigger**: Available through GitHub Actions workflow_dispatch
+
+#### 2.3.3 Error Handling
+
+- Failed executions logged in GitHub Actions
+- Automatic retry mechanism for transient failures
+- Admin notifications for persistent failures
+- Detailed execution logs for debugging
 
 ## 3. Core Functionality
 

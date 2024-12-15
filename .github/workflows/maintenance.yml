@@ -1,0 +1,32 @@
+name: Daily Maintenance
+
+on:
+  schedule:
+    # Runs at 00:00 UTC every day
+    - cron: "0 0 * * *"
+  # Allow manual triggering for testing
+  workflow_dispatch:
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run Maintenance Tasks
+        run: |
+          curl -X POST ${{ secrets.SITE_URL }}/api/maintenance \
+          -H "Authorization: Bearer ${{ secrets.MAINTENANCE_SECRET }}" \
+          -H "Content-Type: application/json" \
+          --fail
+
+      - name: Report Failure
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Maintenance Job Failed',
+              body: `The maintenance job failed at ${new Date().toISOString()}. Please check the workflow logs for details.`
+            })
