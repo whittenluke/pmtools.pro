@@ -23,9 +23,9 @@ PMTools.pro is a project management platform designed to provide teams with a po
 - ✅ Project-centric architecture
 - ✅ Real-time collaboration using Supabase subscriptions
 - ✅ Serverless backend design using Next.js API routes
-- Comprehensive SEO optimization
+- ✅ Comprehensive SEO optimization
 - ✅ Performance-first approach
-- Accessibility compliance (WCAG 2.1)
+- ✅ Accessibility compliance (WCAG 2.1)
 - ✅ Automated maintenance through GitHub Actions
 
 ### 2.3 Drag and Drop Implementation
@@ -79,7 +79,7 @@ Implementation approach:
 - ✅ Admin notifications for persistent failures
 - ✅ Detailed execution logs for debugging
 
-## 2.4 Design System
+## 2.4 ✅ Design System
 
 ### 2.4.1 Color Palette
 
@@ -87,34 +87,33 @@ The color system is designed to be accessible, professional, and distinctive whi
 
 #### Primary Colors
 
-- **Primary**: Rich Teal (#0A7B83, HSL 185 85% 28%)
+- **Primary**: Rich Teal (#0A7B83)
   - Light mode: Used for primary actions, links, and brand elements
-  - Dark mode: Adjusted to HSL 185 70% 40% for better visibility
+  - Dark mode: Adjusted for better visibility while maintaining brand identity
 - **Primary Foreground**: White in light mode, slightly off-white in dark mode
-  - Light mode: HSL 210 40% 98%
-  - Dark mode: HSL 210 40% 98%
 
 #### Secondary Colors
 
-- **Secondary**: Light teal tint
-  - Light mode: HSL 184 40% 96%
-  - Dark mode: HSL 184 45% 17%
-- **Secondary Foreground**: Dark in light mode, light in dark mode
-  - Light mode: HSL 222 47% 11%
-  - Dark mode: HSL 210 40% 98%
+- **Secondary**: Complementary teal shades
+  - Light mode: Lighter teal tints for backgrounds and accents
+  - Dark mode: Darker teal shades for depth and hierarchy
 
 #### Status Colors
 
-- **Success**: Professional green (HSL 142 72% 29%)
-- **Warning**: Clear amber (HSL 45 93% 47%)
-- **Destructive**: Clear red (HSL 0 84% 60%)
-- **Info**: Bright blue (HSL 199 89% 48%)
+- **Success**: Professional green
+- **Warning**: Clear amber
+- **Destructive**: Clear red
+- **Info**: Bright blue
 
 #### UI Colors
 
-- **Background**: Pure white in light mode, rich dark in dark mode
-- **Foreground**: Near black in light mode, off-white in dark mode
-- **Muted**: Light teal tint for subtle backgrounds
+- **Background**:
+  - Light mode: Pure white
+  - Dark mode: Rich dark background with proper contrast
+- **Foreground**:
+  - Light mode: Near black
+  - Dark mode: Off-white
+- **Muted**: Subtle teal tints for backgrounds
 - **Muted Foreground**: Subdued text color
 - **Border**: Subtle borders matching the teal theme
 - **Ring**: Focus rings using primary color
@@ -125,12 +124,35 @@ The color system is designed to be accessible, professional, and distinctive whi
 - Secondary color for less prominent actions and hover states
 - Status colors reserved for their specific meanings
 - Muted colors for backgrounds and disabled states
-- Consistent use of HSL format for easy manipulation
 - All color combinations meet WCAG 2.1 contrast requirements
+- Optimized for colorblind accessibility
+- Consistent visual hierarchy in both light and dark modes
 
-### 2.4.2 Typography
+### 2.4.2 Theme System
 
-[Typography section to be added]
+#### Theme Implementation
+
+- **Theme Toggle**: Implemented with smooth transitions
+- **System Preference Detection**: Automatically matches system theme
+- **Persistent Theme Choice**: Saves user preference
+- **Dark Mode Optimization**:
+  - Enhanced readability
+  - Proper contrast between sections
+  - Maintained visual hierarchy
+  - Optimized for reduced eye strain
+
+#### Component Theming
+
+- **Cards and Sections**:
+  - Light mode: Subtle shadows and borders
+  - Dark mode: Subtle background shifts for depth
+- **Interactive Elements**:
+  - Consistent hover and focus states
+  - Clear active states
+  - Accessible focus indicators
+- **Typography**:
+  - Optimized contrast ratios
+  - Maintained readability in both modes
 
 ### 2.4.3 Spacing
 
@@ -2395,10 +2417,6 @@ CREATE TABLE export_jobs (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
-
--- Create indexes
-CREATE INDEX idx_import_jobs_workspace ON import_jobs(workspace_id);
-CREATE INDEX idx_export_jobs_workspace ON export_jobs(workspace_id);
 ```
 
 #### 9.5.4 Platform-Specific Importers
@@ -5912,7 +5930,7 @@ CREATE TABLE analytics.feature_usage (
 CREATE TABLE analytics.performance_metrics (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES auth.users(id),
-  workspace_id UUID REFERENCES workspaces(id),
+  workspaceid UUID REFERENCES workspaces(id),
   metric_name TEXT NOT NULL,
   value FLOAT NOT NULL,
   metadata JSONB DEFAULT '{}'::jsonb,
@@ -6185,7 +6203,7 @@ export class AnalyticsManager {
 
 ### 11.4 Analytics Reports
 
-```typescript
+````typescript
 // Analytics report generator
 export class AnalyticsReporter {
   async generateWorkspaceReport(
@@ -6337,7 +6355,6 @@ export class AnalyticsDashboard {
     return data;
   }
 }
-```
 
 ### 11.5 Analytics Functions
 
@@ -6593,7 +6610,7 @@ BEGIN
   ORDER BY cohort_date;
 END;
 $$ LANGUAGE plpgsql;
-```
+````
 
 // ... continue with remaining sections ...
 

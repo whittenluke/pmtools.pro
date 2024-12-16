@@ -1,15 +1,24 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import type { User, Provider } from '@supabase/supabase-js';
+
+interface AuthError extends Error {
+  status?: number;
+  code?: string;
+}
 
 interface AuthState {
   user: User | null;
   loading: boolean;
-  error: Error | null;
+  error: AuthError | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
+  signInWithProvider: (provider: Provider) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
   initialize: () => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -17,52 +26,121 @@ export const useAuthStore = create<AuthState>((set) => ({
   loading: false,
   error: null,
   initialize: async () => {
-    set((state) => ({ ...state, loading: true }));
+    set({ loading: true, error: null });
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      set((state) => ({ ...state, user: session?.user ?? null, loading: false }));
+      set({ user: session?.user ?? null });
       
       // Setup auth state listener
       supabase.auth.onAuthStateChange((_event, session) => {
-        set((state) => ({ ...state, user: session?.user ?? null }));
+        set({ user: session?.user ?? null });
       });
     } catch (error) {
-      set((state) => ({ ...state, error: error as Error, loading: false }));
+      set({ error: error as AuthError });
+    } finally {
+      set({ loading: false });
     }
   },
   signIn: async (email: string, password: string) => {
-    set((state) => ({ ...state, loading: true, error: null }));
+    set({ loading: true, error: null });
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
-      set((state) => ({ ...state, user: data.user, error: null, loading: false }));
+      set({ user: data.user });
     } catch (error) {
-      set((state) => ({ ...state, error: error as Error, loading: false }));
+      const authError = error as AuthError;
+      // Enhance error messages for better UX
+      if (authError.message.includes('Invalid login')) {
+        authError.message = 'Invalid email or password. Please try again.';
+      }
+      set({ error: authError });
+    } finally {
+      set({ loading: false });
     }
   },
   signUp: async (email: string, password: string) => {
-    set((state) => ({ ...state, loading: true, error: null }));
+    set({ loading: true, error: null });
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
       if (error) throw error;
-      set((state) => ({ ...state, user: data.user, error: null, loading: false }));
+      set({ user: data.user });
     } catch (error) {
-      set((state) => ({ ...state, error: error as Error, loading: false }));
+      const authError = error as AuthError;
+      // Enhance error messages for better UX
+      if (authError.message.includes('User already registered')) {
+        authError.message = 'An account with this email already exists. Please sign in instead.';
+      }
+      set({ error: authError });
+    } finally {
+      set({ loading: false });
+    }
+  },
+  signInWithProvider: async (provider: Provider) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      if (error) throw error;
+    } catch (error) {
+      set({ error: error as AuthError });
+    } finally {
+      set({ loading: false });
     }
   },
   signOut: async () => {
-    set((state) => ({ ...state, loading: true, error: null }));
+    set({ loading: true, error: null });
     try {
-      await supabase.auth.signOut();
-      set((state) => ({ ...state, user: null, loading: false }));
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      set({ user: null });
     } catch (error) {
-      set((state) => ({ ...state, error: error as Error, loading: false }));
+      set({ error: error as AuthError });
+    } finally {
+      set({ loading: false });
     }
   },
+  resetPassword: async (email: string) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+      if (error) throw error;
+    } catch (error) {
+      set({ error: error as AuthError });
+    } finally {
+      set({ loading: false });
+    }
+  },
+  updatePassword: async (password: string) => {
+    set({ loading: true, error: null });
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password,
+      });
+      if (error) throw error;
+    } catch (error) {
+      set({ error: error as AuthError });
+    } finally {
+      set({ loading: false });
+    }
+  },
+  clearError: () => set({ error: null }),
 }));
