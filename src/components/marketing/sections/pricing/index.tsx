@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 
 export function Pricing() {
   return (
-    <div id="pricing" className="bg-gray-50 py-24 sm:py-32">
+    <div className="bg-gray-50 py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Simple, transparent pricing</h2>
+          <h2 id="pricing" className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Simple, transparent pricing</h2>
           <p className="mt-6 text-lg leading-8 text-gray-600">
             Choose the plan that's right for your team. All plans include a 14-day free trial.
           </p>

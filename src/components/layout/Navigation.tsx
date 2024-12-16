@@ -8,15 +8,10 @@ export function Navigation() {
   const { user } = useAuthStore();
 
   const scrollToSection = (sectionId: string) => {
-    console.log('Attempting to scroll to:', sectionId);
     const section = document.getElementById(sectionId);
-    console.log('Found section:', section);
-    
     if (section) {
-      const navHeight = 80;
-      const targetPosition = section.getBoundingClientRect().top + window.pageYOffset - navHeight;
-      console.log('Scrolling to position:', targetPosition);
-      
+      const headerHeight = 56; // h-14 in pixels
+      const targetPosition = section.getBoundingClientRect().top + window.pageYOffset - headerHeight;
       window.scrollTo({
         top: targetPosition,
         behavior: 'smooth'
@@ -27,19 +22,13 @@ export function Navigation() {
   return (
     <nav className="flex items-center space-x-8">
       <button 
-        onClick={() => {
-          console.log('Features button clicked');
-          scrollToSection('features');
-        }}
+        onClick={() => scrollToSection('features')}
         className="text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
       >
         Features
       </button>
       <button 
-        onClick={() => {
-          console.log('Pricing button clicked');
-          scrollToSection('pricing');
-        }}
+        onClick={() => scrollToSection('pricing')}
         className="text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
       >
         Pricing
@@ -54,7 +43,7 @@ export function Navigation() {
           </Link>
         </>
       ) : (
-        <Link href="/login" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+        <Link href="/login" className="text-sm font-medium text-primary hover:text-primary/90">
           Sign in
         </Link>
       )}
