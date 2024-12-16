@@ -79,6 +79,67 @@ Implementation approach:
 - ✅ Admin notifications for persistent failures
 - ✅ Detailed execution logs for debugging
 
+## 2.4 Design System
+
+### 2.4.1 Color Palette
+
+The color system is designed to be accessible, professional, and distinctive while maintaining excellent contrast ratios and supporting both light and dark modes.
+
+#### Primary Colors
+
+- **Primary**: Rich Teal (#0A7B83, HSL 185 85% 28%)
+  - Light mode: Used for primary actions, links, and brand elements
+  - Dark mode: Adjusted to HSL 185 70% 40% for better visibility
+- **Primary Foreground**: White in light mode, slightly off-white in dark mode
+  - Light mode: HSL 210 40% 98%
+  - Dark mode: HSL 210 40% 98%
+
+#### Secondary Colors
+
+- **Secondary**: Light teal tint
+  - Light mode: HSL 184 40% 96%
+  - Dark mode: HSL 184 45% 17%
+- **Secondary Foreground**: Dark in light mode, light in dark mode
+  - Light mode: HSL 222 47% 11%
+  - Dark mode: HSL 210 40% 98%
+
+#### Status Colors
+
+- **Success**: Professional green (HSL 142 72% 29%)
+- **Warning**: Clear amber (HSL 45 93% 47%)
+- **Destructive**: Clear red (HSL 0 84% 60%)
+- **Info**: Bright blue (HSL 199 89% 48%)
+
+#### UI Colors
+
+- **Background**: Pure white in light mode, rich dark in dark mode
+- **Foreground**: Near black in light mode, off-white in dark mode
+- **Muted**: Light teal tint for subtle backgrounds
+- **Muted Foreground**: Subdued text color
+- **Border**: Subtle borders matching the teal theme
+- **Ring**: Focus rings using primary color
+
+#### Color Usage Guidelines
+
+- Primary color for main CTAs and important interactive elements
+- Secondary color for less prominent actions and hover states
+- Status colors reserved for their specific meanings
+- Muted colors for backgrounds and disabled states
+- Consistent use of HSL format for easy manipulation
+- All color combinations meet WCAG 2.1 contrast requirements
+
+### 2.4.2 Typography
+
+[Typography section to be added]
+
+### 2.4.3 Spacing
+
+[Spacing section to be added]
+
+### 2.4.4 Components
+
+[Components section to be added]
+
 ## 3. Core Functionality
 
 ### 3.1 Projects

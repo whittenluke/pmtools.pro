@@ -18,13 +18,14 @@ export function Hero() {
   };
 
   return (
-    <div className="relative isolate overflow-hidden bg-gradient-to-b from-primary/5">
+    <div className="relative isolate overflow-hidden bg-background">
+      <div className="absolute inset-0 bg-gradient-to-b from-primary/5 dark:from-primary/10 pointer-events-none" />
       <div className="mx-auto max-w-7xl px-6 lg:px-8 min-h-[calc(100vh-3.5rem)] flex items-center">
         <div className="flex flex-col lg:flex-row items-center gap-x-8 py-12 lg:py-24">
           <div className="flex-shrink-0 max-w-2xl lg:max-w-xl">
             <div>
               <a href="#" className="inline-flex space-x-6">
-                <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold leading-6 text-primary ring-1 ring-inset ring-primary/10">
+                <span className="rounded-full bg-primary/10 dark:bg-primary/20 px-3 py-1 text-sm font-semibold leading-6 text-primary dark:text-primary-foreground ring-1 ring-inset ring-primary/10 dark:ring-primary/20">
                   Latest Updates
                 </span>
               </a>
@@ -49,7 +50,7 @@ export function Hero() {
                 variant="outline" 
                 size="lg"
                 onClick={scrollToFeatures}
-                className="border-primary/20 hover:bg-primary/5 transition-colors duration-200"
+                className="border-primary/20 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors duration-200"
               >
                 View Features
               </Button>
@@ -57,11 +58,11 @@ export function Hero() {
           </div>
           <div className="flex-1 mt-8 lg:mt-0">
             <div className="max-w-3xl lg:max-w-none relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent rounded-md" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 dark:from-primary/20 to-transparent rounded-md" />
               <img
                 src="./images/matrix.png"
                 alt="Project Management Matrix"
-                className="w-full rounded-md shadow-2xl ring-1 ring-black/5 relative z-10"
+                className="w-full rounded-md shadow-2xl ring-1 ring-black/5 dark:ring-white/10 relative z-10"
               />
             </div>
           </div>
