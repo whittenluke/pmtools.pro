@@ -20,7 +20,7 @@ export function Testimonials() {
               >
                 <figure className="h-full flex flex-col justify-between gap-6">
                   <blockquote className="text-lg leading-8 text-foreground">
-                    <p>"{testimonial.quote}"</p>
+                    <p>"{testimonial.content}"</p>
                   </blockquote>
                   <figcaption className="flex items-center gap-x-4 border-t border-primary/10 pt-4">
                     <div>
