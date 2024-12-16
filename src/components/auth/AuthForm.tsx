@@ -5,13 +5,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
 import { motion } from 'framer-motion';
-import { FaGoogle, FaGithub, FaMicrosoft } from 'react-icons/fa';
 import { HiMail } from 'react-icons/hi';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Alert } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import dynamic from 'next/dynamic';
+
+const SocialAuth = dynamic(
+  () => import('./SocialAuth').then(mod => ({ default: mod.SocialAuth })),
+  {
+    loading: () => (
+      <div className="grid grid-cols-3 gap-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-9 rounded-md bg-muted animate-pulse" />
+        ))}
+      </div>
+    ),
+    ssr: false
+  }
+);
 
 export function AuthForm() {
   const [email, setEmail] = React.useState('');
@@ -20,7 +34,7 @@ export function AuthForm() {
   const [passwordStrength, setPasswordStrength] = React.useState(0);
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-  const { signIn, signUp, signInWithProvider, loading, error } = useAuthStore();
+  const { signIn, signUp, loading, error } = useAuthStore();
 
   const calculatePasswordStrength = (pass: string) => {
     let strength = 0;
@@ -49,10 +63,6 @@ export function AuthForm() {
     }
   };
 
-  const handleSocialAuth = async (provider: 'google' | 'github' | 'microsoft') => {
-    await signInWithProvider(provider);
-  };
-
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -70,35 +80,7 @@ export function AuthForm() {
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        <Button
-          variant="outline"
-          onClick={() => handleSocialAuth('google')}
-          className="w-full"
-          disabled={loading}
-        >
-          <FaGoogle className="mr-2" />
-          Google
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => handleSocialAuth('github')}
-          className="w-full"
-          disabled={loading}
-        >
-          <FaGithub className="mr-2" />
-          GitHub
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => handleSocialAuth('microsoft')}
-          className="w-full"
-          disabled={loading}
-        >
-          <FaMicrosoft className="mr-2" />
-          Microsoft
-        </Button>
-      </div>
+      <SocialAuth />
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
