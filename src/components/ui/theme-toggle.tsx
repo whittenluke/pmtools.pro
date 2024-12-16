@@ -2,6 +2,7 @@
 
 import { useTheme } from '@/providers/ThemeProvider';
 import { Button } from './button';
+import { cn } from '@/lib/utils';
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -11,7 +12,12 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="w-9 h-9"
+      className={cn(
+        "w-9 h-9 transition-colors",
+        theme === 'light' 
+          ? "text-foreground/70 hover:text-primary-foreground" // WHITE moon on hover!
+          : "text-foreground/80 hover:text-foreground"
+      )}
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       <span className="sr-only">Toggle theme</span>

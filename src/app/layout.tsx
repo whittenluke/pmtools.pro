@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 import { Header } from '@/components/layout/Header';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import './globals.css';
+import { cn } from '@/lib/utils';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -17,10 +18,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
         <ThemeProvider>
           <Header />
-          {children}
+          <div className="pt-14">
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>
