@@ -61,7 +61,9 @@ export function Pricing() {
                 variant={plan.name === 'Pro' ? 'default' : 'outline'}
                 className={cn(
                   "mt-8 w-full",
-                  plan.name === 'Pro' && "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                  plan.name === 'Pro' 
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                    : "bg-background text-primary dark:text-primary-foreground hover:bg-primary hover:text-primary-foreground border-primary/20 dark:border-primary-foreground/50"
                 )}
                 size="lg"
               >
