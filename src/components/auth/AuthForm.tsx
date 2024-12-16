@@ -5,13 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/stores/auth';
 import { motion } from 'framer-motion';
-import { HiMail } from 'react-icons/hi';
+import { HiMail, HiInformationCircle } from 'react-icons/hi';
 import { cn } from '@/lib/utils';
 import { Progress } from '@/components/ui/progress';
 import { Alert } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import ReCAPTCHA from 'react-google-recaptcha';
+
+// Email regex pattern for basic validation
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+// Password requirements
+const PASSWORD_REQUIREMENTS = [
+  { label: 'At least 8 characters', regex: /.{8,}/ },
+  { label: 'At least one uppercase letter', regex: /[A-Z]/ },
+  { label: 'At least one number', regex: /[0-9]/ },
+  { label: 'At least one special character', regex: /[^A-Za-z0-9]/ },
+];
 
 const SocialAuth = dynamic(
   () => import('./SocialAuth').then(mod => ({ default: mod.SocialAuth })),
@@ -29,19 +42,62 @@ const SocialAuth = dynamic(
 
 export function AuthForm() {
   const [email, setEmail] = React.useState('');
+  const [emailError, setEmailError] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [isSignUp, setIsSignUp] = React.useState(false);
   const [passwordStrength, setPasswordStrength] = React.useState(0);
   const [acceptTerms, setAcceptTerms] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
-  const { signIn, signUp, loading, error } = useAuthStore();
+  const [showRequirements, setShowRequirements] = React.useState(false);
+  const [resetSent, setResetSent] = React.useState(false);
+  const [lastResetRequest, setLastResetRequest] = React.useState(0);
+  const [requireCaptcha, setRequireCaptcha] = React.useState(false);
+  const [captchaToken, setCaptchaToken] = React.useState<string | null>(null);
+  const { signIn, signUp, resetPassword, loading, error, clearError } = useAuthStore();
+  const searchParams = useSearchParams();
+  const recaptchaRef = React.useRef<ReCAPTCHA>(null);
+  const [verificationSent, setVerificationSent] = React.useState(false);
+
+  // Handle status messages
+  const getStatusMessage = () => {
+    const status = searchParams.get('message');
+    switch (status) {
+      case 'verification-email-sent':
+        return {
+          type: 'success',
+          message: 'Verification email sent! Please check your inbox and spam folder.'
+        };
+      case 'password-updated':
+        return {
+          type: 'success',
+          message: 'Password successfully updated. You can now sign in with your new password.'
+        };
+      case 'email-verified':
+        return {
+          type: 'success',
+          message: 'Email verified successfully! You can now sign in.'
+        };
+      default:
+        return null;
+    }
+  };
+
+  const statusMessage = getStatusMessage();
+
+  const validateEmail = (email: string) => {
+    if (!EMAIL_REGEX.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return false;
+    }
+    setEmailError('');
+    return true;
+  };
 
   const calculatePasswordStrength = (pass: string) => {
     let strength = 0;
-    if (pass.length >= 8) strength += 25;
-    if (pass.match(/[A-Z]/)) strength += 25;
-    if (pass.match(/[0-9]/)) strength += 25;
-    if (pass.match(/[^A-Za-z0-9]/)) strength += 25;
+    PASSWORD_REQUIREMENTS.forEach(({ regex }) => {
+      if (regex.test(pass)) strength += 25;
+    });
     setPasswordStrength(strength);
   };
 
@@ -51,15 +107,159 @@ export function AuthForm() {
     calculatePasswordStrength(newPassword);
   };
 
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    if (newEmail) validateEmail(newEmail);
+  };
+
+  const trackAuthAttempt = async (success: boolean, action: 'signin' | 'reset') => {
+    try {
+      const response = await fetch('/api/auth/attempts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ success, action }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        if (response.status === 429) {
+          clearError();
+          setEmailError(data.error);
+          return false;
+        }
+      }
+
+      const data = await response.json();
+      setRequireCaptcha(data.requireCaptcha);
+      return true;
+    } catch (error) {
+      console.error('Error tracking auth attempt:', error);
+      return true; // Allow attempt on error
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    clearError();
+    
+    if (!email || !validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Rate limiting: one request per minute
+    const now = Date.now();
+    if (now - lastResetRequest < 60000) {
+      const remainingSeconds = Math.ceil((60000 - (now - lastResetRequest)) / 1000);
+      setEmailError(`Please wait ${remainingSeconds} seconds before requesting another reset`);
+      return;
+    }
+
+    if (requireCaptcha && !captchaToken) {
+      setEmailError('Please complete the CAPTCHA');
+      return;
+    }
+
+    const canProceed = await trackAuthAttempt(false, 'reset');
+    if (!canProceed) return;
+
+    try {
+      // Call our custom email API
+      const response = await fetch('/api/auth/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'reset_password',
+          email,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send reset email');
+      }
+
+      await trackAuthAttempt(true, 'reset');
+      setResetSent(true);
+      setLastResetRequest(now);
+      setCaptchaToken(null);
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+    } catch (err: any) {
+      setEmailError(err.message || 'Failed to send reset email');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearError();
+    
+    if (!validateEmail(email)) {
+      return;
+    }
+
     if (isSignUp && !acceptTerms) {
       return;
     }
-    if (isSignUp) {
-      await signUp(email, password);
-    } else {
-      await signIn(email, password);
+
+    if (isSignUp && passwordStrength < 75) {
+      clearError();
+      return;
+    }
+
+    if (requireCaptcha && !captchaToken) {
+      setEmailError('Please complete the CAPTCHA');
+      return;
+    }
+
+    const canProceed = await trackAuthAttempt(false, 'signin');
+    if (!canProceed) return;
+
+    try {
+      if (isSignUp) {
+        // Call our custom email API for signup
+        const response = await fetch('/api/auth/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'password': password
+          },
+          body: JSON.stringify({
+            type: 'verify_email',
+            email,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create account');
+        }
+
+        if (data.needsEmailVerification) {
+          setVerificationSent(true);
+        } else {
+          // User is already verified, attempt sign in
+          await signIn(email, password);
+        }
+      } else {
+        await signIn(email, password);
+      }
+      
+      await trackAuthAttempt(true, 'signin');
+      setCaptchaToken(null);
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+    } catch (err: any) {
+      if (err.message?.includes('User already registered')) {
+        setEmailError('An account with this email already exists. Please sign in instead.');
+      } else {
+        setEmailError(err.message || 'Failed to process request');
+      }
     }
   };
 
@@ -79,6 +279,24 @@ export function AuthForm() {
             : 'Enter your credentials to access your workspace'}
         </p>
       </div>
+
+      {statusMessage && (
+        <Alert variant={statusMessage.type as "default" | "destructive" | "success"}>
+          {statusMessage.message}
+        </Alert>
+      )}
+
+      {verificationSent && (
+        <Alert variant="success">
+          Verification email sent! Please check your inbox to complete signup.
+        </Alert>
+      )}
+
+      {resetSent && !isSignUp && (
+        <Alert variant="success">
+          Password reset instructions have been sent to your email.
+        </Alert>
+      )}
 
       <SocialAuth />
 
@@ -104,19 +322,59 @@ export function AuthForm() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10"
+              onChange={handleEmailChange}
+              className={cn("pl-10", emailError && "border-destructive")}
               placeholder="name@example.com"
               required
               disabled={loading}
             />
           </div>
+          {emailError && (
+            <p className="text-xs text-destructive mt-1">{emailError}</p>
+          )}
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium">
-            Password
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="text-sm font-medium flex items-center gap-2">
+              Password
+              {isSignUp && (
+                <button
+                  type="button"
+                  onClick={() => setShowRequirements(!showRequirements)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <HiInformationCircle className="h-4 w-4" />
+                </button>
+              )}
+            </label>
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={handleForgotPassword}
+                className="text-sm text-primary hover:text-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loading || !email}
+              >
+                {loading ? 'Sending...' : 'Forgot password?'}
+              </button>
+            )}
+          </div>
+          {isSignUp && showRequirements && (
+            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md space-y-1">
+              <p className="font-medium mb-2">Password requirements:</p>
+              {PASSWORD_REQUIREMENTS.map(({ label, regex }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <div className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    regex.test(password) ? "bg-success" : "bg-muted-foreground"
+                  )} />
+                  <span className={cn(
+                    regex.test(password) && "text-success"
+                  )}>{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="relative">
             <Input
               id="password"
@@ -174,6 +432,16 @@ export function AuthForm() {
           </div>
         )}
 
+        {requireCaptcha && (
+          <div className="flex justify-center">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+              onChange={(token) => setCaptchaToken(token)}
+            />
+          </div>
+        )}
+
         {error && (
           <Alert variant="destructive">
             {error.message}
@@ -202,7 +470,10 @@ export function AuthForm() {
       <div className="text-center text-sm">
         <button
           type="button"
-          onClick={() => setIsSignUp(!isSignUp)}
+          onClick={() => {
+            setIsSignUp(!isSignUp);
+            clearError();
+          }}
           className="text-primary hover:underline disabled:opacity-50"
           disabled={loading}
         >

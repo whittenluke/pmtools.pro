@@ -6,9 +6,14 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Refresh session if expired
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  // Handle auth routes when already logged in
+  if (['/login', '/signup'].includes(req.nextUrl.pathname) && session) {
+    const redirectUrl = req.nextUrl.searchParams.get('redirect') || '/projects';
+    return NextResponse.redirect(new URL(redirectUrl, req.url));
+  }
 
   // Protected routes
   if (req.nextUrl.pathname.startsWith('/projects') || 
@@ -20,14 +25,23 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Auth routes (when already logged in)
-  if ((req.nextUrl.pathname === '/login' || req.nextUrl.pathname === '/signup') && session) {
-    return NextResponse.redirect(new URL('/projects', req.url));
+  // Auth callback handling
+  if (req.nextUrl.pathname === '/auth/callback') {
+    const code = req.nextUrl.searchParams.get('code');
+    if (!code) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
   }
 
   return res;
 }
 
 export const config = {
-  matcher: ['/projects/:path*', '/account/:path*', '/login', '/signup'],
+  matcher: [
+    '/projects/:path*',
+    '/account/:path*',
+    '/login',
+    '/signup',
+    '/auth/callback',
+  ],
 };
