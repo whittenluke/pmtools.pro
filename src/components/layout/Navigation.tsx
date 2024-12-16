@@ -7,14 +7,43 @@ import { useAuthStore } from '@/stores/auth';
 export function Navigation() {
   const { user } = useAuthStore();
 
+  const scrollToSection = (sectionId: string) => {
+    console.log('Attempting to scroll to:', sectionId);
+    const section = document.getElementById(sectionId);
+    console.log('Found section:', section);
+    
+    if (section) {
+      const navHeight = 80;
+      const targetPosition = section.getBoundingClientRect().top + window.pageYOffset - navHeight;
+      console.log('Scrolling to position:', targetPosition);
+      
+      window.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   return (
     <nav className="flex items-center space-x-8">
-      <Link href="/features" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+      <button 
+        onClick={() => {
+          console.log('Features button clicked');
+          scrollToSection('features');
+        }}
+        className="text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
+      >
         Features
-      </Link>
-      <Link href="/pricing" className="text-sm font-medium text-gray-700 hover:text-gray-900">
+      </button>
+      <button 
+        onClick={() => {
+          console.log('Pricing button clicked');
+          scrollToSection('pricing');
+        }}
+        className="text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
+      >
         Pricing
-      </Link>
+      </button>
       {user ? (
         <>
           <Link href="/projects" className="text-sm font-medium text-gray-700 hover:text-gray-900">
