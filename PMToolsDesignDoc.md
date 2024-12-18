@@ -228,7 +228,7 @@ Projects are the central organizing unit of the platform, with the following key
 
   - ✅ Instant task changes
   - ✅ Real-time field updates
-  - ✅ Comment notifications
+  - �� Comment notifications
   - 🟡 User presence indicators (in progress)
   - 🟡 Concurrent editing support (basic implementation)
 
@@ -1658,7 +1658,22 @@ class IntegrationManager {
       - Client ID and Secret configured
       - Redirect URL verified
       - OAuth scopes: read:user, user:email
-  - Microsoft
+  - ✅ Microsoft Azure AD (✓ Implemented)
+    - Azure AD App Configuration:
+      - Application name: PMTools
+      - Client ID and Secret generated
+      - Permissions configured:
+        - email
+        - openid
+        - profile
+        - User.Read
+      - Token configuration:
+        - Email claims added for ID and Access tokens
+    - Supabase Configuration:
+      - Provider: Azure
+      - Client ID and Secret configured
+      - Redirect URL verified
+      - OAuth scopes: openid, email, profile, User.Read
   - Magic Link (Passwordless):
   - Time-limited secure tokens
   - Device fingerprinting
@@ -5984,7 +5999,7 @@ CREATE INDEX idx_performance_metrics_metric ON analytics.performance_metrics(met
 CREATE INDEX idx_errors_type ON analytics.errors(error_type, created_at DESC);
 ```
 
-### 11.2 Analytics RLS Policies
+###11.2 Analytics RLS Policies
 
 ```sql
 -- Events Security
