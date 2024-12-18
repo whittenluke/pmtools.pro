@@ -6,12 +6,14 @@ import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { usePathname } from 'next/navigation';
 
 const navLinkStyles = "text-sm font-medium transition-colors text-muted-foreground/80 hover:text-foreground dark:text-muted-foreground dark:hover:text-foreground";
 const signInStyles = "text-sm font-medium transition-colors text-primary/80 hover:text-primary dark:text-primary/80 dark:hover:text-primary";
 
 export function Navigation() {
   const { user, initialize, signOut } = useAuthStore();
+  const pathname = usePathname();
 
   useEffect(() => {
     initialize();
@@ -22,16 +24,36 @@ export function Navigation() {
     window.location.href = '/';
   };
 
+  const handleSectionClick = (e: React.MouseEvent<HTMLAnchorElement>, section: string) => {
+    e.preventDefault();
+    if (pathname === '/') {
+      // If on home page, smooth scroll to section
+      const element = document.getElementById(section);
+      element?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // If not on home page, navigate to home page with section in URL
+      window.location.href = `/#${section}`;
+    }
+  };
+
   return (
     <nav className="flex items-center justify-between w-full">
       {/* Main navigation */}
       <div className="flex items-center space-x-8">
-        <Link href="/features" className={navLinkStyles}>
+        <a 
+          href="/#features" 
+          onClick={(e) => handleSectionClick(e, 'features')} 
+          className={navLinkStyles}
+        >
           Features
-        </Link>
-        <Link href="/pricing" className={navLinkStyles}>
+        </a>
+        <a 
+          href="/#pricing" 
+          onClick={(e) => handleSectionClick(e, 'pricing')} 
+          className={navLinkStyles}
+        >
           Pricing
-        </Link>
+        </a>
       </div>
 
       {/* User navigation and utilities */}
