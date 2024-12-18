@@ -1,46 +1,69 @@
 'use client';
 
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FaGoogle, FaGithub, FaMicrosoft } from 'react-icons/fa';
-import { useAuthStore } from '@/stores/auth';
 import type { Provider } from '@supabase/supabase-js';
+import { Alert } from '@/components/ui/alert';
+import { supabase } from '@/lib/supabase';
 
 export function SocialAuth() {
-  const { signInWithProvider, loading } = useAuthStore();
+  const [loading, setLoading] = useState<Provider | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSocialAuth = async (provider: Provider) => {
-    await signInWithProvider(provider);
+    setError(null);
+    setLoading(provider);
+    
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (err) {
+      setError('Authentication failed. Please try again.');
+      setLoading(null);
+    }
   };
 
+  const providers = [
+    { id: 'google' as Provider, icon: FaGoogle, label: 'Google' },
+    { id: 'github' as Provider, icon: FaGithub, label: 'GitHub' },
+    { id: 'azure' as Provider, icon: FaMicrosoft, label: 'Microsoft' }
+  ];
+
   return (
-    <div className="grid grid-cols-3 gap-3">
-      <Button
-        variant="outline"
-        onClick={() => handleSocialAuth('google')}
-        className="w-full"
-        disabled={loading}
-      >
-        <FaGoogle className="mr-2" />
-        Google
-      </Button>
-      <Button
-        variant="outline"
-        onClick={() => handleSocialAuth('github')}
-        className="w-full"
-        disabled={loading}
-      >
-        <FaGithub className="mr-2" />
-        GitHub
-      </Button>
-      <Button
-        variant="outline"
-        onClick={() => handleSocialAuth('azure')}
-        className="w-full"
-        disabled={loading}
-      >
-        <FaMicrosoft className="mr-2" />
-        Microsoft
-      </Button>
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        {providers.map(({ id, icon: Icon, label }) => (
+          <Button
+            key={id}
+            variant="outline"
+            onClick={() => handleSocialAuth(id)}
+            className="w-full"
+            disabled={loading !== null}
+          >
+            {loading === id ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+            ) : (
+              <>
+                <Icon className="mr-2" />
+                {label}
+              </>
+            )}
+          </Button>
+        ))}
+      </div>
+      
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          {error}
+        </Alert>
+      )}
     </div>
   );
 } 
