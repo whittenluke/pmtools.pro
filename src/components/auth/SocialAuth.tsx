@@ -16,15 +16,23 @@ export function SocialAuth() {
     setLoading(provider);
     
     try {
+      console.log('Starting OAuth flow with provider:', provider);
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            prompt: 'login'
+          }
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('OAuth error:', error);
+        throw error;
+      }
     } catch (err) {
+      console.error('Auth error:', err);
       setError('Authentication failed. Please try again.');
       setLoading(null);
     }
