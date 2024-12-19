@@ -71,8 +71,7 @@ export default function AccountPage() {
       const { error } = await supabase
         .from('profiles')
         .upsert(updates, {
-          onConflict: 'id',
-          returning: 'minimal' // Don't return the value after inserting
+          onConflict: 'id'
         });
 
       if (error) throw error;
