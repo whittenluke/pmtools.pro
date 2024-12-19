@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/auth';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
@@ -20,37 +20,73 @@ export default function AccountPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const supabase = createClientComponentClient();
 
   const loadProfile = async () => {
     if (!user?.id) return;
     
     try {
-      const { data, error } = await supabase
+      console.log('Loading profile for user:', user.id);
+      
+      // First check if profile exists
+      const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      console.log('Profile query result:', { existingProfile, fetchError });
+
+      // If no profile exists or error is "not found"
+      if (!existingProfile || (fetchError && fetchError.code === 'PGRST116')) {
+        console.log('No profile found, creating from OAuth data');
+        
+        // Create profile from OAuth data
+        const newProfile = {
+          id: user.id,
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+          avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: insertedProfile, error: insertError } = await supabase
+          .from('profiles')
+          .upsert(newProfile)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          throw insertError;
+        }
+
+        console.log('Successfully created profile:', insertedProfile);
+        setProfile(insertedProfile);
+        return;
+      }
+
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError);
+        throw fetchError;
+      }
+
+      // Use existing profile
+      console.log('Using existing profile:', existingProfile);
+      setProfile(existingProfile);
       
-      // Initialize profile with OAuth data if it's a new profile
-      setProfile({
-        id: user.id,
-        full_name: data?.full_name || user.user_metadata?.full_name || '',
-        avatar_url: data?.avatar_url || user.user_metadata?.avatar_url || null,
-        updated_at: data?.updated_at || null
-      });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading profile:', error);
-      setError('Failed to load profile. Please try refreshing the page.');
+      setError(error.message || 'Failed to load profile. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadProfile();
+    if (user?.id) {
+      console.log('User authenticated, loading profile...');
+      loadProfile();
+    }
   }, [user?.id]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -70,11 +106,19 @@ export default function AccountPage() {
 
       const { error } = await supabase
         .from('profiles')
-        .upsert(updates, {
-          onConflict: 'id'
-        });
+        .update(updates)
+        .eq('id', user.id);
 
       if (error) throw error;
+      
+      // Show success state
+      const saveButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
+      if (saveButton) {
+        saveButton.textContent = 'Saved!';
+        setTimeout(() => {
+          saveButton.textContent = 'Save Changes';
+        }, 2000);
+      }
       
     } catch (error: any) {
       console.error('Error updating profile:', error);
