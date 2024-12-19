@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-export default function VerifyEmail() {
+function VerifyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -57,5 +57,21 @@ export default function VerifyEmail() {
         <p className="mt-2 text-muted-foreground">Please wait while we verify your email address.</p>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmail() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <h2 className="mt-4 text-lg font-semibold">Loading verification...</h2>
+          <p className="mt-2 text-muted-foreground">Please wait while we load the verification page.</p>
+        </div>
+      </div>
+    }>
+      <VerifyContent />
+    </Suspense>
   );
 } 
