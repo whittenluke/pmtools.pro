@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 function CallbackContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -13,18 +14,34 @@ function CallbackContent() {
     const handleCallback = async () => {
       console.log(`[${new Date().toISOString()}] Callback page loaded`);
       try {
-        // Parse the URL hash
-        const hash = window.location.hash;
-        console.log(`[${new Date().toISOString()}] Processing hash:`, hash);
-        
-        const hashParams = hash.substring(1);
-        const params = new URLSearchParams(hashParams);
-        
-        const accessToken = params.get('access_token');
-        const refreshToken = params.get('refresh_token');
+        // Try URL search params first
+        let accessToken = searchParams.get('access_token');
+        let refreshToken = searchParams.get('refresh_token');
+
+        // If not in search params, try hash
+        if (!accessToken || !refreshToken) {
+          console.log(`[${new Date().toISOString()}] Tokens not in search params, checking hash`);
+          const hash = window.location.hash;
+          console.log(`[${new Date().toISOString()}] Processing hash:`, hash);
+          
+          if (hash) {
+            const hashParams = new URLSearchParams(hash.substring(1));
+            accessToken = hashParams.get('access_token');
+            refreshToken = hashParams.get('refresh_token');
+          }
+        }
         
         if (!accessToken || !refreshToken) {
-          console.log(`[${new Date().toISOString()}] Missing tokens, redirecting to login`);
+          console.log(`[${new Date().toISOString()}] Missing tokens, checking session`);
+          // Check if we already have a session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log(`[${new Date().toISOString()}] Found existing session, redirecting to projects`);
+            router.replace('/projects');
+            return;
+          }
+          
+          console.log(`[${new Date().toISOString()}] No tokens or session found, redirecting to login`);
           router.replace('/login?error=invalid-verification');
           return;
         }
@@ -52,7 +69,7 @@ function CallbackContent() {
     };
 
     handleCallback();
-  }, [router, supabase]);
+  }, [router, supabase, searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">
