@@ -4,6 +4,15 @@
 
 [build.environment]
   NEXT_PUBLIC_SITE_URL = "https://pmtools.pro"
+  NEXT_USE_NETLIFY_EDGE = "true"
+  NEXT_FORCE_EDGE_IMAGES = "true"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@node-rs/bcrypt", "@node-rs/helper"]
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 [dev]
   command = "npm run dev"
