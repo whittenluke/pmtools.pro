@@ -3,15 +3,26 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_USE_NETLIFY_EDGE = "true"
-  NODE_VERSION = "18"
+  NEXT_PUBLIC_SITE_URL = "http://localhost:8889"
 
 [dev]
   command = "npm run dev"
-  targetPort = 3000
   port = 8889
-  publish = ".next"
-  framework = "#custom"
+  targetPort = 3000
+  framework = "next"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs" 
+[[redirects]]
+  from = "/auth/callback"
+  to = "/auth/callback"
+  status = 200
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/auth/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false 

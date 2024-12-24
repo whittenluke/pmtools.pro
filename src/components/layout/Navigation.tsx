@@ -1,38 +1,40 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/stores/auth';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { Button } from '@/components/ui/button';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 const navLinkStyles = "text-sm font-medium transition-colors text-muted-foreground/80 hover:text-foreground dark:text-muted-foreground dark:hover:text-foreground";
 const signInStyles = "text-sm font-medium transition-colors text-primary/80 hover:text-primary dark:text-primary/80 dark:hover:text-primary";
 
 export function Navigation() {
-  const { user, initialize, signOut } = useAuthStore();
+  const { user } = useAuthStore();
   const pathname = usePathname();
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
+  const router = useRouter();
 
   const handleSignOut = async () => {
-    await signOut();
-    window.location.href = '/';
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error('Error signing out:', error);
+      return;
+    }
+    useAuthStore.setState({ user: null });
+    router.push('/');
+    router.refresh();
   };
 
   const handleSectionClick = (e: React.MouseEvent<HTMLAnchorElement>, section: string) => {
     e.preventDefault();
     if (pathname === '/') {
-      // If on home page, smooth scroll to section
       const element = document.getElementById(section);
       element?.scrollIntoView({ behavior: 'smooth' });
     } else {
-      // If not on home page, navigate to home page with section in URL
-      window.location.href = `/#${section}`;
+      router.push(`/#${section}`);
     }
   };
 

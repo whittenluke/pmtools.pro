@@ -17,27 +17,18 @@ interface AuthState {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
-  initialize: () => Promise<void>;
   clearError: () => void;
 }
+
+// Get the base URL for auth redirects
+const getBaseUrl = () => {
+  return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:8889';
+};
 
 export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   loading: false,
   error: null,
-  initialize: async () => {
-    set({ loading: true, error: null });
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-      set({ user: session?.user ?? null });
-    } catch (error) {
-      console.error('Auth initialization error:', error);
-      set({ error: error as AuthError });
-    } finally {
-      set({ loading: false });
-    }
-  },
   signIn: async (email: string, password: string) => {
     set({ loading: true, error: null });
     try {
@@ -50,6 +41,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
     } catch (error: any) {
       const authError = error as AuthError;
       set({ error: authError });
+      throw error;
     } finally {
       set({ loading: false });
     }
@@ -57,18 +49,29 @@ export const useAuthStore = create<AuthState>()((set) => ({
   signUp: async (email: string, password: string) => {
     set({ loading: true, error: null });
     try {
+      const baseUrl = getBaseUrl();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${baseUrl}/auth/callback`,
+          data: {
+            email_confirmed: false,
+          }
         }
       });
       if (error) throw error;
-      set({ user: data.user });
+      
+      // Don't set the user until email is verified
+      if (data.user?.identities?.length === 0) {
+        const error = new Error('An account with this email already exists') as AuthError;
+        error.status = 409;
+        throw error;
+      }
     } catch (error: any) {
       const authError = error as AuthError;
       set({ error: authError });
+      throw error;
     } finally {
       set({ loading: false });
     }
@@ -76,10 +79,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
   signInWithProvider: async (provider: Provider) => {
     set({ loading: true, error: null });
     try {
+      const baseUrl = getBaseUrl();
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${baseUrl}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
       if (error) throw error;
@@ -99,6 +107,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
       set({ user: null });
     } catch (error) {
       set({ error: error as AuthError });
+      throw error;
     } finally {
       set({ loading: false });
     }
@@ -106,12 +115,14 @@ export const useAuthStore = create<AuthState>()((set) => ({
   resetPassword: async (email: string) => {
     set({ loading: true, error: null });
     try {
+      const baseUrl = getBaseUrl();
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`
+        redirectTo: `${baseUrl}/auth/reset-password`
       });
       if (error) throw error;
     } catch (error) {
       set({ error: error as AuthError });
+      throw error;
     } finally {
       set({ loading: false });
     }
@@ -125,6 +136,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
       if (error) throw error;
     } catch (error) {
       set({ error: error as AuthError });
+      throw error;
     } finally {
       set({ loading: false });
     }

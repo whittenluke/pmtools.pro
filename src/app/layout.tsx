@@ -1,6 +1,7 @@
 import { Inter } from 'next/font/google';
 import { Header } from '@/components/layout/Header';
 import { ThemeProvider } from '@/providers/ThemeProvider';
+import AuthProvider from '@/providers/AuthProvider';
 import './globals.css';
 import { cn } from '@/lib/utils';
 
@@ -20,10 +21,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", inter.className)}>
         <ThemeProvider>
-          <Header />
-          <div className="pt-14">
-            {children}
-          </div>
+          <AuthProvider>
+            <Header />
+            <div className="pt-14">
+              {children}
+            </div>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -51,12 +51,9 @@ export function AuthForm() {
   const [showRequirements, setShowRequirements] = React.useState(false);
   const [resetSent, setResetSent] = React.useState(false);
   const [lastResetRequest, setLastResetRequest] = React.useState(0);
-  const [requireCaptcha, setRequireCaptcha] = React.useState(false);
-  const [captchaToken, setCaptchaToken] = React.useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = React.useState(false);
   const { signIn, signUp, resetPassword, loading, error, clearError } = useAuthStore();
   const searchParams = useSearchParams();
-  const recaptchaRef = React.useRef<ReCAPTCHA>(null);
-  const [verificationSent, setVerificationSent] = React.useState(false);
 
   // Handle status messages
   const getStatusMessage = () => {
@@ -113,32 +110,6 @@ export function AuthForm() {
     if (newEmail) validateEmail(newEmail);
   };
 
-  const trackAuthAttempt = async (success: boolean, action: 'signin' | 'reset') => {
-    try {
-      const response = await fetch('/api/auth/attempts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success, action }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        if (response.status === 429) {
-          clearError();
-          setEmailError(data.error);
-          return false;
-        }
-      }
-
-      const data = await response.json();
-      setRequireCaptcha(data.requireCaptcha);
-      return true;
-    } catch (error) {
-      console.error('Error tracking auth attempt:', error);
-      return true; // Allow attempt on error
-    }
-  };
-
   const handleForgotPassword = async () => {
     clearError();
     
@@ -155,39 +126,10 @@ export function AuthForm() {
       return;
     }
 
-    if (requireCaptcha && !captchaToken) {
-      setEmailError('Please complete the CAPTCHA');
-      return;
-    }
-
-    const canProceed = await trackAuthAttempt(false, 'reset');
-    if (!canProceed) return;
-
     try {
-      // Call our custom email API
-      const response = await fetch('/api/auth/email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'reset_password',
-          email,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to send reset email');
-      }
-
-      await trackAuthAttempt(true, 'reset');
+      await resetPassword(email);
       setResetSent(true);
       setLastResetRequest(now);
-      setCaptchaToken(null);
-      if (recaptchaRef.current) {
-        recaptchaRef.current.reset();
-      }
     } catch (err: any) {
       setEmailError(err.message || 'Failed to send reset email');
     }
@@ -210,56 +152,15 @@ export function AuthForm() {
       return;
     }
 
-    if (requireCaptcha && !captchaToken) {
-      setEmailError('Please complete the CAPTCHA');
-      return;
-    }
-
-    const canProceed = await trackAuthAttempt(false, 'signin');
-    if (!canProceed) return;
-
     try {
       if (isSignUp) {
-        // Call our custom email API for signup
-        const response = await fetch('/api/auth/email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'password': password
-          },
-          body: JSON.stringify({
-            type: 'verify_email',
-            email,
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create account');
-        }
-
-        if (data.needsEmailVerification) {
-          setVerificationSent(true);
-        } else {
-          // User is already verified, attempt sign in
-          await signIn(email, password);
-        }
+        await signUp(email, password);
+        setVerificationSent(true);
       } else {
         await signIn(email, password);
       }
-      
-      await trackAuthAttempt(true, 'signin');
-      setCaptchaToken(null);
-      if (recaptchaRef.current) {
-        recaptchaRef.current.reset();
-      }
-    } catch (err: any) {
-      if (err.message?.includes('User already registered')) {
-        setEmailError('An account with this email already exists. Please sign in instead.');
-      } else {
-        setEmailError(err.message || 'Failed to process request');
-      }
+    } catch (error: any) {
+      console.error('Auth error:', error);
     }
   };
 
@@ -429,16 +330,6 @@ export function AuthForm() {
                 </a>
               </label>
             </div>
-          </div>
-        )}
-
-        {requireCaptcha && (
-          <div className="flex justify-center">
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-              onChange={(token) => setCaptchaToken(token)}
-            />
           </div>
         )}
 

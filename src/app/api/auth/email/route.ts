@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { emailService } from '@/lib/email';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
-import { AuthResponse, AuthTokenResponse } from '@supabase/supabase-js';
+import { AuthResponse } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,18 +10,11 @@ export async function POST(request: NextRequest) {
 
     switch (type) {
       case 'reset_password': {
-        // First, let Supabase handle the password reset
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${request.nextUrl.origin}/auth/reset-password`,
         });
         
         if (error) throw error;
-
-        // Send our custom email with the reset link
-        await emailService.sendPasswordReset(
-          email,
-          `${request.nextUrl.origin}/auth/reset-password`
-        );
         break;
       }
       
@@ -35,7 +27,6 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Let Supabase handle the signup
         const { data, error }: AuthResponse = await supabase.auth.signUp({
           email,
           password,
@@ -45,7 +36,6 @@ export async function POST(request: NextRequest) {
         });
         
         if (error) {
-          // Handle specific error cases
           if (error.message.includes('User already registered')) {
             return NextResponse.json(
               { error: 'An account with this email already exists' },
@@ -55,20 +45,12 @@ export async function POST(request: NextRequest) {
           throw error;
         }
 
-        // Send our custom verification email if the user needs to verify their email
-        if (data?.user && !data.user.email_confirmed_at) {
-          await emailService.sendVerification(
-            email,
-            `${request.nextUrl.origin}/auth/verify`
-          );
-        }
-
         return NextResponse.json({
           success: true,
           needsEmailVerification: !data?.user?.email_confirmed_at
         });
       }
-      
+
       default:
         return NextResponse.json(
           { error: 'Invalid email type' },
