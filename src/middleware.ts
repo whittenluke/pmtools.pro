@@ -31,7 +31,10 @@ export async function middleware(req: NextRequest) {
       // Redirect from auth pages to projects
       if (isAuthPath) {
         console.log(`[${new Date().toISOString()}] Auth path with session, redirecting to projects`);
-        const response = NextResponse.redirect(new URL('/projects', req.url));
+        // Create a clean URL without query parameters
+        const projectsUrl = new URL('/projects', req.url);
+        projectsUrl.search = ''; // Clear any query parameters
+        const response = NextResponse.redirect(projectsUrl);
         
         // Copy over the session cookies
         const sessionResponse = res.headers.getSetCookie();
