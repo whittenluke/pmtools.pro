@@ -3,7 +3,7 @@
   publish = ".next"
 
 [build.environment]
-  NEXT_PUBLIC_SITE_URL = "http://localhost:8889"
+  NEXT_PUBLIC_SITE_URL = "https://pmtools.pro"
 
 [dev]
   command = "npm run dev"
@@ -23,6 +23,5 @@
 
 [[redirects]]
   from = "/*"
-  to = "/index.html"
-  status = 200
-  force = false 
+  to = "/.netlify/functions/server"
+  status = 200 
