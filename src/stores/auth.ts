@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import type { User, Provider } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 interface AuthError extends Error {
   status?: number;
@@ -30,9 +30,6 @@ const getBaseUrl = () => {
 let authSubscription: { subscription: { unsubscribe: () => void } } | null = null;
 
 export const useAuthStore = create<AuthState>()((set, get) => {
-  // Create Supabase client inside the store
-  const supabase = createClientComponentClient();
-
   // Initialize auth state
   const initializeAuth = async () => {
     if (typeof window === 'undefined') return;
