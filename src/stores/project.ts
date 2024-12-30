@@ -181,18 +181,29 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  deleteProject: async (id) => {
+  deleteProject: async (projectId: string) => {
+    set({ loading: true, error: null });
     try {
-      const { error } = await supabase.from('projects').delete().eq('id', id);
+      // Call the database function to handle deletion
+      const { error } = await supabase
+        .rpc('delete_project', {
+          project_id: projectId
+        });
 
       if (error) throw error;
 
+      // Update local state
       set((state) => ({
-        projects: state.projects.filter((p) => p.id !== id),
-        currentProject: state.currentProject?.id === id ? null : state.currentProject,
+        projects: state.projects.filter((p) => p.id !== projectId),
+        currentProject: state.currentProject?.id === projectId ? null : state.currentProject,
+        views: state.currentProject?.id === projectId ? [] : state.views,
+        loading: false
       }));
+
+      return true;
     } catch (error) {
-      set({ error: error as Error });
+      console.error('Error deleting project:', error);
+      set({ error: error as Error, loading: false });
       throw error;
     }
   },
