@@ -19,7 +19,7 @@ interface ProjectState {
   fetchViews: (projectId: string) => Promise<void>;
   fetchTasks: (projectId: string) => Promise<void>;
   createProject: (title: string, description?: string) => Promise<Project>;
-  createView: (projectId: string, title: string, type: string) => Promise<void>;
+  createView: (projectId: string, title: string, type: string) => Promise<View>;
   updateProject: (id: string, data: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   setDefaultView: (projectId: string, viewId: string) => Promise<void>;
