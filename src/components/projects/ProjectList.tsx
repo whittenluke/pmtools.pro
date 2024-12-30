@@ -10,10 +10,10 @@ import { Plus } from 'lucide-react';
 import { ProjectCard } from './ProjectCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateProjectButton } from './CreateProjectButton';
-import type { Database } from '@/types/supabase';
+import type { Database } from '@/lib/database.types';
 
-type Project = Database['public']['Tables']['projects']['Row'];
 type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row'];
+type Project = Database['public']['Tables']['projects']['Row'];
 
 function ProjectSkeleton() {
   return (
@@ -49,7 +49,10 @@ export function ProjectList() {
         const { data: workspaces, error: workspaceError } = await supabase
           .from('workspace_members')
           .select('workspace_id')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id) as { 
+            data: WorkspaceMember[] | null; 
+            error: Error | null 
+          };
 
         if (workspaceError) {
           console.error('Error fetching workspaces:', workspaceError);
@@ -71,7 +74,10 @@ export function ProjectList() {
           .from('projects')
           .select('*')
           .in('workspace_id', workspaceIds)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }) as {
+            data: Project[] | null;
+            error: Error | null
+          };
 
         if (projectsError) {
           console.error('Error fetching projects:', projectsError);
