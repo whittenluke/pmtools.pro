@@ -1,19 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
 import { ProjectCard } from './ProjectCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateProjectButton } from './CreateProjectButton';
 import type { Database } from '@/lib/database.types';
 
-type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row'];
-type Project = Omit<Database['public']['Tables']['projects']['Row'], 'settings'> & {
+type Tables = Database['public']['Tables'];
+type Project = Omit<Tables['projects']['Row'], 'settings'> & {
   settings: Record<string, any>;
 };
 
@@ -35,8 +31,6 @@ export function ProjectList() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const router = useRouter();
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -47,55 +41,41 @@ export function ProjectList() {
           return;
         }
 
-        // First get the user's workspaces
-        const { data: workspacesData, error: workspaceError } = await supabase
+        // Get workspace IDs for the user
+        const { data: workspaces, error: workspaceError } = await supabase
           .from('workspace_members')
           .select('workspace_id')
           .eq('user_id', user.id);
 
-        if (workspaceError) {
-          console.error('Error fetching workspaces:', workspaceError);
-          throw workspaceError;
-        }
-
-        // Type guard to ensure workspacesData is an array
-        if (!Array.isArray(workspacesData)) {
+        if (workspaceError) throw workspaceError;
+        if (!workspaces) {
           setProjects([]);
           setLoading(false);
           return;
         }
 
-        // Get all workspace IDs
-        const workspaceIds = workspacesData.map(w => w.workspace_id);
-
-        // Then get projects for all workspaces
-        const { data: projectsData, error: projectsError } = await supabase
+        // Get projects for these workspaces
+        const { data: projects, error: projectError } = await supabase
           .from('projects')
           .select('*')
-          .in('workspace_id', workspaceIds)
+          .in('workspace_id', workspaces.map(w => w.workspace_id))
           .order('created_at', { ascending: false });
 
-        if (projectsError) {
-          console.error('Error fetching projects:', projectsError);
-          throw projectsError;
-        }
-
-        // Type guard to ensure projectsData is an array
-        if (!Array.isArray(projectsData)) {
+        if (projectError) throw projectError;
+        if (!projects) {
           setProjects([]);
           setLoading(false);
           return;
         }
 
-        // Transform the settings to ensure it's an object
-        const projects = projectsData.map(project => ({
+        const transformedProjects = projects.map(project => ({
           ...project,
-          settings: typeof project.settings === 'string' 
-            ? JSON.parse(project.settings) 
+          settings: typeof project.settings === 'string'
+            ? JSON.parse(project.settings)
             : project.settings || {}
-        })) as Project[];
+        }));
 
-        setProjects(projects);
+        setProjects(transformedProjects);
         setError(null);
       } catch (err) {
         console.error('Error in fetchProjects:', err);
@@ -123,15 +103,6 @@ export function ProjectList() {
       <div className="text-center py-12">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Projects</h3>
         <p className="text-gray-500 mb-4">{error}</p>
-        <Button 
-          onClick={() => {
-            setLoading(true);
-            setError(null);
-          }}
-          variant="outline"
-        >
-          Try Again
-        </Button>
       </div>
     );
   }
