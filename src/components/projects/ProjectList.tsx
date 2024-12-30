@@ -50,7 +50,7 @@ export function ProjectList() {
 
         if (workspaceQuery.error) throw workspaceQuery.error;
         
-        const workspaceIds = workspaceQuery.data?.map(w => w.workspace_id as string) || [];
+        const workspaceIds = (workspaceQuery.data as { workspace_id: string }[])?.map(w => w.workspace_id) || [];
         if (workspaceIds.length === 0) {
           setProjects([]);
           setLoading(false);
