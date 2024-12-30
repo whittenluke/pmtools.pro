@@ -58,15 +58,15 @@ export function ProjectList() {
           throw workspaceError;
         }
 
-        if (!workspacesData || workspacesData.length === 0) {
-          // If no workspace found, show empty state
+        // Type guard to ensure workspacesData is an array
+        if (!Array.isArray(workspacesData)) {
           setProjects([]);
           setLoading(false);
           return;
         }
 
-        // Get all workspace IDs - ensure workspacesData is treated as an array of workspace members
-        const workspaceIds = (workspacesData as WorkspaceMember[]).map(w => w.workspace_id);
+        // Get all workspace IDs
+        const workspaceIds = workspacesData.map(w => w.workspace_id);
 
         // Then get projects for all workspaces
         const { data: projectsData, error: projectsError } = await supabase
@@ -80,8 +80,15 @@ export function ProjectList() {
           throw projectsError;
         }
 
+        // Type guard to ensure projectsData is an array
+        if (!Array.isArray(projectsData)) {
+          setProjects([]);
+          setLoading(false);
+          return;
+        }
+
         // Transform the settings to ensure it's an object
-        const projects = (projectsData || []).map(project => ({
+        const projects = projectsData.map(project => ({
           ...project,
           settings: typeof project.settings === 'string' 
             ? JSON.parse(project.settings) 
