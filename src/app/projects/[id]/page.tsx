@@ -50,11 +50,22 @@ function ErrorState({ error }: { error: Error }) {
 }
 
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
-  const { fetchProject, loading, error, currentProject } = useProjectStore();
+  const { fetchProject, fetchViews, loading, error, currentProject, views } = useProjectStore();
 
   useEffect(() => {
-    fetchProject(params.id);
-  }, [fetchProject, params.id]);
+    const loadProject = async () => {
+      try {
+        await fetchProject(params.id);
+        await fetchViews(params.id);
+      } catch (err) {
+        console.error('Error loading project:', err);
+      }
+    };
+    
+    if (!currentProject || currentProject.id !== params.id || views.length === 0) {
+      loadProject();
+    }
+  }, [fetchProject, fetchViews, params.id, currentProject, views]);
 
   if (loading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;

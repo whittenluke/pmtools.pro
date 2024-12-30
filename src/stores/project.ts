@@ -67,6 +67,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   },
 
   createProject: async (title, description) => {
+    set({ loading: true, error: null });
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
@@ -97,27 +98,60 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (error) throw error;
 
-      // Create default table view
-      const { error: viewError } = await supabase
+      // Create default table view with columns
+      const { data: view, error: viewError } = await supabase
         .from('project_views')
         .insert({
           project_id: data.id,
-          title: 'Table View',
+          title: 'Main Table',
           type: 'table',
           is_default: true,
-        });
+          config: {
+            columns: [
+              {
+                id: 'title',
+                title: 'Title',
+                type: 'text',
+                width: 300
+              },
+              {
+                id: 'status',
+                title: 'Status',
+                type: 'status',
+                width: 150
+              },
+              {
+                id: 'assignee',
+                title: 'Assignee',
+                type: 'user',
+                width: 150
+              },
+              {
+                id: 'due_date',
+                title: 'Due Date',
+                type: 'date',
+                width: 150
+              }
+            ]
+          }
+        })
+        .select()
+        .single();
 
       if (viewError) throw viewError;
 
       set((state) => ({
         projects: [...state.projects, data],
         currentProject: data,
+        views: [view],
+        loading: false,
+        error: null
       }));
 
       return data;
     } catch (error) {
       console.error('Project creation error:', error);
-      set({ error: error as Error });
+      set({ error: error as Error, loading: false });
       throw error;
     }
   },
