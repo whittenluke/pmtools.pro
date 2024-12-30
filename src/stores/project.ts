@@ -4,16 +4,19 @@ import type { Database } from '@/types/supabase';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type View = Database['public']['Tables']['project_views']['Row'];
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface ProjectState {
   projects: Project[];
   currentProject: Project | null;
   views: View[];
+  tasks: Task[];
   loading: boolean;
   error: Error | null;
   setCurrentProject: (project: Project | null) => void;
   fetchProject: (id: string) => Promise<void>;
   fetchViews: (projectId: string) => Promise<void>;
+  fetchTasks: (projectId: string) => Promise<void>;
   createProject: (title: string, description?: string) => Promise<Project>;
   createView: (projectId: string, title: string, type: string) => Promise<void>;
   updateProject: (id: string, data: Partial<Project>) => Promise<void>;
@@ -27,6 +30,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   projects: [],
   currentProject: null,
   views: [],
+  tasks: [],
   loading: true,
   error: null,
 
@@ -61,6 +65,23 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       if (viewsError) throw viewsError;
 
       set({ views: views || [], loading: false });
+    } catch (error) {
+      set({ error: error as Error, loading: false });
+      throw error;
+    }
+  },
+
+  fetchTasks: async (projectId) => {
+    try {
+      const { data: tasks, error } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('position', { ascending: true });
+
+      if (error) throw error;
+
+      set({ tasks: tasks || [], loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;

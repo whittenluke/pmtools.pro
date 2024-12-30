@@ -1,12 +1,19 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useProjectStore } from '@/stores/project';
 import { TableGrid } from './table/TableGrid';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
 export function TableView() {
-  const { tasks, currentView } = useProjectStore();
+  const { tasks, currentView, currentProject, fetchTasks } = useProjectStore();
+
+  useEffect(() => {
+    if (currentProject?.id) {
+      fetchTasks(currentProject.id);
+    }
+  }, [currentProject?.id, fetchTasks]);
 
   if (!currentView || currentView.type !== 'table') {
     return null;
