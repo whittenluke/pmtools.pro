@@ -48,7 +48,7 @@ export function ProjectList() {
         }
 
         // First get the user's workspaces
-        const { data: workspaces, error: workspaceError } = await supabase
+        const { data: workspacesData, error: workspaceError } = await supabase
           .from('workspace_members')
           .select('workspace_id')
           .eq('user_id', user.id);
@@ -58,7 +58,7 @@ export function ProjectList() {
           throw workspaceError;
         }
 
-        if (!workspaces || workspaces.length === 0) {
+        if (!workspacesData || workspacesData.length === 0) {
           // If no workspace found, show empty state
           setProjects([]);
           setLoading(false);
@@ -66,7 +66,7 @@ export function ProjectList() {
         }
 
         // Get all workspace IDs
-        const workspaceIds = workspaces.map(w => w.workspace_id);
+        const workspaceIds = workspacesData.map(w => w.workspace_id);
 
         // Then get projects for all workspaces
         const { data: projectsData, error: projectsError } = await supabase
