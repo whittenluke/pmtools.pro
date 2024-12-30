@@ -43,35 +43,35 @@ export function ProjectList() {
         }
 
         // Get workspace IDs for the user
-        const { data, error: workspaceError } = await supabase
+        const workspaceQuery = await supabase
           .from('workspace_members')
           .select('workspace_id')
           .eq('user_id', user.id);
 
-        if (workspaceError) throw workspaceError;
+        if (workspaceQuery.error) throw workspaceQuery.error;
         
-        const workspaces = data as WorkspaceMember[];
-        if (!workspaces?.length) {
+        const workspaceIds = workspaceQuery.data?.map(w => w.workspace_id as string) || [];
+        if (workspaceIds.length === 0) {
           setProjects([]);
           setLoading(false);
           return;
         }
 
         // Get projects for these workspaces
-        const { data: projects, error: projectError } = await supabase
+        const projectQuery = await supabase
           .from('projects')
           .select('*')
-          .in('workspace_id', workspaces.map(w => w.workspace_id))
+          .in('workspace_id', workspaceIds)
           .order('created_at', { ascending: false });
 
-        if (projectError) throw projectError;
-        if (!projects) {
+        if (projectQuery.error) throw projectQuery.error;
+        if (!projectQuery.data) {
           setProjects([]);
           setLoading(false);
           return;
         }
 
-        const transformedProjects = projects.map(project => ({
+        const transformedProjects = projectQuery.data.map(project => ({
           ...project,
           settings: typeof project.settings === 'string'
             ? JSON.parse(project.settings)
