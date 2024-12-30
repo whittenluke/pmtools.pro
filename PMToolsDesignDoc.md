@@ -3315,7 +3315,7 @@ function withRateLimit(
 
 ## 8. Subscription & Payment System
 
-### 8.1 Subscription Tables
+### 8.1 Subscription Tabl
 
 ### 8.3 Stripe Integration
 

@@ -9,6 +9,7 @@ type Task = Database['public']['Tables']['tasks']['Row'];
 interface ProjectState {
   projects: Project[];
   currentProject: Project | null;
+  currentView: View | null;
   views: View[];
   tasks: Task[];
   loading: boolean;
@@ -29,6 +30,7 @@ interface ProjectState {
 export const useProjectStore = create<ProjectState>()((set, get) => ({
   projects: [],
   currentProject: null,
+  currentView: null,
   views: [],
   tasks: [],
   loading: true,
@@ -64,7 +66,14 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (viewsError) throw viewsError;
 
-      set({ views: views || [], loading: false });
+      // Find the default view or use the first view
+      const defaultView = views?.find(view => view.is_default) || views?.[0] || null;
+
+      set({ 
+        views: views || [], 
+        currentView: defaultView,
+        loading: false 
+      });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;
