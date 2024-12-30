@@ -33,6 +33,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   setCurrentProject: (project) => set({ currentProject: project }),
 
   fetchProject: async (id) => {
+    set({ loading: true, error: null });
     try {
       const { data: project, error } = await supabase
         .from('projects')
@@ -42,9 +43,9 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (error) throw error;
 
-      set({ currentProject: project });
+      set({ currentProject: project, loading: false });
     } catch (error) {
-      set({ error: error as Error });
+      set({ error: error as Error, loading: false });
       throw error;
     }
   },
@@ -59,9 +60,9 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (viewsError) throw viewsError;
 
-      set({ views: views || [] });
+      set({ views: views || [], loading: false });
     } catch (error) {
-      set({ error: error as Error });
+      set({ error: error as Error, loading: false });
       throw error;
     }
   },
@@ -256,6 +257,59 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       set((state) => ({
         views: state.views.filter((v) => v.id !== viewId),
       }));
+    } catch (error) {
+      set({ error: error as Error });
+      throw error;
+    }
+  },
+
+  createView: async (projectId, title, type) => {
+    try {
+      const { data: view, error } = await supabase
+        .from('project_views')
+        .insert({
+          project_id: projectId,
+          title,
+          type,
+          config: {
+            columns: type === 'table' ? [
+              {
+                id: 'title',
+                title: 'Title',
+                type: 'text',
+                width: 300
+              },
+              {
+                id: 'status',
+                title: 'Status',
+                type: 'status',
+                width: 150
+              },
+              {
+                id: 'assignee',
+                title: 'Assignee',
+                type: 'user',
+                width: 150
+              },
+              {
+                id: 'due_date',
+                title: 'Due Date',
+                type: 'date',
+                width: 150
+              }
+            ] : []
+          }
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      set((state) => ({
+        views: [...state.views, view]
+      }));
+
+      return view;
     } catch (error) {
       set({ error: error as Error });
       throw error;
