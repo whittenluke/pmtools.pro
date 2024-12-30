@@ -12,6 +12,7 @@ type Tables = Database['public']['Tables'];
 type Project = Omit<Tables['projects']['Row'], 'settings'> & {
   settings: Record<string, any>;
 };
+type WorkspaceMember = Tables['workspace_members']['Row'];
 
 function ProjectSkeleton() {
   return (
@@ -42,13 +43,15 @@ export function ProjectList() {
         }
 
         // Get workspace IDs for the user
-        const { data: workspaces, error: workspaceError } = await supabase
+        const { data, error: workspaceError } = await supabase
           .from('workspace_members')
           .select('workspace_id')
           .eq('user_id', user.id);
 
         if (workspaceError) throw workspaceError;
-        if (!workspaces) {
+        
+        const workspaces = data as WorkspaceMember[];
+        if (!workspaces?.length) {
           setProjects([]);
           setLoading(false);
           return;
