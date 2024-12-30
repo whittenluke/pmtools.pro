@@ -65,8 +65,8 @@ export function ProjectList() {
           return;
         }
 
-        // Get all workspace IDs
-        const workspaceIds = workspacesData.map(w => w.workspace_id);
+        // Get all workspace IDs - ensure workspacesData is treated as an array of workspace members
+        const workspaceIds = (workspacesData as WorkspaceMember[]).map(w => w.workspace_id);
 
         // Then get projects for all workspaces
         const { data: projectsData, error: projectsError } = await supabase
@@ -86,7 +86,7 @@ export function ProjectList() {
           settings: typeof project.settings === 'string' 
             ? JSON.parse(project.settings) 
             : project.settings || {}
-        }));
+        })) as Project[];
 
         setProjects(projects);
         setError(null);
