@@ -12,8 +12,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CreateProjectButton } from './CreateProjectButton';
 import type { Database } from '@/lib/database.types';
 
+type Json = Database['public']['CompositeTypes']['json'];
 type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row'];
-type Project = Database['public']['Tables']['projects']['Row'];
+type Project = Omit<Database['public']['Tables']['projects']['Row'], 'settings'> & {
+  settings: Record<string, any>;
+};
 
 function ProjectSkeleton() {
   return (
@@ -70,21 +73,26 @@ export function ProjectList() {
         const workspaceIds = workspaces.map(w => w.workspace_id);
 
         // Then get projects for all workspaces
-        const { data: projects, error: projectsError } = await supabase
+        const { data: projectsData, error: projectsError } = await supabase
           .from('projects')
           .select('*')
           .in('workspace_id', workspaceIds)
-          .order('created_at', { ascending: false }) as {
-            data: Project[] | null;
-            error: Error | null
-          };
+          .order('created_at', { ascending: false });
 
         if (projectsError) {
           console.error('Error fetching projects:', projectsError);
           throw projectsError;
         }
 
-        setProjects(projects || []);
+        // Transform the settings to ensure it's an object
+        const projects = (projectsData || []).map(project => ({
+          ...project,
+          settings: typeof project.settings === 'string' 
+            ? JSON.parse(project.settings) 
+            : project.settings || {}
+        }));
+
+        setProjects(projects);
         setError(null);
       } catch (err) {
         console.error('Error in fetchProjects:', err);
