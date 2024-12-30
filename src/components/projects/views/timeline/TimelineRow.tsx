@@ -1,4 +1,7 @@
-import type { Task } from '@/types';
+import { TimelineBar } from './TimelineBar';
+import type { Database } from '@/types/supabase';
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TimelineRowProps {
   task: Task;

@@ -1,6 +1,9 @@
 'use client';
 
-import type { Task } from '@/types';
+import { Draggable } from '@hello-pangea/dnd';
+import type { Database } from '@/types/supabase';
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface KanbanCardProps {
   task: Task;

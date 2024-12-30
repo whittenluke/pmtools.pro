@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
-import { differenceInDays, isWithinInterval } from 'date-fns';
-import type { Task } from '@/types';
+import { differenceInDays, isWithinInterval, format } from 'date-fns';
+import type { Database } from '@/types/supabase';
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TimelineBarProps {
   task: Task;

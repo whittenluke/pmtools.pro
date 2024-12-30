@@ -1,8 +1,10 @@
 'use client';
 
+import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useProjectStore } from '@/stores/project';
-import type { Task } from '@/types';
+import type { Database } from '@/types/supabase';
 
+type Task = Database['public']['Tables']['tasks']['Row'];
 type TaskStatus = 'todo' | 'in_progress' | 'done';
 
 export function KanbanBoard() {

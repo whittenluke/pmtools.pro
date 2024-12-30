@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import type { Task, ViewColumn } from '@/types';
+import type { ViewColumn } from '@/types';
+import type { Database } from '@/types/supabase';
 import { TextCell } from './cells/TextCell';
 import { StatusCell } from './cells/StatusCell';
 import { DateCell } from './cells/DateCell';
 import { UserCell } from './cells/UserCell';
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TableCellProps {
   task: Task;

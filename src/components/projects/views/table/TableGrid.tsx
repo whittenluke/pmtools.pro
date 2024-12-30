@@ -1,5 +1,8 @@
-import type { Task, ViewModel } from '@/types';
+import type { ViewModel } from '@/types';
+import type { Database } from '@/types/supabase';
 import { TableCell } from './TableCell';
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TableGridProps {
   tasks: Task[];
