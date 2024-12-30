@@ -1,6 +1,8 @@
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import type { Task } from '@/types';
+import type { Database } from '@/types/supabase';
+
+type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface CalendarDayProps {
   date: Date;
