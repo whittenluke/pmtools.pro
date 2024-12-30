@@ -1,41 +1,39 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { format } from 'date-fns';
-import { ChevronLeftIcon } from '@/components/icons/ChevronLeft';
-import { ChevronRightIcon } from '@/components/icons/ChevronRight';
-import { useCalendar } from './CalendarProvider';
+import React from 'react';
+import { useCalendar } from '@/providers/CalendarProvider';
 
 export function CalendarToolbar() {
-  const { currentDate, setCurrentDate } = useCalendar();
+  const { view, setView } = useCalendar();
 
   return (
-    <div className="flex items-center justify-between p-4">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+    <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center space-x-4">
+        <button
+          onClick={() => setView('month')}
+          className={`px-3 py-1 rounded ${
+            view === 'month' ? 'bg-primary text-white' : 'hover:bg-gray-100'
+          }`}
         >
-          <ChevronLeftIcon className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+          Month
+        </button>
+        <button
+          onClick={() => setView('week')}
+          className={`px-3 py-1 rounded ${
+            view === 'week' ? 'bg-primary text-white' : 'hover:bg-gray-100'
+          }`}
         >
-          <ChevronRightIcon className="h-4 w-4" />
-        </Button>
-        <span className="text-lg font-semibold">
-          {format(currentDate, 'MMMM yyyy')}
-        </span>
+          Week
+        </button>
+        <button
+          onClick={() => setView('day')}
+          className={`px-3 py-1 rounded ${
+            view === 'day' ? 'bg-primary text-white' : 'hover:bg-gray-100'
+          }`}
+        >
+          Day
+        </button>
       </div>
-      <Button
-        variant="outline"
-        onClick={() => setCurrentDate(new Date())}
-      >
-        Today
-      </Button>
     </div>
   );
 }
