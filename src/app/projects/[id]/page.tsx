@@ -9,8 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 function LoadingState() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
+    <div className="min-h-screen bg-background">
+      <div className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex justify-between items-center">
             <div className="space-y-2">
@@ -34,10 +34,10 @@ function LoadingState() {
 
 function ErrorState({ error }: { error: Error }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Project</h2>
-        <p className="text-gray-500 mb-4">{error.message}</p>
+        <h2 className="text-2xl font-bold text-foreground mb-2">Error Loading Project</h2>
+        <p className="text-muted-foreground mb-4">{error.message}</p>
         <button 
           onClick={() => window.location.reload()}
           className="text-primary hover:text-primary/80"
@@ -83,7 +83,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
   return (
     <ViewProvider projectId={params.id}>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         <ProjectHeader />
         <ProjectViews />
       </div>

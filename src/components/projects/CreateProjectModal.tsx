@@ -5,17 +5,26 @@ import { useRouter } from 'next/navigation';
 import { useProjectStore } from '@/stores/project';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Globe, Lock, Users, Briefcase, DollarSign, UserCircle2, Target, PenTool, Users2, CheckCircle2 } from 'lucide-react';
 
 interface CreateProjectModalProps {
   open: boolean;
   onClose: () => void;
 }
 
+type ProjectType = 'items' | 'budgets' | 'employees' | 'campaigns' | 'leads' | 'projects' | 'creatives' | 'clients' | 'tasks' | 'custom';
+type PrivacyType = 'main' | 'private' | 'shareable';
+
 export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
   const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [privacy, setPrivacy] = useState<PrivacyType>('main');
+  const [type, setType] = useState<ProjectType>('items');
+  
   const router = useRouter();
   const { createProject } = useProjectStore();
 
@@ -25,7 +34,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
     setError(null);
     
     try {
-      const project = await createProject(title, description);
+      const project = await createProject(title);
       onClose();
       router.push(`/projects/${project.id}`);
     } catch (err) {
@@ -36,48 +45,125 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
     }
   };
 
+  const projectTypes = [
+    { id: 'items' as const, label: 'Items', icon: CheckCircle2 },
+    { id: 'budgets' as const, label: 'Budgets', icon: DollarSign },
+    { id: 'employees' as const, label: 'Employees', icon: UserCircle2 },
+    { id: 'campaigns' as const, label: 'Campaigns', icon: Target },
+    { id: 'leads' as const, label: 'Leads', icon: Users },
+    { id: 'projects' as const, label: 'Projects', icon: Briefcase },
+    { id: 'creatives' as const, label: 'Creatives', icon: PenTool },
+    { id: 'clients' as const, label: 'Clients', icon: Users2 },
+    { id: 'tasks' as const, label: 'Tasks', icon: CheckCircle2 },
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]" aria-describedby="modal-description">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Create New Project</DialogTitle>
-          <p id="modal-description" className="text-sm text-muted-foreground">
-            Create a new project to organize your tasks and collaborate with your team.
-          </p>
+          <DialogTitle>Create board</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="text-sm text-red-500" role="alert">
+            <div className="text-sm text-destructive" role="alert">
               {error}
             </div>
           )}
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700">
-              Project Title
-            </label>
-            <input
-              type="text"
+
+          <div className="space-y-2">
+            <Label htmlFor="title">Board name</Label>
+            <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
+              className="w-full"
+              placeholder="New Board"
               disabled={loading}
               required
             />
           </div>
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-              rows={3}
-              disabled={loading}
-            />
+
+          <div className="space-y-3">
+            <Label>Privacy</Label>
+            <RadioGroup
+              value={privacy}
+              onValueChange={(value) => setPrivacy(value as PrivacyType)}
+              className="grid grid-cols-3 gap-4"
+            >
+              <div>
+                <RadioGroupItem
+                  value="main"
+                  id="main"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="main"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <Globe className="mb-2 h-6 w-6" />
+                  <span className="text-sm font-medium">Main</span>
+                </Label>
+              </div>
+
+              <div>
+                <RadioGroupItem
+                  value="private"
+                  id="private"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="private"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <Lock className="mb-2 h-6 w-6" />
+                  <span className="text-sm font-medium">Private</span>
+                </Label>
+              </div>
+
+              <div>
+                <RadioGroupItem
+                  value="shareable"
+                  id="shareable"
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor="shareable"
+                  className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                >
+                  <Users className="mb-2 h-6 w-6" />
+                  <span className="text-sm font-medium">Shareable</span>
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
+
+          <div className="space-y-3">
+            <Label>Select what you're managing in this board</Label>
+            <RadioGroup
+              value={type}
+              onValueChange={(value) => setType(value as ProjectType)}
+              className="grid grid-cols-3 gap-4"
+            >
+              {projectTypes.map((projectType) => (
+                <div key={projectType.id}>
+                  <RadioGroupItem
+                    value={projectType.id}
+                    id={projectType.id}
+                    className="peer sr-only"
+                  />
+                  <Label
+                    htmlFor={projectType.id}
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary"
+                  >
+                    <projectType.icon className="mb-2 h-6 w-6" />
+                    <span className="text-sm font-medium">{projectType.label}</span>
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </div>
+
           <div className="flex justify-end gap-3">
             <Button 
               type="button" 
@@ -91,7 +177,7 @@ export function CreateProjectModal({ open, onClose }: CreateProjectModalProps) {
               type="submit"
               disabled={loading || !title.trim()}
             >
-              {loading ? 'Creating...' : 'Create Project'}
+              {loading ? 'Creating...' : 'Create Board'}
             </Button>
           </div>
         </form>
