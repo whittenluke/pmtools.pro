@@ -1,188 +1,196 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuthStore } from '@/stores/auth';
-import { supabase } from '@/lib/supabase';
+import { useCallback, useEffect, useState } from 'react';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useRouter } from 'next/navigation';
+import { Database } from '@/lib/database.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Alert } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2 } from 'lucide-react';
 
-interface Profile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  updated_at: string | null;
-}
-
-export default function AccountPage() {
-  const { user } = useAuthStore();
+export default function Account() {
+  const router = useRouter();
+  const supabase = createClientComponentClient<Database>();
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const loadProfile = async () => {
-    if (!user?.id) return;
-    
+  const getProfile = useCallback(async () => {
     try {
-      console.log('Loading profile for user:', user.id);
-      
-      // First check if profile exists
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      setLoading(true);
 
-      console.log('Profile query result:', { existingProfile, fetchError });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      // If no profile exists or error is "not found"
-      if (!existingProfile || (fetchError && fetchError.code === 'PGRST116')) {
-        console.log('No profile found, creating from OAuth data');
-        
-        // Create profile from OAuth data
-        const newProfile = {
-          id: user.id,
-          email: user.email || '',
-          full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-          avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-          updated_at: new Date().toISOString(),
-        };
-
-        const { data: insertedProfile, error: insertError } = await supabase
-          .from('profiles')
-          .upsert(newProfile)
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('Error creating profile:', insertError);
-          throw insertError;
-        }
-
-        console.log('Successfully created profile:', insertedProfile);
-        setProfile(insertedProfile);
+      if (!user) {
+        router.push('/login');
         return;
       }
 
-      if (fetchError) {
-        console.error('Error fetching profile:', fetchError);
-        throw fetchError;
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select()
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.warn(error);
       }
 
-      // Use existing profile
-      console.log('Using existing profile:', existingProfile);
-      setProfile(existingProfile);
-      
-    } catch (error: any) {
-      console.error('Error loading profile:', error);
-      setError(error.message || 'Failed to load profile. Please try again.');
+      if (profile) {
+        setFullName(profile.full_name);
+        setAvatarUrl(profile.avatar_url);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, router]);
+
+  useEffect(() => {
+    getProfile();
+  }, [getProfile]);
+
+  const updateProfile = async ({
+    fullName,
+    avatarUrl,
+  }: {
+    fullName: string | null;
+    avatarUrl: string | null;
+  }) => {
+    try {
+      setLoading(true);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error('No user');
+
+      const newProfile = {
+        id: user.id,
+        full_name: fullName,
+        avatar_url: avatarUrl,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .upsert(newProfile)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      router.refresh();
+    } catch (error) {
+      console.error(error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (user?.id) {
-      console.log('User authenticated, loading profile...');
-      loadProfile();
-    }
-  }, [user?.id]);
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user?.id || !profile) return;
-
-    setSaving(true);
-    setError(null);
-
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      const updates = {
-        id: user.id,
-        full_name: profile.full_name,
-        avatar_url: profile.avatar_url,
-        updated_at: new Date().toISOString(),
-      };
+      setUploading(true);
 
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (error) throw error;
+      if (!user) throw new Error('No user');
+
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       
-      // Show success state
-      const saveButton = document.querySelector('button[type="submit"]') as HTMLButtonElement;
-      if (saveButton) {
-        saveButton.textContent = 'Saved!';
-        setTimeout(() => {
-          saveButton.textContent = 'Save Changes';
-        }, 2000);
-      }
-      
-    } catch (error: any) {
-      console.error('Error updating profile:', error);
-      setError(error.message || 'Failed to update profile. Please try again.');
+      setAvatarUrl(data.publicUrl);
+      await updateProfile({ fullName, avatarUrl: data.publicUrl });
+    } catch (error) {
+      console.error(error);
     } finally {
-      setSaving(false);
+      setUploading(false);
     }
   };
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p>Please sign in to access your account.</p>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container max-w-4xl py-10">
-      <h1 className="text-3xl font-bold mb-8">Account Settings</h1>
-      
-      {error && (
-        <Alert variant="destructive" className="mb-6">
-          {error}
-        </Alert>
-      )}
-
-      <form onSubmit={handleUpdateProfile} className="space-y-6">
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium">
-            Email
-          </label>
-          <Input
-            id="email"
-            type="email"
-            value={user.email || ''}
-            disabled
-          />
+    <div className="container max-w-screen-sm mx-auto py-8">
+      <div className="space-y-8">
+        <div className="flex items-center gap-8">
+          <div>
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={avatarUrl || undefined} />
+              <AvatarFallback>
+                {fullName?.charAt(0) || '?'}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="avatar" className="cursor-pointer">
+              {uploading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Uploading...
+                </div>
+              ) : (
+                'Upload avatar'
+              )}
+            </Label>
+            <Input
+              id="avatar"
+              type="file"
+              accept="image/*"
+              onChange={uploadAvatar}
+              disabled={uploading}
+              className="hidden"
+            />
+          </div>
         </div>
-        
-        <div className="space-y-2">
-          <label htmlFor="full_name" className="text-sm font-medium">
-            Full Name
-          </label>
-          <Input
-            id="full_name"
-            value={profile?.full_name || ''}
-            onChange={(e) => setProfile(prev => prev ? { ...prev, full_name: e.target.value } : null)}
-            placeholder="Enter your full name"
-          />
-        </div>
 
-        <Button type="submit" disabled={saving}>
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </form>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              type="text"
+              value={fullName || ''}
+              onChange={(e) => setFullName(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+
+          <div>
+            <Button
+              onClick={() => updateProfile({ fullName, avatarUrl })}
+              disabled={loading}
+            >
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </div>
+              ) : (
+                'Update Profile'
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 } 
