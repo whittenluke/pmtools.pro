@@ -12,7 +12,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CreateProjectButton } from './CreateProjectButton';
 import type { Database } from '@/lib/database.types';
 
-type Json = Database['public']['CompositeTypes']['json'];
 type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row'];
 type Project = Omit<Database['public']['Tables']['projects']['Row'], 'settings'> & {
   settings: Record<string, any>;
@@ -52,10 +51,7 @@ export function ProjectList() {
         const { data: workspaces, error: workspaceError } = await supabase
           .from('workspace_members')
           .select('workspace_id')
-          .eq('user_id', user.id) as { 
-            data: WorkspaceMember[] | null; 
-            error: Error | null 
-          };
+          .eq('user_id', user.id);
 
         if (workspaceError) {
           console.error('Error fetching workspaces:', workspaceError);
