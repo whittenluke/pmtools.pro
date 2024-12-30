@@ -60,7 +60,7 @@ export function ProjectList() {
         // Get projects for these workspaces
         const projectQuery = await supabase
           .from('projects')
-          .select('*')
+          .select<'*', Tables['projects']['Row']>('*')
           .in('workspace_id', workspaceIds)
           .order('created_at', { ascending: false });
 
