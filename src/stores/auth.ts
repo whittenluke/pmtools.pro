@@ -78,6 +78,11 @@ export const useAuthStore = create<AuthState>()((set, get) => {
         });
         if (error) throw error;
         set({ user: data.user });
+        
+        // Redirect to projects page
+        if (typeof window !== 'undefined') {
+          window.location.href = '/projects';
+        }
       } catch (error: any) {
         const authError = error as AuthError;
         set({ error: authError });

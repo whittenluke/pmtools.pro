@@ -1,49 +1,41 @@
 'use client';
 
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
-import { useCalendar } from '@/providers/CalendarProvider';
+import { format } from 'date-fns';
+import { ChevronLeftIcon } from '@/components/icons/ChevronLeft';
+import { ChevronRightIcon } from '@/components/icons/ChevronRight';
+import { useCalendar } from './CalendarProvider';
 
 export function CalendarToolbar() {
-  const { currentDate, view, setView, nextMonth, prevMonth } = useCalendar();
+  const { currentDate, setCurrentDate } = useCalendar();
 
   return (
-    <div className="flex justify-between items-center p-4 border-b">
+    <div className="flex items-center justify-between p-4">
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={prevMonth}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
+        >
           <ChevronLeftIcon className="h-4 w-4" />
         </Button>
-        <h2 className="text-lg font-semibold">
-          {format(currentDate, 'MMMM yyyy')}
-        </h2>
-        <Button variant="outline" size="sm" onClick={nextMonth}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
+        >
           <ChevronRightIcon className="h-4 w-4" />
         </Button>
+        <span className="text-lg font-semibold">
+          {format(currentDate, 'MMMM yyyy')}
+        </span>
       </div>
-      <div className="flex gap-2">
-        <Button
-          variant={view === 'month' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setView('month')}
-        >
-          Month
-        </Button>
-        <Button
-          variant={view === 'week' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setView('week')}
-        >
-          Week
-        </Button>
-        <Button
-          variant={view === 'day' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setView('day')}
-        >
-          Day
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        onClick={() => setCurrentDate(new Date())}
+      >
+        Today
+      </Button>
     </div>
   );
 }

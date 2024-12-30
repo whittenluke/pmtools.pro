@@ -1,7 +1,7 @@
 'use client';
 
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from 'date-fns';
-import { useCalendar } from '@/providers/CalendarProvider';
+import { useCalendar } from './CalendarProvider';
 import { useProjectStore } from '@/stores/project';
 
 export function CalendarGrid() {

@@ -21,14 +21,14 @@ export async function middleware(req: NextRequest) {
     );
 
     // Auth pages that should redirect to projects if authenticated
-    const authPaths = ['/login', '/signup', '/auth/callback'];
+    const authPaths = ['/login', '/signup'];
     const isAuthPath = authPaths.some(path => 
-      req.nextUrl.pathname === path || req.nextUrl.pathname.startsWith(path)
+      req.nextUrl.pathname === path
     );
 
     // If user is authenticated
     if (session) {
-      // Redirect from auth pages to projects
+      // Redirect from auth pages to projects (except callback)
       if (isAuthPath) {
         console.log(`[${new Date().toISOString()}] Auth path with session, redirecting to projects`);
         // Create a clean URL without query parameters

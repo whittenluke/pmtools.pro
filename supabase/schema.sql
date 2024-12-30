@@ -427,11 +427,13 @@ CREATE TABLE IF NOT EXISTS public.notifications (
     FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id)
 );
 
--- Function: handle_new_user
-CREATE OR REPLACE FUNCTION public.handle_new_user()
+-- Function: handle_new_user_setup
+CREATE OR REPLACE FUNCTION public.handle_new_user_setup()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  workspace_id uuid;
 BEGIN
   INSERT INTO public.profiles (
     id,
@@ -452,6 +454,14 @@ BEGIN
     ),
     now()
   );
+
+  INSERT INTO workspaces (name, slug)
+  VALUES ('My Workspace', 'my-workspace-' || new.id)
+  RETURNING id INTO workspace_id;
+
+  INSERT INTO workspace_members (workspace_id, user_id, role)
+  VALUES (workspace_id, new.id, 'owner');
+
   RETURN new;
 END;
 $$;
@@ -1005,6 +1015,11 @@ END;
 $$;
 
 -- Triggers
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_user_setup();
+
 CREATE TRIGGER log_comment_activity
     AFTER INSERT OR DELETE OR UPDATE ON public.comments
     FOR EACH ROW
@@ -1588,3 +1603,83 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON public.notifications(u
 ALTER TABLE public.project_views
     ADD CONSTRAINT project_views_type_check 
     CHECK (type = ANY (ARRAY['table', 'kanban', 'timeline', 'calendar', 'dashboard']));
+
+-- Enable RLS
+ALTER TABLE public.workspaces ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.workspace_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to view workspaces they are members of
+CREATE POLICY "Users can view workspaces they are members of"
+  ON public.workspaces FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM workspace_members
+      WHERE workspace_members.workspace_id = workspaces.id
+      AND workspace_members.user_id = auth.uid()
+    )
+  );
+
+-- Allow workspace owners and admins to manage workspace
+CREATE POLICY "Workspace owners and admins can manage workspace"
+  ON public.workspaces FOR ALL
+  USING (
+    EXISTS (
+      SELECT 1 FROM workspace_members
+      WHERE workspace_members.workspace_id = workspaces.id
+      AND workspace_members.user_id = auth.uid()
+      AND workspace_members.role IN ('owner', 'admin')
+    )
+  );
+
+-- Allow users to view workspace members in their workspaces
+CREATE POLICY "Members can view workspace members"
+  ON public.workspace_members FOR SELECT
+  USING (
+    workspace_id IN (
+            SELECT workspace_id FROM workspace_members
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Allow workspace owners and admins to manage workspace members
+CREATE POLICY "Admins can manage workspace members"
+  ON public.workspace_members FOR ALL
+  USING (
+    workspace_id IN (
+      SELECT workspace_id FROM workspace_members
+      WHERE user_id = auth.uid()
+      AND role IN ('owner', 'admin')
+    )
+  );
+
+-- Allow workspace members to view projects
+CREATE POLICY "Workspace members can view projects"
+  ON public.projects FOR SELECT
+  USING (
+    workspace_id IN (
+      SELECT workspace_id FROM workspace_members
+      WHERE user_id = auth.uid()
+    )
+  );
+
+-- Allow workspace owners, admins, and managers to manage projects
+CREATE POLICY "Project managers can manage projects"
+  ON public.projects FOR ALL
+  USING (
+    workspace_id IN (
+      SELECT workspace_id FROM workspace_members
+      WHERE user_id = auth.uid()
+      AND role IN ('owner', 'admin', 'manager')
+    )
+  );
+
+-- Allow inserting new workspaces
+CREATE POLICY "Allow inserting new workspaces"
+  ON public.workspaces FOR INSERT
+  WITH CHECK (true);
+
+-- Allow inserting new workspace members
+CREATE POLICY "Allow inserting new workspace members"
+  ON public.workspace_members FOR INSERT
+  WITH CHECK (true);

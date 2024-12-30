@@ -1,11 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export default function AuthCallback() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -15,29 +14,33 @@ export default function AuthCallback() {
 
       if (code) {
         try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-          if (sessionError) {
-            throw sessionError;
+          let currentSession = await supabase.auth.getSession();
+          
+          if (currentSession.error) {
+            throw currentSession.error;
           }
 
-          if (!session) {
-            const { error: signInError } = await supabase.auth.exchangeCodeForSession(code);
+          // If no session, exchange code for session
+          if (!currentSession.data.session) {
+            const { data: { session: newSession }, error: signInError } = 
+              await supabase.auth.exchangeCodeForSession(code);
             if (signInError) {
               throw signInError;
             }
+            currentSession = { data: { session: newSession }, error: null };
           }
 
-          router.push(next);
+          // Use window.location.href for a full page redirect
+          window.location.href = next;
         } catch (error) {
           console.error('Error during auth callback:', error);
-          router.push('/login?error=Unable to sign in');
+          window.location.href = '/login?error=Unable to sign in';
         }
       }
     };
 
     handleCallback();
-  }, [router, searchParams]);
+  }, [searchParams]);
 
   return null;
 } 

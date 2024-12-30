@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface AuthProviderProps {
   children: React.ReactNode;
@@ -10,18 +10,21 @@ interface AuthProviderProps {
 
 export default function AuthProvider({ children }: AuthProviderProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Let the auth store handle initialization
-    // We just need to refresh the router when auth state changes
+    // Only refresh on auth state changes if we're not on an auth-related page
     const unsubscribe = useAuthStore.subscribe((state) => {
-      router.refresh();
+      const isAuthPath = ['/login', '/signup', '/auth/callback'].includes(pathname);
+      if (!isAuthPath) {
+        router.refresh();
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [router]);
+  }, [router, pathname]);
 
   return children;
 } 

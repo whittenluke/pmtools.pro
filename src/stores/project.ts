@@ -71,11 +71,25 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       const { data: user } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      // Get user's workspaces
+      const { data: workspaces, error: workspaceError } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', user.user.id)
+        .order('joined_at', { ascending: true })
+        .limit(1);
+
+      if (workspaceError) throw workspaceError;
+      if (!workspaces || workspaces.length === 0) throw new Error('No workspace found');
+
+      const workspace_id = workspaces[0].workspace_id;
+
       const { data, error } = await supabase
         .from('projects')
         .insert({
           title,
           description,
+          workspace_id,
           created_by: user.user.id,
         })
         .select()
@@ -102,6 +116,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       return data;
     } catch (error) {
+      console.error('Project creation error:', error);
       set({ error: error as Error });
       throw error;
     }

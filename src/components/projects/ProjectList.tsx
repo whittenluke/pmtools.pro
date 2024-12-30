@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { supabase } from '@/lib/supabase';
@@ -10,9 +9,11 @@ import { Card } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { ProjectCard } from './ProjectCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CreateProjectButton } from './CreateProjectButton';
 import type { Database } from '@/types/supabase';
 
 type Project = Database['public']['Tables']['projects']['Row'];
+type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row'];
 
 function ProjectSkeleton() {
   return (
@@ -32,6 +33,7 @@ export function ProjectList() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const router = useRouter();
   const { user } = useAuthStore();
 
@@ -39,20 +41,47 @@ export function ProjectList() {
     const fetchProjects = async () => {
       try {
         if (!user) {
-          throw new Error('No user found');
+          setLoading(false);
+          return;
         }
 
+        // First get the user's workspaces
+        const { data: workspaces, error: workspaceError } = await supabase
+          .from('workspace_members')
+          .select('workspace_id')
+          .eq('user_id', user.id);
+
+        if (workspaceError) {
+          console.error('Error fetching workspaces:', workspaceError);
+          throw workspaceError;
+        }
+
+        if (!workspaces || workspaces.length === 0) {
+          // If no workspace found, show empty state
+          setProjects([]);
+          setLoading(false);
+          return;
+        }
+
+        // Get all workspace IDs
+        const workspaceIds = workspaces.map(w => w.workspace_id);
+
+        // Then get projects for all workspaces
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
           .select('*')
+          .in('workspace_id', workspaceIds)
           .order('created_at', { ascending: false });
 
         if (projectsError) {
+          console.error('Error fetching projects:', projectsError);
           throw projectsError;
         }
 
-        setProjects(projects);
+        setProjects(projects || []);
+        setError(null);
       } catch (err) {
+        console.error('Error in fetchProjects:', err);
         setError('Error Loading Projects: ' + (err as Error).message);
       } finally {
         setLoading(false);
@@ -65,7 +94,7 @@ export function ProjectList() {
   if (loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <ProjectSkeleton key={i} />
         ))}
       </div>
@@ -78,7 +107,10 @@ export function ProjectList() {
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Projects</h3>
         <p className="text-gray-500 mb-4">{error}</p>
         <Button 
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            setLoading(true);
+            setError(null);
+          }}
           variant="outline"
         >
           Try Again
@@ -92,12 +124,7 @@ export function ProjectList() {
       <div className="text-center py-12">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">No Projects Yet</h3>
         <p className="text-gray-500 mb-4">Create your first project to get started.</p>
-        <Button asChild>
-          <Link href="/projects/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Project
-          </Link>
-        </Button>
+        <CreateProjectButton />
       </div>
     );
   }
@@ -106,12 +133,7 @@ export function ProjectList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold text-gray-900">Projects</h2>
-        <Button asChild>
-          <Link href="/projects/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Project
-          </Link>
-        </Button>
+        <CreateProjectButton />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

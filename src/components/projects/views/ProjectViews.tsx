@@ -2,9 +2,9 @@
 
 import { useProjectStore } from '@/stores/project';
 import { TableView } from './TableView';
-import { KanbanView } from './KanbanView';
-import { TimelineView } from './TimelineView';
-import { CalendarView } from './CalendarView';
+import { KanbanView } from './kanban/KanbanView';
+import { TimelineView } from './timeline/TimelineView';
+import { CalendarView } from './calendar/CalendarView';
 
 export function ProjectViews() {
   const { currentView } = useProjectStore();
