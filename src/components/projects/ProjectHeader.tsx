@@ -32,49 +32,51 @@ export function ProjectHeader() {
   };
 
   return (
-    <div className="bg-card border-b border-border">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{currentProject.title}</h1>
-            {currentProject.description && (
-              <p className="text-sm text-muted-foreground mt-1">{currentProject.description}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
+    <div className="h-[57px] bg-card flex items-center px-6">
+      <div className="flex-1 min-w-0">
+        <h1 className="text-base font-medium text-foreground truncate">
+          {currentProject.title}
+        </h1>
+        {currentProject.description && (
+          <p className="text-sm text-muted-foreground truncate">
+            {currentProject.description}
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-2 ml-4">
+        <Button variant="ghost" size="sm" className="h-8">
+          <Share2 className="h-4 w-4 mr-1.5" />
+          Share
+        </Button>
+        <Button variant="ghost" size="sm" className="h-8">
+          <Settings className="h-4 w-4 mr-1.5" />
+          Settings
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8">
+              <Trash2 className="h-4 w-4 mr-1.5" />
+              Delete
             </Button>
-            <Button variant="outline" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the project
-                    and all associated data including tasks, comments, and files.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Delete Project
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete project?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete "{currentProject.title}" and all of its data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDelete} 
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete Project
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
