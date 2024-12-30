@@ -67,7 +67,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  createProject: async (title, description) => {
+  createProject: async (title: string, description?: string) => {
     set({ loading: true, error: null });
     try {
       const { data: user } = await supabase.auth.getUser();
