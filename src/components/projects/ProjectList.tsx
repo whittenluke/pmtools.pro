@@ -45,12 +45,12 @@ export function ProjectList() {
         // Get workspace IDs for the user
         const workspaceQuery = await supabase
           .from('workspace_members')
-          .select('workspace_id')
+          .select<'workspace_id', Pick<WorkspaceMember, 'workspace_id'>>('workspace_id')
           .eq('user_id', user.id);
 
         if (workspaceQuery.error) throw workspaceQuery.error;
         
-        const workspaceIds = (workspaceQuery.data as { workspace_id: string }[])?.map(w => w.workspace_id) || [];
+        const workspaceIds = workspaceQuery.data?.map(w => w.workspace_id) || [];
         if (workspaceIds.length === 0) {
           setProjects([]);
           setLoading(false);
