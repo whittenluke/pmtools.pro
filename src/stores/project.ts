@@ -25,6 +25,7 @@ interface ProjectState {
   setDefaultView: (projectId: string, viewId: string) => Promise<void>;
   updateView: (viewId: string, data: Partial<View>) => Promise<void>;
   deleteView: (viewId: string) => Promise<void>;
+  updateTask: (taskId: string, data: Partial<Task>) => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
@@ -351,6 +352,26 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       }));
 
       return view;
+    } catch (error) {
+      set({ error: error as Error });
+      throw error;
+    }
+  },
+
+  updateTask: async (taskId, data) => {
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .update(data)
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      set((state) => ({
+        tasks: state.tasks.map((t) =>
+          t.id === taskId ? { ...t, ...data } : t
+        ),
+      }));
     } catch (error) {
       set({ error: error as Error });
       throw error;

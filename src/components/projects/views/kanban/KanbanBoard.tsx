@@ -1,6 +1,6 @@
 'use client';
 
-import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useProjectStore } from '@/stores/project';
 import type { Database } from '@/types/supabase';
 
@@ -14,34 +14,50 @@ export function KanbanBoard() {
     return tasks.filter(task => task.status === status);
   };
 
-  const handleDrop = async (taskId: string, newStatus: TaskStatus) => {
+  const handleDragEnd = async (result: any) => {
+    if (!result.destination) return;
+    const taskId = result.draggableId;
+    const newStatus = result.destination.droppableId as TaskStatus;
     await updateTask(taskId, { status: newStatus });
   };
 
   return (
-    <div className="grid grid-cols-3 gap-4 p-4">
-      {(['todo', 'in_progress', 'done'] as const).map((status) => (
-        <div key={status} className="bg-gray-50 rounded-lg p-4">
-          <h3 className="font-semibold mb-4 capitalize">{status.replace('_', ' ')}</h3>
-          <div className="space-y-2">
-            {getTasksByStatus(status).map((task) => (
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className="grid grid-cols-3 gap-4 p-4">
+        {(['todo', 'in_progress', 'done'] as const).map((status) => (
+          <Droppable key={status} droppableId={status}>
+            {(provided) => (
               <div
-                key={task.id}
-                className="bg-white p-3 rounded shadow"
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('taskId', task.id);
-                }}
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="bg-gray-50 rounded-lg p-4"
               >
-                <h4 className="font-medium">{task.title}</h4>
-                {task.description && (
-                  <p className="text-sm text-gray-500 mt-1">{task.description}</p>
-                )}
+                <h3 className="font-semibold mb-4 capitalize">{status.replace('_', ' ')}</h3>
+                <div className="space-y-2">
+                  {getTasksByStatus(status).map((task, index) => (
+                    <Draggable key={task.id} draggableId={task.id} index={index}>
+                      {(provided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className="bg-white p-3 rounded shadow"
+                        >
+                          <h4 className="font-medium">{task.title}</h4>
+                          {task.description && (
+                            <p className="text-sm text-gray-500 mt-1">{task.description}</p>
+                          )}
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+            )}
+          </Droppable>
+        ))}
+      </div>
+    </DragDropContext>
   );
 }

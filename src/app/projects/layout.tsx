@@ -61,7 +61,7 @@ export default function ProjectsLayout({
                 <Link 
                   href="/projects"
                   className={cn(
-                    "flex items-center px-6 text-sm font-medium hover:text-foreground",
+                    "flex items-center px-4 text-sm font-medium hover:text-foreground",
                     !params.id ? 'text-primary' : 'text-muted-foreground'
                   )}
                 >
@@ -69,13 +69,13 @@ export default function ProjectsLayout({
                 </Link>
               </div>
 
-              <ScrollArea className="flex-1 px-3 py-2">
+              <ScrollArea className="flex-1 p-4">
                 <div className="mb-2">
                   <Button
                     onClick={() => router.push('/projects/new')}
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start text-sm font-medium text-muted-foreground hover:text-foreground px-3"
+                    className="w-full justify-start text-sm font-medium text-muted-foreground hover:text-foreground"
                   >
                     <Plus className="h-4 w-4" />
                     <span className="ml-2">New Project</span>

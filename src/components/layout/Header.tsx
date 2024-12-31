@@ -56,9 +56,9 @@ export function Header() {
         backdropFilter: headerBlur,
       }}
     >
-      <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
-        <div className="mr-4 flex">
-          <a className="mr-6 flex items-center space-x-2" href="/">
+      <div className="flex h-14 items-center justify-between">
+        <div className="flex pl-4">
+          <a className="flex items-center mr-6" href="/">
             <span className="font-bold text-lg">
               <span className="text-primary">PM</span>
               <span className="text-foreground">Tools</span>
