@@ -8,14 +8,13 @@ import { TimelineView } from './timeline/TimelineView';
 import CalendarView from './calendar/CalendarView';
 
 export function ProjectViews() {
-  const { views } = useProjectStore();
-  const { currentView } = useView();
+  const { views, currentView, tasks } = useProjectStore();
 
   if (!currentView) return null;
 
-  switch (currentView) {
+  switch (currentView.type) {
     case 'table':
-      return <TableView />;
+      return <TableView tasks={tasks} view={currentView} />;
     case 'kanban':
       return <KanbanView />;
     case 'timeline':
@@ -23,6 +22,6 @@ export function ProjectViews() {
     case 'calendar':
       return <CalendarView />;
     default:
-      return <TableView />;
+      return <TableView tasks={tasks} view={currentView} />;
   }
 }

@@ -5,7 +5,7 @@ import { TextCell } from './cells/TextCell';
 import { StatusCell } from './cells/StatusCell';
 import { DateCell } from './cells/DateCell';
 import { UserCell } from './cells/UserCell';
-import { useProjectStore } from '@/store/projectStore';
+import { useProjectStore } from '@/stores/project';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 

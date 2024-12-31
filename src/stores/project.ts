@@ -14,6 +14,7 @@ interface ProjectState {
   tasks: Task[];
   loading: boolean;
   error: Error | null;
+  setLoading: (loading: boolean) => void;
   setCurrentProject: (project: Project | null) => void;
   fetchProject: (id: string) => Promise<void>;
   fetchViews: (projectId: string) => Promise<void>;
@@ -37,6 +38,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   loading: true,
   error: null,
 
+  setLoading: (loading) => set({ loading }),
   setCurrentProject: (project) => set({ currentProject: project }),
 
   fetchProject: async (id) => {

@@ -49,7 +49,16 @@ function ErrorState({ error }: { error: Error }) {
 }
 
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
-  const { fetchProject, fetchViews, fetchTasks, loading, error, currentProject, views } = useProjectStore();
+  const { 
+    fetchProject, 
+    fetchViews, 
+    fetchTasks, 
+    loading, 
+    error, 
+    currentProject, 
+    views,
+    setLoading 
+  } = useProjectStore();
 
   useEffect(() => {
     let mounted = true;
@@ -57,29 +66,34 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     const loadProject = async () => {
       if (!mounted) return;
       
+      setLoading(true);
       try {
         await fetchProject(params.id);
         if (mounted) {
-          await fetchViews(params.id);
-          await fetchTasks(params.id);
+          await Promise.all([
+            fetchViews(params.id),
+            fetchTasks(params.id)
+          ]);
         }
       } catch (err) {
         console.error('Error loading project:', err);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
     
-    // Only load if we don't have the project or it's a different project
-    if (!currentProject || currentProject.id !== params.id) {
-      loadProject();
-    }
+    loadProject();
 
     return () => {
       mounted = false;
     };
-  }, [params.id]); // Only depend on the ID
+  }, [params.id, fetchProject, fetchViews, fetchTasks, setLoading]);
 
-  if (loading || !currentProject || views.length === 0) return <LoadingState />;
+  if (loading) return <LoadingState />;
   if (error) return <ErrorState error={error} />;
+  if (!currentProject || !views.length) return <LoadingState />;
 
   return (
     <ViewProvider projectId={params.id}>

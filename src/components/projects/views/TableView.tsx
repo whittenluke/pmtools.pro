@@ -1,24 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useProjectStore } from '@/stores/project';
 import { TableGrid } from './table/TableGrid';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import type { ProjectView } from '@/types';
+import type { Database } from '@/types/supabase';
 
-export function TableView() {
-  const { tasks, currentView, currentProject, fetchTasks } = useProjectStore();
+type Task = Database['public']['Tables']['tasks']['Row'];
 
-  useEffect(() => {
-    if (currentProject?.id) {
-      fetchTasks(currentProject.id);
-    }
-  }, [currentProject?.id, fetchTasks]);
+interface TableViewProps {
+  tasks: Task[];
+  view: ProjectView;
+}
 
-  if (!currentView || currentView.type !== 'table') {
-    return null;
-  }
-
+export function TableView({ tasks, view }: TableViewProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
@@ -40,7 +35,7 @@ export function TableView() {
             </Button>
           </div>
         ) : (
-          <TableGrid tasks={tasks} view={currentView} />
+          <TableGrid tasks={tasks} view={view} />
         )}
       </div>
     </div>

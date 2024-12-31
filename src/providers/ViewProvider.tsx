@@ -2,34 +2,32 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useProjectStore } from '@/stores/project';
-
-type ViewType = 'table' | 'kanban' | 'timeline' | 'calendar';
+import type { ProjectView } from '@/types';
 
 interface ViewContextType {
-  currentView: ViewType | null;
-  setView: (view: ViewType) => void;
+  currentView: ProjectView | null;
+  setView: (view: ProjectView) => void;
   projectId: string;
 }
 
 const ViewContext = createContext<ViewContextType | null>(null);
 
 export function ViewProvider({ children, projectId }: { children: React.ReactNode; projectId: string }) {
-  const [currentView, setCurrentView] = useState<ViewType | null>(null);
-  const { views } = useProjectStore();
+  const { views, currentView, setCurrentView } = useProjectStore();
 
   // Set initial view when views are loaded
   useEffect(() => {
-    if (views.length > 0) {
+    if (views.length > 0 && !currentView) {
       // Find default view or use first view
       const defaultView = views.find(v => v.is_default) || views[0];
-      setCurrentView(defaultView.type as ViewType);
+      setCurrentView(defaultView);
     }
-  }, [views]);
+  }, [views, currentView, setCurrentView]);
 
   return (
     <ViewContext.Provider value={{ 
       currentView, 
-      setView: (view) => setCurrentView(view), 
+      setView: setCurrentView, 
       projectId 
     }}>
       {children}

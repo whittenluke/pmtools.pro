@@ -27,7 +27,7 @@ export function ViewSelector() {
       if (!views[0]?.project_id) return; // Safety check
       const newView = await createView(views[0].project_id, label, type);
       if (newView) {
-        setView(type as any);
+        setView(newView);
       }
     } catch (error) {
       console.error('Failed to create view:', error);
@@ -39,8 +39,8 @@ export function ViewSelector() {
       {views.map((view) => (
         <Button
           key={view.id}
-          variant={currentView === view.type ? 'default' : 'outline'}
-          onClick={() => setView(view.type as any)}
+          variant={currentView?.id === view.id ? 'default' : 'outline'}
+          onClick={() => setView(view)}
           className="flex items-center gap-2"
         >
           <span>{viewOptions.find(v => v.id === view.type)?.icon}</span>
