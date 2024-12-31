@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS public.project_views (
     FOREIGN KEY (project_id) REFERENCES public.projects(id)
 );
 
-CREATE TABLE IF NOT EXISTS public.groups (
+CREATE TABLE IF NOT EXISTS public.tables (
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
     title text NOT NULL,
@@ -255,7 +255,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     updated_at timestamp with time zone DEFAULT now(),
     description text,
     status_id text NOT NULL DEFAULT 'not_started'::text,
-    group_id uuid,
+    table_id uuid,
     assignee_id uuid,
     due_date timestamp with time zone,
     position integer NOT NULL,
@@ -265,7 +265,7 @@ CREATE TABLE IF NOT EXISTS public.tasks (
     search_text tsvector,
     PRIMARY KEY (id),
     FOREIGN KEY (project_id) REFERENCES public.projects(id),
-    FOREIGN KEY (group_id) REFERENCES public.groups(id)
+    FOREIGN KEY (table_id) REFERENCES public.tables(id)
 );
 
 CREATE TABLE IF NOT EXISTS public.comments (
@@ -716,11 +716,11 @@ BEGIN
     END IF;
 
     -- Get current group
-    SELECT group_id INTO old_group_id FROM tasks WHERE id = task_id;
+    SELECT table_id INTO old_group_id FROM tasks WHERE id = task_id;
 
     -- Get max position in new group
     SELECT COALESCE(MAX(position), 0) INTO max_position
-    FROM tasks WHERE group_id = new_group_id;
+    FROM tasks WHERE table_id = new_group_id;
 
     -- Ensure new_position is valid
     IF new_position > max_position + 1 THEN
@@ -731,19 +731,19 @@ BEGIN
     IF old_group_id IS NOT NULL THEN
         UPDATE tasks
         SET position = position - 1
-        WHERE group_id = old_group_id
+        WHERE table_id = old_group_id
         AND position > (SELECT position FROM tasks WHERE id = task_id);
     END IF;
 
     -- Update positions in new group
     UPDATE tasks
     SET position = position + 1
-    WHERE group_id = new_group_id
+    WHERE table_id = new_group_id
     AND position >= new_position;
 
     -- Move the task
     UPDATE tasks
-    SET group_id = new_group_id,
+    SET table_id = new_group_id,
         position = new_position
     WHERE id = task_id;
 END;
@@ -818,7 +818,7 @@ BEGIN
             'old_data', to_jsonb(OLD),
             'new_data', to_jsonb(NEW)
         );
-    ELSIF TG_TABLE_NAME = 'groups' THEN
+    ELSIF TG_TABLE_NAME = 'tables' THEN
         v_project_id := NEW.project_id;
         v_details := jsonb_build_object(
             'old_data', to_jsonb(OLD),
@@ -1031,7 +1031,7 @@ CREATE TRIGGER log_comments_trigger
     EXECUTE FUNCTION log_activity();
 
 CREATE TRIGGER log_group_activity
-    AFTER INSERT OR DELETE OR UPDATE ON public.groups
+    AFTER INSERT OR DELETE OR UPDATE ON public.tables
     FOR EACH ROW
     EXECUTE FUNCTION log_activity();
 
@@ -1092,7 +1092,7 @@ ALTER TABLE public.automation_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.automations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.export_jobs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tables ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.import_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.permission_sets ENABLE ROW LEVEL SECURITY;
@@ -1353,22 +1353,22 @@ CREATE POLICY "Workspace members can view their export jobs" ON public.export_jo
         AND wm.user_id = auth.uid()
     ));
 
-CREATE POLICY "Project editors can manage groups" ON public.groups
+CREATE POLICY "Project editors can manage tables" ON public.tables
     FOR ALL TO public
     USING (EXISTS (
         SELECT 1 FROM workspace_members wm
         JOIN projects p ON p.workspace_id = wm.workspace_id
-        WHERE p.id = groups.project_id
+        WHERE p.id = tables.project_id
         AND wm.user_id = auth.uid()
         AND wm.role = ANY (ARRAY['owner', 'admin', 'manager', 'editor'])
     ));
 
-CREATE POLICY "Project members can view groups" ON public.groups
+CREATE POLICY "Project members can view tables" ON public.tables
     FOR SELECT TO public
     USING (EXISTS (
         SELECT 1 FROM workspace_members wm
         JOIN projects p ON p.workspace_id = wm.workspace_id
-        WHERE p.id = groups.project_id
+        WHERE p.id = tables.project_id
         AND wm.user_id = auth.uid()
     ));
 
@@ -1572,7 +1572,7 @@ CREATE INDEX IF NOT EXISTS idx_page_views_workspace ON analytics.page_views(work
 CREATE INDEX IF NOT EXISTS idx_tasks_assignee ON public.tasks(assignee_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_created_by ON public.tasks(created_by);
 CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON public.tasks(due_date);
-CREATE INDEX IF NOT EXISTS idx_tasks_group ON public.tasks(group_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_table ON public.tasks(table_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_project ON public.tasks(project_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON public.tasks(status_id);
 CREATE INDEX IF NOT EXISTS tasks_search_idx ON public.tasks USING gin(search_text);
@@ -1591,8 +1591,8 @@ CREATE INDEX IF NOT EXISTS idx_workspace_invites_expires ON public.workspace_inv
 CREATE INDEX IF NOT EXISTS idx_projects_created_by ON public.projects(created_by);
 CREATE INDEX IF NOT EXISTS idx_projects_workspace ON public.projects(workspace_id);
 
-CREATE INDEX IF NOT EXISTS idx_groups_position ON public.groups("position");
-CREATE INDEX IF NOT EXISTS idx_groups_project ON public.groups(project_id);
+CREATE INDEX IF NOT EXISTS idx_tables_position ON public.tables("position");
+CREATE INDEX IF NOT EXISTS idx_tables_project ON public.tables(project_id);
 
 CREATE INDEX IF NOT EXISTS idx_project_views_project ON public.project_views(project_id);
 CREATE INDEX IF NOT EXISTS idx_project_views_type ON public.project_views(type);

@@ -1,21 +1,47 @@
 'use client';
 
-import { useTheme } from '@/providers/ThemeProvider';
+import { useTheme } from 'next-themes';
+import { useAuthStore } from '@/stores/auth';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Button } from './button';
 import { cn } from '@/lib/utils';
+import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const { user } = useAuthStore();
+  const supabase = createClientComponentClient();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+
+  const handleThemeChange = async (newTheme: string) => {
+    setTheme(newTheme);
+    
+    // If user is logged in, save preference to profile
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({
+          settings: {
+            theme: newTheme
+          }
+        })
+        .eq('id', user.id);
+    }
+  };
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={toggleTheme}
+      onClick={() => handleThemeChange(theme === 'light' ? 'dark' : 'light')}
       className={cn(
         "w-9 h-9 transition-colors",
         theme === 'light' 
-          ? "text-foreground/70 hover:text-primary-foreground" // WHITE moon on hover!
+          ? "text-foreground/70 hover:text-primary-foreground"
           : "text-foreground/80 hover:text-foreground"
       )}
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}

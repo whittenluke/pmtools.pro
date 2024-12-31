@@ -8,6 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Folder, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { CreateProjectModal } from '@/components/projects/CreateProjectModal';
 
 export default function ProjectsLayout({
   children,
@@ -19,6 +20,7 @@ export default function ProjectsLayout({
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   return (
     <div className="flex h-[calc(100vh-57px)] bg-background">
@@ -72,7 +74,7 @@ export default function ProjectsLayout({
               <ScrollArea className="flex-1 p-4">
                 <div className="mb-2">
                   <Button
-                    onClick={() => router.push('/projects/new')}
+                    onClick={() => setIsCreateModalOpen(true)}
                     variant="ghost"
                     size="sm"
                     className="w-full justify-start text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -113,6 +115,11 @@ export default function ProjectsLayout({
       <div className="flex-1 overflow-auto">
         {children}
       </div>
+
+      <CreateProjectModal 
+        open={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+      />
     </div>
   );
 } 

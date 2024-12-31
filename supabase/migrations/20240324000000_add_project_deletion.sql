@@ -43,6 +43,7 @@ BEGIN
         DELETE FROM project_views WHERE project_id = project_id;
         DELETE FROM groups WHERE project_id = project_id;
         DELETE FROM automations WHERE project_id = project_id;
+        DELETE FROM tables WHERE project_id = project_id;
         
         -- Finally delete the project
         DELETE FROM projects WHERE id = project_id;

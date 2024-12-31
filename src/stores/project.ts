@@ -172,6 +172,63 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (viewError) throw viewError;
 
+      // Create default table
+      const { data: table, error: tableError } = await supabase
+        .from('tables')
+        .insert({
+          project_id: data.id,
+          title: 'Main Table',
+          position: 0,
+          settings: {
+            collapsed: false,
+            style: {
+              color: '#4CAF50',
+              background: 'transparent'
+            }
+          }
+        })
+        .select()
+        .single();
+
+      if (tableError) throw tableError;
+
+      // Create three default tasks in the table
+      const defaultTasks = [
+        {
+          title: 'Plan project scope',
+          description: 'Define the project goals, deliverables, and timeline',
+          status_id: 'not_started',
+          project_id: data.id,
+          table_id: table.id,
+          position: 0,
+          column_values: {}
+        },
+        {
+          title: 'Set up project resources',
+          description: 'Gather necessary tools and resources for the project',
+          status_id: 'not_started',
+          project_id: data.id,
+          table_id: table.id,
+          position: 1,
+          column_values: {}
+        },
+        {
+          title: 'Schedule kickoff meeting',
+          description: 'Organize initial team meeting to align on project goals',
+          status_id: 'not_started',
+          project_id: data.id,
+          table_id: table.id,
+          position: 2,
+          column_values: {}
+        }
+      ];
+
+      const { error: tasksError } = await supabase
+        .from('tasks')
+        .insert(defaultTasks);
+
+      if (tasksError) throw tasksError;
+
       set((state) => ({
         projects: [...state.projects, data],
         currentProject: data,

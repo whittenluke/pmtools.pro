@@ -9,24 +9,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 function LoadingState() {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="bg-card border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-64" />
-              <Skeleton className="h-4 w-96" />
-            </div>
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-10 w-32" />
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
-            </div>
+    <div className="flex flex-col flex-1 bg-background">
+      <div className="h-[57px] bg-card border-b border-border">
+        <div className="h-full px-6 flex items-center">
+          <div className="flex-1 min-w-0">
+            <Skeleton className="h-6 w-64" />
+            <Skeleton className="h-4 w-96 mt-1" />
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-24" />
           </div>
         </div>
       </div>
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="h-[600px] w-full" />
+      <div className="flex-1 p-6">
+        <Skeleton className="h-[calc(100vh-140px)] w-full" />
       </div>
     </div>
   );
@@ -34,7 +32,7 @@ function LoadingState() {
 
 function ErrorState({ error }: { error: Error }) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="flex flex-col flex-1 bg-background flex items-center justify-center">
       <div className="text-center">
         <h2 className="text-2xl font-bold text-foreground mb-2">Error Loading Project</h2>
         <p className="text-muted-foreground mb-4">{error.message}</p>
@@ -83,7 +81,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
 
   return (
     <ViewProvider projectId={params.id}>
-      <div className="min-h-screen bg-background">
+      <div className="flex flex-col flex-1 bg-background">
         <ProjectHeader />
         <ProjectViews />
       </div>
