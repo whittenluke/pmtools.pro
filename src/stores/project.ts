@@ -138,34 +138,33 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
           title: 'Main Table',
           type: 'table',
           is_default: true,
-          config: {
-            columns: [
-              {
-                id: 'title',
-                title: 'Title',
-                type: 'text',
-                width: 300
-              },
-              {
-                id: 'status',
-                title: 'Status',
-                type: 'status',
-                width: 150
-              },
-              {
-                id: 'assignee',
-                title: 'Assignee',
-                type: 'user',
-                width: 150
-              },
-              {
-                id: 'due_date',
-                title: 'Due Date',
-                type: 'date',
-                width: 150
-              }
-            ]
-          }
+          columns: [
+            {
+              id: 'title',
+              title: 'Title',
+              type: 'text',
+              width: 300
+            },
+            {
+              id: 'status',
+              title: 'Status',
+              type: 'status',
+              width: 150
+            },
+            {
+              id: 'assignee',
+              title: 'Assignee',
+              type: 'user',
+              width: 150
+            },
+            {
+              id: 'due_date',
+              title: 'Due Date',
+              type: 'date',
+              width: 150
+            }
+          ],
+          config: {}
         })
         .select()
         .single();
@@ -223,9 +222,10 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         }
       ];
 
-      const { error: tasksError } = await supabase
+      const { data: createdTasks, error: tasksError } = await supabase
         .from('tasks')
-        .insert(defaultTasks);
+        .insert(defaultTasks)
+        .select();
 
       if (tasksError) throw tasksError;
 
@@ -233,6 +233,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         projects: [...state.projects, data],
         currentProject: data,
         views: [view],
+        tasks: createdTasks,
         loading: false,
         error: null
       }));

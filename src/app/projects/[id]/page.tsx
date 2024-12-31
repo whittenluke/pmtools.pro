@@ -6,6 +6,7 @@ import { ProjectViews } from '@/components/projects/views/ProjectViews';
 import { ViewProvider } from '@/providers/ViewProvider';
 import { useProjectStore } from '@/stores/project';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ViewSelector } from '@/components/projects/views/ViewSelector';
 
 function LoadingState() {
   return (
@@ -48,7 +49,7 @@ function ErrorState({ error }: { error: Error }) {
 }
 
 export default function ProjectDetailPage({ params }: { params: { id: string } }) {
-  const { fetchProject, fetchViews, loading, error, currentProject, views } = useProjectStore();
+  const { fetchProject, fetchViews, fetchTasks, loading, error, currentProject, views } = useProjectStore();
 
   useEffect(() => {
     let mounted = true;
@@ -60,6 +61,7 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
         await fetchProject(params.id);
         if (mounted) {
           await fetchViews(params.id);
+          await fetchTasks(params.id);
         }
       } catch (err) {
         console.error('Error loading project:', err);
@@ -83,6 +85,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     <ViewProvider projectId={params.id}>
       <div className="flex flex-col flex-1 bg-background">
         <ProjectHeader />
+        <div className="p-4 border-b">
+          <ViewSelector />
+        </div>
         <ProjectViews />
       </div>
     </ViewProvider>

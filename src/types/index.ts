@@ -1,6 +1,15 @@
 // Core Types
 import type { Json } from './supabase';
 
+export type ViewColumn = {
+  id: string;
+  title: string;
+  type: 'text' | 'status' | 'date' | 'user';
+  key?: string;
+  width?: number;
+  config?: Record<string, any>;
+};
+
 export type Project = {
   id: string;
   title: string;

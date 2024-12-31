@@ -30,7 +30,18 @@ export function TableView() {
         </div>
       </div>
       <div className="flex-1 overflow-auto p-4">
-        <TableGrid tasks={tasks || []} view={currentView} />
+        {tasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <h3 className="text-lg font-semibold mb-2">No tasks yet</h3>
+            <p className="text-muted-foreground mb-4">Get started by adding your first task</p>
+            <Button size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Task
+            </Button>
+          </div>
+        ) : (
+          <TableGrid tasks={tasks} view={currentView} />
+        )}
       </div>
     </div>
   );
