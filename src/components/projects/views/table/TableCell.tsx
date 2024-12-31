@@ -36,7 +36,8 @@ export function TableCell({ task, column }: TableCellProps) {
 
   const handleDateChange = async (date: Date | null) => {
     try {
-      await updateTask(task.id, { due_date: date?.toISOString() || null });
+      const isoDate = date?.toISOString() || null;
+      await updateTask(task.id, { due_date: isoDate });
     } catch (error) {
       console.error('Failed to update due date:', error);
     }

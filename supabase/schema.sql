@@ -248,20 +248,20 @@ CREATE TABLE IF NOT EXISTS public.tables (
 );
 
 CREATE TABLE IF NOT EXISTS public.tasks (
-    title text NOT NULL,
-    created_at timestamp with time zone DEFAULT now(),
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
     project_id uuid,
-    updated_at timestamp with time zone DEFAULT now(),
+    table_id uuid,
+    title text NOT NULL,
     description text,
     status_id text NOT NULL DEFAULT 'not_started'::text,
-    table_id uuid,
     assignee_id uuid,
     due_date timestamp with time zone,
     position integer NOT NULL,
     column_values jsonb DEFAULT '{}'::jsonb,
     metadata jsonb DEFAULT '{}'::jsonb,
     created_by uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
     search_text tsvector,
     PRIMARY KEY (id),
     FOREIGN KEY (project_id) REFERENCES public.projects(id),
@@ -431,10 +431,21 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 CREATE OR REPLACE FUNCTION public.handle_new_user_setup()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
 AS $$
 DECLARE
   workspace_id uuid;
+  debug_info jsonb;
 BEGIN
+  -- Create debug info object
+  debug_info := jsonb_build_object(
+    'user_id', new.id,
+    'email', new.email,
+    'raw_user_meta_data', new.raw_user_meta_data
+  );
+
+  -- Create profile
   INSERT INTO public.profiles (
     id,
     full_name,
@@ -455,14 +466,31 @@ BEGIN
     now()
   );
 
+  -- Create workspace
   INSERT INTO workspaces (name, slug)
   VALUES ('My Workspace', 'my-workspace-' || new.id)
   RETURNING id INTO workspace_id;
 
+  -- Create workspace membership
   INSERT INTO workspace_members (workspace_id, user_id, role)
   VALUES (workspace_id, new.id, 'owner');
 
+  -- Verify the workspace membership was created
+  IF NOT EXISTS (
+    SELECT 1 FROM workspace_members 
+    WHERE workspace_id = workspace_id 
+    AND user_id = new.id 
+    AND role = 'owner'
+  ) THEN
+    RAISE EXCEPTION 'Failed to create workspace membership for user %', new.id;
+  END IF;
+
   RETURN new;
+EXCEPTION WHEN OTHERS THEN
+  -- Log the full error with context
+  RAISE WARNING 'Error in handle_new_user_setup: % Context: %', SQLERRM, debug_info;
+  -- Re-raise the error to ensure it's not silently ignored
+  RAISE;
 END;
 $$;
 
@@ -848,74 +876,94 @@ $$;
 CREATE OR REPLACE FUNCTION public.process_automation_rules()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $$
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $function$
 DECLARE
-    automation_record RECORD;
-    condition_record RECORD;
-    condition_met BOOLEAN;
-    action_record RECORD;
+    automation_rule RECORD;
+    conditions_met BOOLEAN;
+    action_data jsonb;
 BEGIN
-    -- Loop through all enabled automations for this project
-    FOR automation_record IN 
-        SELECT * FROM automations 
-        WHERE project_id = NEW.project_id 
-        AND enabled = true 
+    -- Determine trigger type based on operation and changes
+    FOR automation_rule IN 
+        SELECT a.* 
+        FROM automations a
+        WHERE a.project_id = NEW.project_id
+        AND a.enabled = true
     LOOP
-        -- Check if trigger matches
-        IF automation_record.trigger->>'event' = TG_ARGV[0] THEN
-            condition_met := true;
-            
-            -- Process conditions if any
-            IF jsonb_array_length(automation_record.conditions) > 0 THEN
-                FOR condition_record IN 
-                    SELECT * FROM jsonb_array_elements(automation_record.conditions) as condition
-                LOOP
-                    -- Add condition logic here
-                    -- Set condition_met to false if any condition fails
-                END LOOP;
-            END IF;
-            
-            -- If all conditions are met, process actions
-            IF condition_met THEN
-                FOR action_record IN 
-                    SELECT * FROM jsonb_array_elements(automation_record.actions) as action
-                LOOP
-                    -- Log automation execution
-                    INSERT INTO automation_logs (
-                        automation_id,
-                        trigger_type,
-                        details,
-                        status
-                    ) VALUES (
-                        automation_record.id,
-                        TG_ARGV[0],
-                        jsonb_build_object(
-                            'task_id', NEW.id,
-                            'action', action_record.action
-                        ),
-                        'completed'
-                    );
-                    
-                    -- Process different action types
-                    CASE (action_record.action->>'type')
-                        WHEN 'update_status' THEN
-                            UPDATE tasks 
-                            SET status_id = action_record.action->>'status_id'
-                            WHERE id = NEW.id;
-                        WHEN 'assign_user' THEN
-                            UPDATE tasks 
-                            SET assignee_id = (action_record.action->>'user_id')::uuid
-                            WHERE id = NEW.id;
-                        -- Add more action types as needed
-                    END CASE;
-                END LOOP;
+        conditions_met := true;
+        
+        -- Evaluate conditions based on trigger type
+        IF automation_rule.conditions IS NOT NULL THEN
+            -- Example condition: status changed to specific value
+            IF automation_rule.trigger->>'type' = 'task_status_changed' AND 
+               OLD.status_id <> NEW.status_id AND
+               automation_rule.conditions->>'status_id' = NEW.status_id THEN
+                conditions_met := true;
+            -- Add more condition evaluations here
+            ELSE
+                conditions_met := false;
             END IF;
         END IF;
+
+        -- If conditions are met, execute the automation action
+        IF conditions_met THEN
+            action_data := jsonb_build_object(
+                'task_id', NEW.id,
+                'automation_id', automation_rule.id,
+                'trigger_type', automation_rule.trigger->>'type',
+                'action', automation_rule.actions,
+                'triggered_by', auth.uid(),
+                'triggered_at', now()
+            );
+
+            -- Execute the actions
+            FOR action IN SELECT * FROM jsonb_array_elements(automation_rule.actions)
+            LOOP
+                CASE action->>'type'
+                    WHEN 'assign_task' THEN
+                        UPDATE tasks 
+                        SET assignee_id = (action->>'assignee_id')::uuid
+                        WHERE id = NEW.id;
+                    
+                    WHEN 'update_status' THEN
+                        UPDATE tasks 
+                        SET status_id = action->>'status_id'
+                        WHERE id = NEW.id;
+                    
+                    WHEN 'add_comment' THEN
+                        INSERT INTO comments (task_id, content, user_id)
+                        VALUES (
+                            NEW.id,
+                            action->>'comment_text',
+                            auth.uid()
+                        );
+                    
+                    WHEN 'send_notification' THEN
+                        -- Placeholder for notification system integration
+                        -- Will be implemented when notification system is added
+                        NULL;
+                END CASE;
+            END LOOP;
+
+            -- Log the automation execution
+            INSERT INTO automation_logs (
+                automation_id,
+                trigger_type,
+                details,
+                status
+            ) VALUES (
+                automation_rule.id,
+                automation_rule.trigger->>'type',
+                action_data,
+                'completed'
+            );
+        END IF;
     END LOOP;
-    
+
     RETURN NEW;
 END;
-$$;
+$function$;
 
 -- Function: check_due_date_automations
 CREATE OR REPLACE FUNCTION public.check_due_date_automations()
@@ -1481,71 +1529,51 @@ CREATE POLICY "Workspace members can view resource permissions" ON public.resour
         AND wm.user_id = auth.uid()
     ));
 
+-- Drop existing task policies
+DROP POLICY IF EXISTS "Project editors can manage tasks" ON public.tasks;
+DROP POLICY IF EXISTS "Project members can view tasks" ON public.tasks;
+
+-- Create new task policies
 CREATE POLICY "Project editors can manage tasks" ON public.tasks
-    FOR ALL TO public
-    USING (EXISTS (
-        SELECT 1 FROM workspace_members wm
-        JOIN projects p ON p.workspace_id = wm.workspace_id
-        WHERE p.id = tasks.project_id
-        AND wm.user_id = auth.uid()
-        AND wm.role = ANY (ARRAY['owner', 'admin', 'manager', 'editor'])
-    ));
+    FOR ALL
+    TO public
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM workspace_members wm
+            JOIN projects p ON p.workspace_id = wm.workspace_id
+            WHERE p.id = tasks.project_id
+            AND wm.user_id = auth.uid()
+            AND wm.role = ANY (ARRAY['owner', 'admin', 'manager', 'editor'])
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1
+            FROM workspace_members wm
+            JOIN projects p ON p.workspace_id = wm.workspace_id
+            WHERE p.id = tasks.project_id
+            AND wm.user_id = auth.uid()
+            AND wm.role = ANY (ARRAY['owner', 'admin', 'manager', 'editor'])
+        )
+    );
 
 CREATE POLICY "Project members can view tasks" ON public.tasks
-    FOR SELECT TO public
-    USING (EXISTS (
-        SELECT 1 FROM workspace_members wm
-        JOIN projects p ON p.workspace_id = wm.workspace_id
-        WHERE p.id = tasks.project_id
-        AND wm.user_id = auth.uid()
-    ));
+    FOR SELECT
+    TO public
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM workspace_members wm
+            JOIN projects p ON p.workspace_id = wm.workspace_id
+            WHERE p.id = tasks.project_id
+            AND wm.user_id = auth.uid()
+        )
+    );
 
-CREATE POLICY "Default deny policy" ON public.workspace_invites
-    FOR ALL TO public
-    USING (false);
-
-CREATE POLICY "Workspace admins can view invites" ON public.workspace_invites
-    FOR SELECT TO public
-    USING (EXISTS (
-        SELECT 1 FROM workspace_members wm
-        WHERE wm.workspace_id = workspace_invites.workspace_id
-        AND wm.user_id = auth.uid()
-        AND wm.role = ANY (ARRAY['owner', 'admin'])
-    ));
-
-CREATE POLICY "Admins can manage workspace members" ON public.workspace_members
-    FOR ALL TO public
-    USING (EXISTS (
-        SELECT 1 FROM workspace_members wm
-        WHERE wm.workspace_id = workspace_members.workspace_id
-        AND wm.user_id = auth.uid()
-        AND wm.role = ANY (ARRAY['owner', 'admin'])
-    ));
-
-CREATE POLICY "Members can view workspace members" ON public.workspace_members
-    FOR SELECT TO public
-    USING (EXISTS (
-        SELECT 1 FROM workspace_members wm
-        WHERE wm.workspace_id = workspace_members.workspace_id
-        AND wm.user_id = auth.uid()
-    ));
-
-CREATE POLICY "Users can view workspaces they are members of" ON public.workspaces
-    FOR SELECT TO public
-    USING (EXISTS (
-        SELECT 1 FROM workspace_members
-        WHERE workspace_members.workspace_id = workspaces.id
-        AND workspace_members.user_id = auth.uid()
-    ));
-
-CREATE POLICY "Workspace owners and admins can manage workspace" ON public.workspaces
-    FOR ALL TO public
-    USING (EXISTS (
-        SELECT 1 FROM workspace_members
-        WHERE workspace_members.workspace_id = workspaces.id
-        AND workspace_members.user_id = auth.uid()
-        AND workspace_members.role = ANY (ARRAY['owner', 'admin'])
-    ));
+-- Refresh the policies
+ALTER TABLE public.tasks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
 -- Add missing foreign key constraints for analytics schema
 ALTER TABLE analytics.feature_usage
@@ -1683,3 +1711,43 @@ CREATE POLICY "Allow inserting new workspaces"
 CREATE POLICY "Allow inserting new workspace members"
   ON public.workspace_members FOR INSERT
   WITH CHECK (true);
+
+-- Add RLS policies for tasks
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Project editors can manage tasks" ON public.tasks
+    FOR ALL
+    TO public
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM workspace_members wm
+            JOIN projects p ON p.workspace_id = wm.workspace_id
+            WHERE p.id = tasks.project_id
+            AND wm.user_id = auth.uid()
+            AND wm.role = ANY (ARRAY['owner', 'admin', 'manager', 'editor'])
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1
+            FROM workspace_members wm
+            JOIN projects p ON p.workspace_id = wm.workspace_id
+            WHERE p.id = tasks.project_id
+            AND wm.user_id = auth.uid()
+            AND wm.role = ANY (ARRAY['owner', 'admin', 'manager', 'editor'])
+        )
+    );
+
+CREATE POLICY "Project members can view tasks" ON public.tasks
+    FOR SELECT
+    TO public
+    USING (
+        EXISTS (
+            SELECT 1
+            FROM workspace_members wm
+            JOIN projects p ON p.workspace_id = wm.workspace_id
+            WHERE p.id = tasks.project_id
+            AND wm.user_id = auth.uid()
+        )
+    );

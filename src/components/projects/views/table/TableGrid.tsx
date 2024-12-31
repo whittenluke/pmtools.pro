@@ -130,6 +130,12 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     const updatedColumns = [...localColumns];
     await updateView(view.id, { columns: updatedColumns });
     
+    // Re-enable drag handle after resize is complete
+    const dragHandles = document.querySelectorAll('[data-rbd-drag-handle-disabled]');
+    dragHandles.forEach(handle => {
+      handle.removeAttribute('data-rbd-drag-handle-disabled');
+    });
+    
     resizeRef.current = { columnId: null, startX: 0, startWidth: 0 };
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
@@ -159,57 +165,70 @@ export function TableGrid({ tasks, view }: TableGridProps) {
               {localColumns.map((column, index) => (
                 <Draggable key={column.id} draggableId={column.id} index={index}>
                   {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={`group px-4 py-2 text-sm font-medium text-foreground flex-shrink-0 flex items-center justify-between gap-2 hover:bg-muted/80 transition-colors relative ${snapshot.isDragging ? 'shadow-lg' : ''} cursor-grab active:cursor-grabbing`}
-                      style={{
-                        width: column.width || 200,
-                        ...provided.draggableProps.style,
-                      }}
-                    >
-                      {editingColumnId === column.id ? (
-                        <Input
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onBlur={handleFinishEditing}
-                          onKeyDown={handleKeyDown}
-                          className="h-6 text-sm font-medium"
-                          autoFocus
-                        />
-                      ) : (
-                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                          <span className="truncate font-medium">{column.title}</span>
+                    <>
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`group px-4 py-2 text-sm font-medium text-foreground flex-shrink-0 flex items-center justify-between gap-2 hover:bg-muted/80 transition-colors relative ${snapshot.isDragging ? 'shadow-lg' : ''}`}
+                        style={{
+                          width: column.width || 200,
+                          ...provided.draggableProps.style,
+                        }}
+                      >
+                        <div {...provided.dragHandleProps} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
+                        
+                        {editingColumnId === column.id ? (
+                          <Input
+                            value={editingTitle}
+                            onChange={(e) => setEditingTitle(e.target.value)}
+                            onBlur={handleFinishEditing}
+                            onKeyDown={handleKeyDown}
+                            className="h-6 text-sm font-medium relative z-10"
+                            autoFocus
+                          />
+                        ) : (
+                          <div className="flex items-center gap-1.5 flex-1 min-w-0 relative z-10">
+                            <span className="truncate font-medium">{column.title}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => handleStartEditing(column)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                              <span className="sr-only">Edit column name</span>
+                            </Button>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center gap-1 relative z-10">
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => handleStartEditing(column)}
+                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            onClick={() => setDeleteColumnId(column.id)}
                           >
-                            <Pencil className="h-3.5 w-3.5" />
-                            <span className="sr-only">Edit column name</span>
+                            <X className="h-4 w-4" />
+                            <span className="sr-only">Delete column</span>
                           </Button>
                         </div>
-                      )}
-                      
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                          onClick={() => setDeleteColumnId(column.id)}
-                        >
-                          <X className="h-4 w-4" />
-                          <span className="sr-only">Delete column</span>
-                        </Button>
-                        
+
+                        {/* Resize handle */}
                         <div
-                          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20"
-                          onMouseDown={(e) => handleResizeStart(e, column.id, column.width || 200)}
+                          className="absolute right-0 top-0 bottom-0 w-1 hover:w-2 bg-transparent hover:bg-primary/20 cursor-col-resize transition-all -mr-0.5 z-20"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Temporarily disable drag handle while resizing
+                            const dragHandle = e.currentTarget.parentElement?.querySelector('[data-rbd-drag-handle-draggable-id]');
+                            if (dragHandle) {
+                              dragHandle.setAttribute('data-rbd-drag-handle-disabled', 'true');
+                            }
+                            handleResizeStart(e, column.id, column.width || 200);
+                          }}
                         />
                       </div>
-                    </div>
+                    </>
                   )}
                 </Draggable>
               ))}

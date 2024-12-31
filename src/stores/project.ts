@@ -16,6 +16,7 @@ interface ProjectState {
   error: Error | null;
   setLoading: (loading: boolean) => void;
   setCurrentProject: (project: Project | null) => void;
+  setCurrentView: (view: View | null) => void;
   fetchProject: (id: string) => Promise<void>;
   fetchViews: (projectId: string) => Promise<void>;
   fetchTasks: (projectId: string) => Promise<void>;
@@ -40,6 +41,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   setLoading: (loading) => set({ loading }),
   setCurrentProject: (project) => set({ currentProject: project }),
+  setCurrentView: (view) => set({ currentView: view }),
 
   fetchProject: async (id) => {
     set({ loading: true, error: null });
@@ -418,22 +420,25 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  updateTask: async (taskId, data) => {
+  updateTask: async (taskId: string, data: Partial<Task>) => {
     try {
       const { error } = await supabase
         .from('tasks')
         .update(data)
-        .eq('id', taskId);
+        .eq('id', taskId)
+        .select()
+        .single();
 
       if (error) throw error;
 
+      // Update local state
       set((state) => ({
-        tasks: state.tasks.map((t) =>
-          t.id === taskId ? { ...t, ...data } : t
+        tasks: state.tasks.map((task) =>
+          task.id === taskId ? { ...task, ...data } : task
         ),
       }));
     } catch (error) {
-      set({ error: error as Error });
+      console.error('Failed to update task:', error);
       throw error;
     }
   },
