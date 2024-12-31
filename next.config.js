@@ -5,6 +5,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  transpilePackages: ['@hello-pangea/dnd'],
 }
 
 module.exports = nextConfig 
