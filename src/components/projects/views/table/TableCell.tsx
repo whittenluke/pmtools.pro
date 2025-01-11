@@ -4,7 +4,8 @@ import type { Database } from '@/types/supabase';
 import { TextCell } from './cells/TextCell';
 import { StatusCell } from './cells/StatusCell';
 import { DateCell } from './cells/DateCell';
-import { UserCell } from './cells/UserCell';
+import { PeopleCell } from './cells/PeopleCell';
+import { NumberCell } from './cells/NumberCell';
 import { useProjectStore } from '@/stores/project';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
@@ -15,71 +16,70 @@ interface TableCellProps {
 }
 
 export function TableCell({ task, column }: TableCellProps) {
+  // Local UI state only
   const [isEditing, setIsEditing] = useState(false);
-  const { updateTask } = useProjectStore();
+  
+  // Global state and actions
+  const { updateTask, currentProject, optimisticUpdateTask } = useProjectStore();
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleUpdate = async (field: keyof Task, value: any) => {
     try {
-      await updateTask(task.id, { status_id: newStatus });
+      // Optimistic update
+      optimisticUpdateTask(task.id, { [field]: value });
+      
+      // Actual update
+      await updateTask(task.id, { [field]: value });
     } catch (error) {
-      console.error('Failed to update status:', error);
-    }
-  };
-
-  const handleAssigneeChange = async (userId: string) => {
-    try {
-      await updateTask(task.id, { assignee_id: userId });
-    } catch (error) {
-      console.error('Failed to update assignee:', error);
-    }
-  };
-
-  const handleDateChange = async (date: Date | null) => {
-    try {
-      const isoDate = date?.toISOString() || null;
-      await updateTask(task.id, { due_date: isoDate });
-    } catch (error) {
-      console.error('Failed to update due date:', error);
-    }
-  };
-
-  const handleTextChange = async (text: string) => {
-    try {
-      await updateTask(task.id, { title: text });
-    } catch (error) {
-      console.error('Failed to update text:', error);
+      console.error(`Failed to update ${field}:`, error);
+      // Store will handle reverting the optimistic update on failure
     }
   };
 
   const getCellComponent = () => {
+    const columnKey = column.key || column.id;
+    const value = task.column_values?.[columnKey] ?? null;
+
     switch (column.type) {
       case 'text':
         return (
           <TextCell 
             value={task.title} 
             onEdit={setIsEditing}
-            onChange={handleTextChange}
+            onChange={(value) => handleUpdate('title', value)}
           />
         );
       case 'status':
         return (
           <StatusCell 
             value={task.status_id} 
-            onChange={handleStatusChange}
+            onChange={(value) => handleUpdate('status_id', value)}
           />
         );
       case 'date':
         return (
           <DateCell 
             value={task.due_date} 
-            onChange={handleDateChange}
+            onChange={(value) => handleUpdate('due_date', value)}
           />
         );
       case 'user':
+      case 'person':
+      case 'people':
         return (
-          <UserCell 
+          <PeopleCell 
             value={task.assignee_id} 
-            onChange={handleAssigneeChange}
+            row={task}
+            workspaceId={currentProject?.workspace_id || ''}
+            onUpdate={(value) => handleUpdate('assignee_id', value?.[0] || null)}
+            allowMultiple={column.type === 'people'}
+          />
+        );
+      case 'number':
+        return (
+          <NumberCell
+            value={value as number}
+            onChange={(value) => handleUpdate(`column_values.${columnKey}`, value)}
+            config={column.config}
           />
         );
       default:
@@ -87,7 +87,7 @@ export function TableCell({ task, column }: TableCellProps) {
           <TextCell 
             value={task.title} 
             onEdit={setIsEditing}
-            onChange={handleTextChange}
+            onChange={(value) => handleUpdate('title', value)}
           />
         );
     }

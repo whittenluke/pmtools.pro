@@ -4393,7 +4393,7 @@ CREATE TABLE integrations.providers (
   icon TEXT,
   config_schema JSONB NOT NULL,
   features JSONB NOT NULL,
-  is_enabled BOOLEAN DEFAULT true,
+  enabled BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -4419,7 +4419,7 @@ CREATE TABLE integrations.webhooks (
   event_type TEXT NOT NULL,
   url TEXT NOT NULL,
   secret TEXT NOT NULL,
-  is_active BOOLEAN DEFAULT true,
+  enabled BOOLEAN DEFAULT true,
   last_triggered_at TIMESTAMPTZ,
   failure_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -4456,7 +4456,7 @@ CREATE POLICY "Providers are viewable by all authenticated users"
   ON integrations.providers FOR SELECT
   USING (
     auth.role() = 'authenticated' AND
-    is_enabled = true
+    enabled = true
   );
 
 -- Workspace Integrations Security

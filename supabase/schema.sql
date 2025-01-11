@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS integrations.webhooks (
     last_triggered_at timestamp with time zone,
     id uuid NOT NULL DEFAULT uuid_generate_v4(),
     integration_id uuid,
-    is_active boolean DEFAULT true,
+    enabled boolean DEFAULT true,
     failure_count integer DEFAULT 0,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),

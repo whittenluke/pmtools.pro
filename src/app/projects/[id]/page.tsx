@@ -5,6 +5,7 @@ import { ProjectHeader } from '@/components/projects/ProjectHeader';
 import { ProjectViews } from '@/components/projects/views/ProjectViews';
 import { ViewProvider } from '@/providers/ViewProvider';
 import { useProjectStore } from '@/stores/project';
+import { useRealtime } from '@/hooks/useRealtime';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ViewSelector } from '@/components/projects/views/ViewSelector';
 
@@ -59,6 +60,9 @@ export default function ProjectDetailPage({ params }: { params: { id: string } }
     views,
     setLoading 
   } = useProjectStore();
+
+  // Set up real-time subscriptions
+  useRealtime(params.id);
 
   useEffect(() => {
     let mounted = true;

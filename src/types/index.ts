@@ -1,14 +1,44 @@
 // Core Types
 import type { Json } from './supabase';
 
-export type ViewColumn = {
+export type ColumnType = 
+  | 'text' 
+  | 'number' 
+  | 'status' 
+  | 'date' 
+  | 'user' 
+  | 'person' 
+  | 'people';
+
+export interface NumberColumnConfig {
+  mode?: 'decimal' | 'integer' | 'currency' | 'percentage' | 'rating';
+  precision?: number;
+  currency?: string;
+  minValue?: number;
+  maxValue?: number;
+  aggregation?: 'sum' | 'average' | 'min' | 'max' | 'count';
+}
+
+export interface ViewColumn {
   id: string;
-  title: string;
-  type: 'text' | 'status' | 'date' | 'user';
   key?: string;
+  title: string;
+  type: ColumnType;
   width?: number;
-  config?: Record<string, any>;
-};
+  config?: NumberColumnConfig;
+  isHidden?: boolean;
+  isLocked?: boolean;
+  isRequired?: boolean;
+  validation?: {
+    required?: boolean;
+    unique?: boolean;
+    pattern?: string;
+    minLength?: number;
+    maxLength?: number;
+    minValue?: number;
+    maxValue?: number;
+  };
+}
 
 export type Project = {
   id: string;

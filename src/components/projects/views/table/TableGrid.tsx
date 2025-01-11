@@ -2,8 +2,9 @@ import type { ViewModel, ViewColumn } from '@/types';
 import type { Database } from '@/types/supabase';
 import { TableCell } from './TableCell';
 import { AddColumnButton } from './AddColumnButton';
+import { AddTaskRow } from './AddTaskRow';
 import { useProjectStore } from '@/stores/project';
-import { X, Pencil } from 'lucide-react';
+import { X, Pencil, GripVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -18,6 +19,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import { cn } from '@/lib/utils';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -26,12 +28,30 @@ interface TableGridProps {
   view: ViewModel;
 }
 
+const MIN_COLUMN_WIDTHS = {
+  text: 200,
+  status: 120,
+  user: 150,
+  person: 150,
+  date: 120,
+  number: 120,
+  default: 100,
+};
+
+const MAX_COLUMN_WIDTH = 600;
+
+function getColumnWidth(column: ViewColumn): number {
+  return column.width || MIN_COLUMN_WIDTHS[column.type || 'default'];
+}
+
 export function TableGrid({ tasks, view }: TableGridProps) {
-  const { updateView } = useProjectStore();
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deleteColumnId, setDeleteColumnId] = useState<string | null>(null);
   const [localColumns, setLocalColumns] = useState(view.columns || []);
+  const [isResizing, setIsResizing] = useState(false);
+  const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
+  
   const resizeRef = useRef<{
     columnId: string | null;
     startX: number;
@@ -42,34 +62,15 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     startWidth: 0,
   });
 
-  // Keep local state in sync with props
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  // Global state and actions
+  const { updateView } = useProjectStore();
+
+  // Update local columns when view changes
   useEffect(() => {
     setLocalColumns(view.columns || []);
   }, [view.columns]);
-
-  const handleAddColumn = async (type: string) => {
-    if (!localColumns) return;
-
-    const newColumn = {
-      id: crypto.randomUUID(),
-      title: type.charAt(0).toUpperCase() + type.slice(1),
-      type,
-      width: 200,
-    };
-
-    const updatedColumns = [...localColumns, newColumn];
-    setLocalColumns(updatedColumns);
-    await updateView(view.id, { columns: updatedColumns });
-  };
-
-  const handleDeleteColumn = async (columnId: string) => {
-    if (!localColumns) return;
-
-    const updatedColumns = localColumns.filter(col => col.id !== columnId);
-    setLocalColumns(updatedColumns);
-    await updateView(view.id, { columns: updatedColumns });
-    setDeleteColumnId(null);
-  };
 
   const handleStartEditing = (column: ViewColumn) => {
     setEditingColumnId(column.id);
@@ -77,34 +78,63 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   };
 
   const handleFinishEditing = async () => {
-    if (!editingColumnId || !localColumns) return;
+    if (!editingColumnId) return;
 
-    const updatedColumns = localColumns.map(col => 
-      col.id === editingColumnId 
+    const updatedColumns = localColumns.map(col =>
+      col.id === editingColumnId
         ? { ...col, title: editingTitle }
         : col
     );
 
-    setLocalColumns(updatedColumns);
-    await updateView(view.id, { columns: updatedColumns });
-    setEditingColumnId(null);
-    setEditingTitle('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleFinishEditing();
-    } else if (e.key === 'Escape') {
+    try {
+      await updateView(view.id, { columns: updatedColumns });
       setEditingColumnId(null);
       setEditingTitle('');
+    } catch (error) {
+      console.error('Failed to update column title:', error);
+    }
+  };
+
+  const handleDeleteColumn = async (columnId: string) => {
+    const updatedColumns = localColumns.filter(col => col.id !== columnId);
+    try {
+      await updateView(view.id, { columns: updatedColumns });
+      setDeleteColumnId(null);
+    } catch (error) {
+      console.error('Failed to delete column:', error);
+    }
+  };
+
+  const handleAddColumn = async (column: Partial<ViewColumn>) => {
+    const newColumn = {
+      ...column,
+      id: crypto.randomUUID(),
+    };
+
+    try {
+      await updateView(view.id, { 
+        columns: [...localColumns, newColumn] 
+      });
+    } catch (error) {
+      console.error('Failed to add column:', error);
     }
   };
 
   const handleResizeStart = (e: React.MouseEvent, columnId: string, currentWidth: number) => {
     e.preventDefault();
+    e.stopPropagation();
+    
+    if (!tableRef.current) return;
+    
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    setIsResizing(true);
+    
+    const tableRect = tableRef.current.getBoundingClientRect();
+    
     resizeRef.current = {
       columnId,
-      startX: e.clientX,
+      startX: e.clientX - tableRect.left,
       startWidth: currentWidth,
     };
     
@@ -113,154 +143,230 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   };
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!resizeRef.current.columnId || !localColumns) return;
+    if (!resizeRef.current.columnId || !tableRef.current) return;
     
-    const diff = e.clientX - resizeRef.current.startX;
-    const newWidth = Math.max(100, resizeRef.current.startWidth + diff);
+    const tableRect = tableRef.current.getBoundingClientRect();
+    const mouseX = e.clientX - tableRect.left;
+    const diff = mouseX - resizeRef.current.startX;
     
-    const updatedColumns = localColumns.map(col =>
-      col.id === resizeRef.current.columnId ? { ...col, width: newWidth } : col
+    const column = localColumns.find(col => col.id === resizeRef.current.columnId);
+    if (!column) return;
+
+    const minWidth = MIN_COLUMN_WIDTHS[column.type || 'default'];
+    const newWidth = Math.min(MAX_COLUMN_WIDTH, Math.max(minWidth, resizeRef.current.startWidth + diff));
+    
+    setLocalColumns(cols => 
+      cols.map(col =>
+        col.id === resizeRef.current.columnId
+          ? { ...col, width: newWidth }
+          : col
+      )
     );
-    setLocalColumns(updatedColumns);
   }, [localColumns]);
 
   const handleMouseUp = useCallback(async () => {
-    if (!resizeRef.current.columnId || !localColumns) return;
+    if (resizeRef.current.columnId) {
+      try {
+        await updateView(view.id, { columns: localColumns });
+      } catch (error) {
+        console.error('Failed to update column width:', error);
+        setLocalColumns(view.columns || []);
+      }
+    }
     
-    const updatedColumns = [...localColumns];
-    await updateView(view.id, { columns: updatedColumns });
-    
-    // Re-enable drag handle after resize is complete
-    const dragHandles = document.querySelectorAll('[data-rbd-drag-handle-disabled]');
-    dragHandles.forEach(handle => {
-      handle.removeAttribute('data-rbd-drag-handle-disabled');
-    });
-    
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    setIsResizing(false);
     resizeRef.current = { columnId: null, startX: 0, startWidth: 0 };
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
-  }, [localColumns, updateView, view.id, handleMouseMove]);
+  }, [updateView, view.id, localColumns, view.columns]);
+
+  const handleDragStart = () => {
+    setDraggedColumnId('dragging');
+  };
 
   const handleDragEnd = async (result: any) => {
-    if (!result.destination || !localColumns) return;
-
+    setDraggedColumnId(null);
+    if (!result.destination) return;
+    
+    // Prevent moving the title column
+    if (result.draggableId === localColumns[0]?.id) return;
+    
     const newColumns = Array.from(localColumns);
     const [removed] = newColumns.splice(result.source.index, 1);
-    newColumns.splice(result.destination.index, 0, removed);
-
+    
+    // Ensure title column stays first by preventing drops at index 0
+    const destinationIndex = result.destination.index === 0 ? 1 : result.destination.index;
+    newColumns.splice(destinationIndex, 0, removed);
+    
     setLocalColumns(newColumns);
-    await updateView(view.id, { columns: newColumns });
+    
+    try {
+      await updateView(view.id, { columns: newColumns });
+    } catch (error) {
+      console.error('Failed to reorder columns:', error);
+      setLocalColumns(view.columns || []);
+    }
   };
 
   return (
-    <div className="w-full divide-y divide-border">
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="columns" direction="horizontal">
-          {(provided) => (
-            <div 
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className="bg-muted/50 flex"
-            >
-              {localColumns.map((column, index) => (
-                <Draggable key={column.id} draggableId={column.id} index={index}>
-                  {(provided, snapshot) => (
-                    <>
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`group px-4 py-2 text-sm font-medium text-foreground flex-shrink-0 flex items-center justify-between gap-2 hover:bg-muted/80 transition-colors relative ${snapshot.isDragging ? 'shadow-lg' : ''}`}
-                        style={{
-                          width: column.width || 200,
-                          ...provided.draggableProps.style,
-                        }}
-                      >
-                        <div {...provided.dragHandleProps} className="absolute inset-0 cursor-grab active:cursor-grabbing" />
-                        
-                        {editingColumnId === column.id ? (
-                          <Input
-                            value={editingTitle}
-                            onChange={(e) => setEditingTitle(e.target.value)}
-                            onBlur={handleFinishEditing}
-                            onKeyDown={handleKeyDown}
-                            className="h-6 text-sm font-medium relative z-10"
-                            autoFocus
-                          />
-                        ) : (
-                          <div className="flex items-center gap-1.5 flex-1 min-w-0 relative z-10">
-                            <span className="truncate font-medium">{column.title}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => handleStartEditing(column)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span className="sr-only">Edit column name</span>
-                            </Button>
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center gap-1 relative z-10">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                            onClick={() => setDeleteColumnId(column.id)}
-                          >
-                            <X className="h-4 w-4" />
-                            <span className="sr-only">Delete column</span>
-                          </Button>
-                        </div>
-
-                        {/* Resize handle */}
-                        <div
-                          className="absolute right-0 top-0 bottom-0 w-1 hover:w-2 bg-transparent hover:bg-primary/20 cursor-col-resize transition-all -mr-0.5 z-20"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            // Temporarily disable drag handle while resizing
-                            const dragHandle = e.currentTarget.parentElement?.querySelector('[data-rbd-drag-handle-draggable-id]');
-                            if (dragHandle) {
-                              dragHandle.setAttribute('data-rbd-drag-handle-disabled', 'true');
-                            }
-                            handleResizeStart(e, column.id, column.width || 200);
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-              <div className="px-2 py-2">
-                <AddColumnButton onAddColumn={handleAddColumn} />
-              </div>
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
-
-      <div className="bg-background divide-y divide-border">
-        {tasks.map((task) => (
-          <div key={task.id} className="flex hover:bg-muted/50 cursor-pointer">
-            {localColumns.map((column) => (
-              <div 
-                key={column.id}
-                className="flex-shrink-0"
-                style={{ width: column.width || 200 }}
+    <div ref={tableRef} className="relative w-max">
+      <table className="border-separate border-spacing-0">
+        <colgroup>
+          {localColumns.map((column) => (
+            <col key={column.id} style={{ width: `${getColumnWidth(column)}px` }} />
+          ))}
+          <col style={{ width: "200px" }} />
+        </colgroup>
+        
+        <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+          <Droppable droppableId="columns" direction="horizontal">
+            {(provided) => (
+              <thead
+                ref={provided.innerRef}
+                {...provided.droppableProps}
               >
-                <TableCell
-                  task={task}
-                  column={column}
-                />
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+                <tr>
+                  {localColumns.map((column, index) => {
+                    const width = getColumnWidth(column);
+                    const isTitle = index === 0;
+                    
+                    return (
+                      <Draggable
+                        key={column.id}
+                        draggableId={column.id}
+                        index={index}
+                        isDragDisabled={isTitle}
+                      >
+                        {(provided, snapshot) => (
+                          <th
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={cn(
+                              "relative group border-b border-border p-0 bg-background",
+                              isTitle && "bg-muted/5",
+                              snapshot.isDragging ? "z-50" : "",
+                              isResizing && resizeRef.current.columnId === column.id ? "select-none" : ""
+                            )}
+                          >
+                            <div 
+                              className={cn(
+                                "h-full px-4 py-2 text-sm font-medium text-foreground flex items-center gap-2 transition-colors relative",
+                                snapshot.isDragging ? "bg-background shadow-lg rounded-md" : "hover:bg-muted/50",
+                                isResizing && "select-none"
+                              )}
+                            >
+                              {!isTitle && (
+                                <div 
+                                  {...provided.dragHandleProps}
+                                  className={cn(
+                                    "flex items-center h-full px-2 -ml-4 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity",
+                                    (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
+                                  )}
+                                >
+                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              )}
 
-      <AlertDialog open={deleteColumnId !== null} onOpenChange={() => setDeleteColumnId(null)}>
+                              {editingColumnId === column.id ? (
+                                <Input
+                                  value={editingTitle}
+                                  onChange={(e) => setEditingTitle(e.target.value)}
+                                  onBlur={handleFinishEditing}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleFinishEditing();
+                                    if (e.key === 'Escape') {
+                                      setEditingColumnId(null);
+                                      setEditingTitle('');
+                                    }
+                                  }}
+                                  className="h-6 text-sm font-medium flex-1"
+                                  autoFocus
+                                />
+                              ) : (
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  <span className="truncate font-medium">{column.title}</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={cn(
+                                      "h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity",
+                                      (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
+                                    )}
+                                    onClick={() => handleStartEditing(column)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                    <span className="sr-only">Edit column name</span>
+                                  </Button>
+                                </div>
+                              )}
+
+                              {!isTitle && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className={cn(
+                                      "h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0",
+                                      (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
+                                    )}
+                                    onClick={() => setDeleteColumnId(column.id)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                    <span className="sr-only">Delete column</span>
+                                  </Button>
+                                </>
+                              )}
+
+                              <div
+                                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 z-20"
+                                onMouseDown={(e) => handleResizeStart(e, column.id, width)}
+                                style={{
+                                  transform: 'translateX(50%)',
+                                }}
+                              />
+                            </div>
+                          </th>
+                        )}
+                      </Draggable>
+                    );
+                  })}
+                  {provided.placeholder}
+                  <th className="border-b border-border p-0">
+                    <div className="px-4 py-2">
+                      <AddColumnButton onAddColumn={handleAddColumn} />
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+            )}
+          </Droppable>
+        </DragDropContext>
+
+        <tbody className="relative">
+          {tasks.map((task) => (
+            <tr key={task.id}>
+              {localColumns.map((column) => (
+                <td 
+                  key={column.id} 
+                  className="border-b border-border p-0"
+                >
+                  <TableCell task={task} column={column} />
+                </td>
+              ))}
+              <td className="border-b border-border p-0" />
+            </tr>
+          ))}
+          <tr>
+            <td colSpan={localColumns.length + 1} className="p-0">
+              <AddTaskRow columns={localColumns} />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <AlertDialog open={!!deleteColumnId} onOpenChange={() => setDeleteColumnId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Column</AlertDialogTitle>
@@ -270,9 +376,8 @@ export function TableGrid({ tasks, view }: TableGridProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={() => deleteColumnId && handleDeleteColumn(deleteColumnId)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

@@ -14,6 +14,9 @@ interface ProjectState {
   tasks: Task[];
   loading: boolean;
   error: Error | null;
+  taskUpdates: Map<string, Task>; // Store original state for rollback
+  
+  // Actions
   setLoading: (loading: boolean) => void;
   setCurrentProject: (project: Project | null) => void;
   setCurrentView: (view: View | null) => void;
@@ -28,6 +31,19 @@ interface ProjectState {
   updateView: (viewId: string, data: Partial<View>) => Promise<void>;
   deleteView: (viewId: string) => Promise<void>;
   updateTask: (taskId: string, data: Partial<Task>) => Promise<void>;
+  optimisticUpdateTask: (taskId: string, data: Partial<Task>) => void;
+  revertTaskUpdate: (taskId: string) => void;
+  // Real-time update handlers
+  addView: (view: View) => void;
+  updateViewLocally: (viewId: string, data: Partial<View>) => void;
+  removeView: (viewId: string) => void;
+  removeTask: (taskId: string) => void;
+  // Task actions
+  createTask: (task: Partial<Task>) => Promise<Task>;
+  updateTask: (id: string, task: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
+  optimisticUpdateTask: (id: string, update: Partial<Task>) => void;
+  revertTaskUpdate: (id: string) => void;
 }
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
@@ -38,6 +54,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   tasks: [],
   loading: true,
   error: null,
+  taskUpdates: new Map(),
 
   setLoading: (loading) => set({ loading }),
   setCurrentProject: (project) => set({ currentProject: project }),
@@ -420,6 +437,37 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
+  optimisticUpdateTask: (taskId: string, data: Partial<Task>) => {
+    const state = get();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task) {
+      // Store original state for potential rollback
+      state.taskUpdates.set(taskId, { ...task });
+      
+      // Update state optimistically
+      set({
+        tasks: state.tasks.map(t =>
+          t.id === taskId ? { ...t, ...data } : t
+        )
+      });
+    }
+  },
+
+  revertTaskUpdate: (taskId: string) => {
+    const state = get();
+    const originalTask = state.taskUpdates.get(taskId);
+    
+    if (originalTask) {
+      set({
+        tasks: state.tasks.map(t =>
+          t.id === taskId ? originalTask : t
+        )
+      });
+      state.taskUpdates.delete(taskId);
+    }
+  },
+
   updateTask: async (taskId: string, data: Partial<Task>) => {
     try {
       const { error } = await supabase
@@ -431,15 +479,72 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (error) throw error;
 
-      // Update local state
-      set((state) => ({
-        tasks: state.tasks.map((task) =>
-          task.id === taskId ? { ...task, ...data } : task
-        ),
-      }));
+      // Clear the stored original state on successful update
+      get().taskUpdates.delete(taskId);
     } catch (error) {
       console.error('Failed to update task:', error);
+      // Revert to original state on failure
+      get().revertTaskUpdate(taskId);
       throw error;
     }
+  },
+
+  addView: (view: View) => {
+    set((state) => ({
+      views: [...state.views, view],
+      // If this is the first view, set it as current
+      currentView: state.views.length === 0 ? view : state.currentView,
+    }));
+  },
+
+  updateViewLocally: (viewId: string, data: Partial<View>) => {
+    set((state) => ({
+      views: state.views.map((v) => (v.id === viewId ? { ...v, ...data } : v)),
+      currentView:
+        state.currentView?.id === viewId
+          ? { ...state.currentView, ...data }
+          : state.currentView,
+    }));
+  },
+
+  removeView: (viewId: string) => {
+    set((state) => {
+      const newViews = state.views.filter((v) => v.id !== viewId);
+      return {
+        views: newViews,
+        // If current view was removed, switch to first available view
+        currentView:
+          state.currentView?.id === viewId
+            ? newViews[0] || null
+            : state.currentView,
+      };
+    });
+  },
+
+  removeTask: (taskId: string) => {
+    set((state) => ({
+      tasks: state.tasks.filter((t) => t.id !== taskId),
+      // Clean up any pending updates
+      taskUpdates: (() => {
+        state.taskUpdates.delete(taskId);
+        return state.taskUpdates;
+      })(),
+    }));
+  },
+
+  createTask: async (task) => {
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert([task])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    set((state) => ({
+      tasks: [...state.tasks, data],
+    }));
+
+    return data;
   },
 }));
