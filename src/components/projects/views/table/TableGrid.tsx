@@ -97,11 +97,17 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
   const handleDeleteColumn = async (columnId: string) => {
     const updatedColumns = localColumns.filter(col => col.id !== columnId);
+    
+    // Optimistic update
+    setLocalColumns(updatedColumns);
+    setDeleteColumnId(null);
+
     try {
       await updateView(view.id, { columns: updatedColumns });
-      setDeleteColumnId(null);
     } catch (error) {
       console.error('Failed to delete column:', error);
+      // Revert on failure
+      setLocalColumns(view.columns || []);
     }
   };
 
@@ -111,13 +117,17 @@ export function TableGrid({ tasks, view }: TableGridProps) {
       id: crypto.randomUUID(),
     };
 
-    try {
-      await updateView(view.id, { 
-        columns: [...localColumns, newColumn] 
+    // Optimistic update
+    setLocalColumns(prev => {
+      const newColumns = [...prev, newColumn];
+      // Update view with the new state
+      updateView(view.id, { columns: newColumns }).catch(error => {
+        console.error('Failed to add column:', error);
+        // Revert on failure
+        setLocalColumns(view.columns || []);
       });
-    } catch (error) {
-      console.error('Failed to add column:', error);
-    }
+      return newColumns;
+    });
   };
 
   const handleResizeStart = (e: React.MouseEvent, columnId: string, currentWidth: number) => {
