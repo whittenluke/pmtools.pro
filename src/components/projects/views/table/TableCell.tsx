@@ -33,7 +33,20 @@ export function TableCell({
   const { optimisticUpdateTask, revertTaskUpdate } = useProjectStore();
 
   const handleChange = async (value: any) => {
-    const update = { status_id: value };
+    let update: Partial<Task>;
+    
+    if (type === 'status') {
+      update = { status_id: value };
+    } else {
+      // Store text values in the column_values JSONB field
+      update = {
+        column_values: {
+          ...task.column_values,
+          [column.id]: value
+        }
+      };
+    }
+
     optimisticUpdateTask(task.id, update);
 
     try {
@@ -49,6 +62,13 @@ export function TableCell({
     }
   };
 
+  const getValue = () => {
+    if (type === 'status') {
+      return task.status_id;
+    }
+    return task.column_values?.[column.id] || '';
+  };
+
   switch (type) {
     case 'status':
       return (
@@ -60,13 +80,13 @@ export function TableCell({
         />
       );
     case 'date':
-      return <DateCell value={value} onChange={handleChange} />;
+      return <DateCell value={getValue()} onChange={handleChange} />;
     case 'user':
-      return <UserCell value={value} onChange={handleChange} />;
+      return <UserCell value={getValue()} onChange={handleChange} />;
     case 'number':
-      return <NumberCell value={value} onChange={handleChange} />;
+      return <NumberCell value={getValue()} onChange={handleChange} />;
     case 'text':
     default:
-      return <TextCell value={value} onChange={handleChange} />;
+      return <TextCell value={getValue()} onChange={handleChange} />;
   }
 }

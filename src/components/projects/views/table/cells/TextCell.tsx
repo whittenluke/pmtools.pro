@@ -1,64 +1,80 @@
-import { useState, useRef, useEffect } from 'react';
-import { Input } from '@/components/ui/input';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 interface TextCellProps {
   value: string;
-  onEdit: (isEditing: boolean) => void;
   onChange?: (value: string) => void;
 }
 
-export function TextCell({ value, onEdit, onChange }: TextCellProps) {
+export function TextCell({ value = '', onChange }: TextCellProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [text, setText] = useState(value);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isEditing]);
+    setText(value);
+  }, [value]);
 
-  const handleDoubleClick = () => {
+  const handleClick = () => {
     setIsEditing(true);
-    onEdit(true);
   };
 
   const handleBlur = () => {
     setIsEditing(false);
-    onEdit(false);
-    if (onChange && text !== value) {
-      onChange(text);
+    if (text !== value) {
+      onChange?.(text);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleBlur();
-    } else if (e.key === 'Escape') {
+    if (e.key === 'Enter' && e.metaKey) {
+      setIsEditing(false);
+      if (text !== value) {
+        onChange?.(text);
+      }
+    }
+    if (e.key === 'Escape') {
+      setIsEditing(false);
       setText(value);
-      handleBlur();
     }
   };
 
   if (isEditing) {
     return (
-      <Input
-        ref={inputRef}
+      <Textarea
+        autoFocus
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className="h-8 w-full"
+        className={cn(
+          "min-h-[32px] max-h-[200px]",
+          "resize-y",
+          "bg-background text-foreground",
+          "p-2"
+        )}
+        placeholder="Enter text..."
       />
     );
   }
 
   return (
-    <div 
-      onDoubleClick={handleDoubleClick}
-      className="cursor-text min-h-[32px] flex items-center"
+    <div
+      onClick={handleClick}
+      className={cn(
+        "min-h-[32px] max-h-[200px]",
+        "px-2 py-1",
+        "cursor-text",
+        "text-foreground",
+        "hover:bg-accent hover:text-accent-foreground",
+        "transition-colors",
+        "whitespace-pre-wrap break-words",
+        "overflow-y-auto"
+      )}
     >
-      {text}
+      {value || text}
     </div>
   );
 }
