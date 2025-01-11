@@ -5,9 +5,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Folder, Plus } from 'lucide-react';
+import { ChevronLeft, Clipboard, Plus } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreateProjectModal } from '@/components/projects/CreateProjectModal';
 
 export default function ProjectsLayout({
@@ -15,12 +15,16 @@ export default function ProjectsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { projects } = useProjectStore();
+  const { projects, fetchProjects } = useProjectStore();
   const params = useParams();
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchProjects().catch(console.error);
+  }, [fetchProjects]);
 
   return (
     <div className="flex h-[calc(100vh-57px)] bg-background">
@@ -99,7 +103,7 @@ export default function ProjectsLayout({
                             : 'text-muted-foreground hover:text-foreground hover:bg-accent/5'
                         )}
                       >
-                        <Folder className="h-4 w-4 shrink-0 opacity-70" />
+                        <Clipboard className="h-4 w-4 shrink-0 opacity-70" />
                         <span className="truncate ml-2">{project.title}</span>
                       </div>
                     </Link>

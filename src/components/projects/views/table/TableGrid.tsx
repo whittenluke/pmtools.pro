@@ -65,7 +65,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Global state and actions
-  const { updateView } = useProjectStore();
+  const { updateView, updateViewConfig } = useProjectStore();
 
   // Update local columns when view changes
   useEffect(() => {
@@ -220,6 +220,33 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     }
   };
 
+  const handleStatusConfigChange = async (config: any) => {
+    try {
+      await updateViewConfig(view.id, {
+        ...view.config,
+        status_config: config,
+      });
+    } catch (error) {
+      console.error('Failed to update status config:', error);
+    }
+  };
+
+  const renderCell = (task: Task, column: ViewColumn) => {
+    const value = task[column.id as keyof Task];
+    
+    return (
+      <TableCell
+        key={column.id}
+        type={column.type}
+        value={value}
+        task={task}
+        column={column}
+        statusConfig={column.type === 'status' ? view.config?.status_config : undefined}
+        onStatusConfigChange={column.type === 'status' ? handleStatusConfigChange : undefined}
+      />
+    );
+  };
+
   return (
     <div ref={tableRef} className="relative w-max">
       <table className="border-separate border-spacing-0">
@@ -358,14 +385,17 @@ export function TableGrid({ tasks, view }: TableGridProps) {
           {tasks.map((task) => (
             <tr key={task.id}>
               {localColumns.map((column) => (
-                <td 
-                  key={column.id} 
-                  className="border-b border-border p-0"
+                <td
+                  key={column.id}
+                  className={cn(
+                    'border-b p-2',
+                    draggedColumnId && 'transition-none'
+                  )}
                 >
-                  <TableCell task={task} column={column} />
+                  {renderCell(task, column)}
                 </td>
               ))}
-              <td className="border-b border-border p-0" />
+              <td className="border-b p-2" />
             </tr>
           ))}
           <tr>

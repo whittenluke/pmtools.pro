@@ -20,6 +20,7 @@ interface ProjectState {
   setLoading: (loading: boolean) => void;
   setCurrentProject: (project: Project | null) => void;
   setCurrentView: (view: View | null) => void;
+  fetchProjects: () => Promise<void>;
   fetchProject: (id: string) => Promise<void>;
   fetchViews: (projectId: string) => Promise<void>;
   fetchTasks: (projectId: string) => Promise<void>;
@@ -44,6 +45,7 @@ interface ProjectState {
   deleteTask: (id: string) => Promise<void>;
   optimisticUpdateTask: (id: string, update: Partial<Task>) => void;
   revertTaskUpdate: (id: string) => void;
+  updateViewConfig: (viewId: string, config: Partial<View['config']>) => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
@@ -59,6 +61,42 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
   setLoading: (loading) => set({ loading }),
   setCurrentProject: (project) => set({ currentProject: project }),
   setCurrentView: (view) => set({ currentView: view }),
+
+  fetchProjects: async () => {
+    set({ loading: true, error: null });
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      // Get user's workspaces
+      const { data: workspaces, error: workspaceError } = await supabase
+        .from('workspace_members')
+        .select('workspace_id')
+        .eq('user_id', user.user.id);
+
+      if (workspaceError) throw workspaceError;
+      if (!workspaces || workspaces.length === 0) {
+        set({ projects: [], loading: false });
+        return;
+      }
+
+      const workspaceIds = workspaces.map(w => w.workspace_id);
+
+      // Get all projects for these workspaces
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('*')
+        .in('workspace_id', workspaceIds)
+        .order('created_at', { ascending: false });
+
+      if (projectsError) throw projectsError;
+
+      set({ projects: projects || [], loading: false });
+    } catch (error) {
+      set({ error: error as Error, loading: false });
+      throw error;
+    }
+  },
 
   fetchProject: async (id) => {
     set({ loading: true, error: null });
@@ -185,7 +223,41 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
               width: 150
             }
           ],
-          config: {}
+          config: {
+            status_config: {
+              statuses: [
+                {
+                  id: 'not_started',
+                  title: 'Not Started',
+                  color: '#E5E7EB',
+                  position: 0,
+                  type: 'default'
+                },
+                {
+                  id: 'in_progress',
+                  title: 'In Progress',
+                  color: '#93C5FD',
+                  position: 1,
+                  type: 'default'
+                },
+                {
+                  id: 'completed',
+                  title: 'Completed',
+                  color: '#86EFAC',
+                  position: 2,
+                  type: 'default'
+                },
+                {
+                  id: 'blocked',
+                  title: 'Blocked',
+                  color: '#FCA5A5',
+                  position: 3,
+                  type: 'default'
+                }
+              ],
+              defaultStatusId: 'not_started'
+            }
+          }
         })
         .select()
         .single();
@@ -546,5 +618,40 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }));
 
     return data;
+  },
+
+  updateViewConfig: async (viewId: string, config: Partial<View['config']>) => {
+    const { currentView } = get();
+    if (!currentView) return;
+
+    try {
+      // Optimistically update the view config
+      set({
+        currentView: {
+          ...currentView,
+          config: {
+            ...currentView.config,
+            ...config,
+          },
+        },
+      });
+
+      // Update in the database
+      const { error } = await supabase
+        .from('project_views')
+        .update({
+          config: {
+            ...currentView.config,
+            ...config,
+          },
+        })
+        .eq('id', viewId);
+
+      if (error) throw error;
+    } catch (error) {
+      // Revert to the original state on error
+      set({ currentView });
+      throw error;
+    }
   },
 }));

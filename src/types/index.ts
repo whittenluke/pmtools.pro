@@ -19,25 +19,42 @@ export interface NumberColumnConfig {
   aggregation?: 'sum' | 'average' | 'min' | 'max' | 'count';
 }
 
+export interface Status {
+  id: string;
+  title: string;
+  color: string;
+  position: number;
+  type?: 'default' | 'custom';
+}
+
+export interface StatusConfig {
+  statuses: Status[];
+  defaultStatusId: string;
+}
+
+export interface ViewConfig {
+  status_config?: StatusConfig;
+  [key: string]: any;
+}
+
 export interface ViewColumn {
   id: string;
-  key?: string;
   title: string;
-  type: ColumnType;
+  type?: string;
   width?: number;
-  config?: NumberColumnConfig;
-  isHidden?: boolean;
-  isLocked?: boolean;
-  isRequired?: boolean;
-  validation?: {
-    required?: boolean;
-    unique?: boolean;
-    pattern?: string;
-    minLength?: number;
-    maxLength?: number;
-    minValue?: number;
-    maxValue?: number;
-  };
+  config?: Record<string, any>;
+}
+
+export interface ViewModel {
+  id: string;
+  title: string;
+  type: string;
+  project_id: string;
+  is_default: boolean;
+  columns: ViewColumn[];
+  config: ViewConfig;
+  created_at: string;
+  updated_at: string;
 }
 
 export type Project = {
