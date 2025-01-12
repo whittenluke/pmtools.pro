@@ -1,37 +1,39 @@
-import { useState, useEffect } from 'react';
+'use client';
+
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Star, StarHalf } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NumberCellProps {
   value: number | null;
-  onChange: (value: number | null) => void;
+  onChange?: (value: number | null) => void;
   config?: {
-    mode?: 'decimal' | 'integer' | 'currency' | 'percentage' | 'rating';
+    mode?: 'decimal' | 'integer' | 'currency' | 'percentage';
     precision?: number;
     currency?: string;
-    minValue?: number;
-    maxValue?: number;
   };
 }
 
-export function NumberCell({ value, onChange, config = {} }: NumberCellProps) {
+export function NumberCell({ 
+  value, 
+  onChange,
+  config = {
+    mode: 'decimal',
+    precision: 2,
+    currency: 'USD'
+  }
+}: NumberCellProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [localValue, setLocalValue] = useState<string>(formatValue(value));
+  const [text, setText] = useState(value?.toString() || '');
 
-  const {
-    mode = 'decimal',
-    precision = 2,
-    currency = 'USD',
-    minValue = Number.MIN_SAFE_INTEGER,
-    maxValue = Number.MAX_SAFE_INTEGER,
-  } = config;
+  const handleClick = () => {
+    setIsEditing(true);
+  };
 
-  useEffect(() => {
-    setLocalValue(formatValue(value));
-  }, [value]);
-
-  function formatValue(val: number | null): string {
+  const formatValue = (val: number | null) => {
     if (val === null) return '';
+
+    const { mode = 'decimal', precision = 2, currency = 'USD' } = config;
 
     switch (mode) {
       case 'currency':
@@ -47,102 +49,76 @@ export function NumberCell({ value, onChange, config = {} }: NumberCellProps) {
           minimumFractionDigits: precision,
           maximumFractionDigits: precision,
         }).format(val / 100);
-      case 'rating':
-        return val.toString();
       case 'integer':
-        return Math.round(val).toString();
+        return new Intl.NumberFormat(undefined, {
+          maximumFractionDigits: 0,
+        }).format(val);
       case 'decimal':
       default:
-        return val.toFixed(precision);
+        return new Intl.NumberFormat(undefined, {
+          minimumFractionDigits: precision,
+          maximumFractionDigits: precision,
+        }).format(val);
     }
-  }
+  };
 
-  function parseValue(val: string): number | null {
-    if (!val) return null;
+  const parseValue = (text: string): number | null => {
+    const cleanText = text.replace(/[^0-9.-]/g, '');
+    const num = parseFloat(cleanText);
+    return isNaN(num) ? null : num;
+  };
 
-    let parsed: number | null = null;
-
-    switch (mode) {
-      case 'currency':
-        parsed = Number(val.replace(/[^0-9.-]+/g, ''));
-        break;
-      case 'percentage':
-        parsed = Number(val.replace(/[^0-9.-]+/g, '')) / 100;
-        break;
-      case 'rating':
-      case 'integer':
-        parsed = Math.round(Number(val));
-        break;
-      case 'decimal':
-      default:
-        parsed = Number(val);
-    }
-
-    if (isNaN(parsed)) return null;
-    
-    // Enforce min/max values
-    if (parsed < minValue) parsed = minValue;
-    if (parsed > maxValue) parsed = maxValue;
-
-    return parsed;
-  }
-
-  function handleBlur() {
+  const handleBlur = () => {
     setIsEditing(false);
-    const parsedValue = parseValue(localValue);
-    if (parsedValue !== value) {
-      onChange(parsedValue);
+    const newValue = parseValue(text);
+    if (newValue !== value) {
+      onChange?.(newValue);
     }
-  }
+    setText(value?.toString() || '');
+  };
 
-  if (mode === 'rating') {
-    const rating = value || 0;
-    const maxRating = maxValue || 5;
-    return (
-      <div className="flex items-center gap-0.5">
-        {Array.from({ length: maxRating }, (_, i) => (
-          <button
-            key={i}
-            onClick={() => onChange(i + 1)}
-            className="text-yellow-400 hover:text-yellow-500 transition-colors"
-          >
-            {i + 1 <= rating ? (
-              <Star className="h-4 w-4 fill-current" />
-            ) : (
-              <Star className="h-4 w-4" />
-            )}
-          </button>
-        ))}
-      </div>
-    );
-  }
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      setIsEditing(false);
+      const newValue = parseValue(text);
+      if (newValue !== value) {
+        onChange?.(newValue);
+      }
+    }
+    if (e.key === 'Escape') {
+      setIsEditing(false);
+      setText(value?.toString() || '');
+    }
+  };
 
   if (isEditing) {
     return (
       <Input
-        type="text"
-        value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
-        onBlur={handleBlur}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') handleBlur();
-          if (e.key === 'Escape') {
-            setLocalValue(formatValue(value));
-            setIsEditing(false);
-          }
-        }}
-        className="h-8"
         autoFocus
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        className="h-8"
+        type="text"
+        placeholder="Enter number..."
       />
     );
   }
 
   return (
     <div
-      className="min-h-[32px] flex items-center cursor-text"
-      onClick={() => setIsEditing(true)}
+      onClick={handleClick}
+      className={cn(
+        "min-h-[32px] px-2 py-1",
+        "cursor-text",
+        "text-foreground",
+        "hover:bg-accent hover:text-accent-foreground",
+        "transition-colors",
+        "text-right"
+      )}
     >
-      {formatValue(value)}
+      {value !== null ? formatValue(value) : ''}
     </div>
   );
 } 

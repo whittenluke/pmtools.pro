@@ -1,7 +1,7 @@
 'use client';
 
 import { TableGrid } from './TableGrid';
-import type { ProjectView } from '@/types';
+import type { ProjectView, ViewModel } from '@/types';
 import type { Database } from '@/types/supabase';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
@@ -22,7 +22,10 @@ export function TableView({ tasks, view }: TableViewProps) {
               <p className="text-muted-foreground mb-4">Get started by adding your first task</p>
             </div>
           ) : (
-            <TableGrid tasks={tasks} view={view} />
+            <TableGrid 
+              tasks={tasks} 
+              view={{ ...view, config: view.config || {} }} 
+            />
           )}
         </div>
       </div>

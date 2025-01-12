@@ -24,7 +24,7 @@ export function TableView({ tasks, view }: TableViewProps) {
           </Button>
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-4">
+      <div className="p-4">
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <h3 className="text-lg font-semibold mb-2">No tasks yet</h3>
