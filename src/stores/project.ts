@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
+import type { Task, View } from '@/types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type View = Database['public']['Tables']['project_views']['Row'];
@@ -144,13 +145,24 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     try {
       const { data: tasks, error } = await supabase
         .from('tasks')
-        .select('*')
+        .select(`
+          *,
+          projects:project_id (
+            workspace_id
+          )
+        `)
         .eq('project_id', projectId)
         .order('position', { ascending: true });
 
       if (error) throw error;
 
-      set({ tasks: tasks || [], loading: false });
+      // Transform tasks to include workspace_id at top level
+      const transformedTasks = tasks?.map(task => ({
+        ...task,
+        workspace_id: task.projects?.workspace_id
+      })) || [];
+
+      set({ tasks: transformedTasks, loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;
@@ -517,10 +529,10 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       // Store original state for potential rollback
       state.taskUpdates.set(taskId, { ...task });
       
-      // Update state optimistically
+      // Update state optimistically, preserving workspace_id
       set({
         tasks: state.tasks.map(t =>
-          t.id === taskId ? { ...t, ...data } : t
+          t.id === taskId ? { ...t, ...data, workspace_id: t.workspace_id } : t
         )
       });
     }
@@ -542,14 +554,30 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   updateTask: async (taskId: string, data: Partial<Task>) => {
     try {
-      const { error } = await supabase
+      const { data: updatedTask, error } = await supabase
         .from('tasks')
         .update(data)
         .eq('id', taskId)
-        .select()
+        .select(`
+          *,
+          projects:project_id (
+            workspace_id
+          )
+        `)
         .single();
 
       if (error) throw error;
+
+      // Transform task to include workspace_id at top level
+      const transformedTask = {
+        ...updatedTask,
+        workspace_id: updatedTask.projects?.workspace_id
+      };
+
+      // Update the task in state
+      set((state) => ({
+        tasks: state.tasks.map(t => t.id === taskId ? transformedTask : t)
+      }));
 
       // Clear the stored original state on successful update
       get().taskUpdates.delete(taskId);
@@ -608,16 +636,27 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     const { data, error } = await supabase
       .from('tasks')
       .insert([task])
-      .select()
+      .select(`
+        *,
+        projects:project_id (
+          workspace_id
+        )
+      `)
       .single();
 
     if (error) throw error;
 
+    // Transform task to include workspace_id at top level
+    const transformedTask = {
+      ...data,
+      workspace_id: data.projects?.workspace_id
+    };
+
     set((state) => ({
-      tasks: [...state.tasks, data],
+      tasks: [...state.tasks, transformedTask],
     }));
 
-    return data;
+    return transformedTask;
   },
 
   updateViewConfig: async (viewId: string, config: Partial<View['config']>) => {

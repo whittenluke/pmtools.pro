@@ -1,5 +1,12 @@
 // Core Types
 import type { Json } from './supabase';
+import type { Database } from './supabase';
+
+type BaseTask = Database['public']['Tables']['tasks']['Row'];
+
+export interface Task extends BaseTask {
+  workspace_id: string;
+}
 
 export type ColumnType = 
   | 'text' 

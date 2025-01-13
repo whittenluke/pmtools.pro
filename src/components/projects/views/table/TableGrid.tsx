@@ -4,7 +4,7 @@ import { TableCell } from './TableCell';
 import { AddColumnButton } from './AddColumnButton';
 import { AddTaskRow } from './AddTaskRow';
 import { useProjectStore } from '@/stores/project';
-import { X, Pencil, GripVertical } from 'lucide-react';
+import { X, Pencil, GripVertical, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -251,8 +257,13 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     <div ref={tableRef} className="relative w-max">
       <table className="border-separate border-spacing-0">
         <colgroup>
-          {localColumns.map((column) => (
-            <col key={column.id} style={{ width: `${getColumnWidth(column)}px` }} />
+          {localColumns.map((column, index) => (
+            <col 
+              key={column.id} 
+              style={{ 
+                width: `${getColumnWidth(column)}px`,
+              }} 
+            />
           ))}
           <col style={{ width: "200px" }} />
         </colgroup>
@@ -284,12 +295,13 @@ export function TableGrid({ tasks, view }: TableGridProps) {
                               "relative group border-b border-border p-0 bg-background",
                               isTitle && "bg-muted/5",
                               snapshot.isDragging ? "z-50" : "",
-                              isResizing && resizeRef.current.columnId === column.id ? "select-none" : ""
+                              isResizing && resizeRef.current.columnId === column.id ? "select-none" : "",
+                              index !== 0 && "border-l border-border"
                             )}
                           >
                             <div 
                               className={cn(
-                                "h-full px-4 py-2 text-sm font-medium text-foreground flex items-center gap-2 transition-colors relative",
+                                "h-9 px-4 py-2 text-sm font-medium text-foreground flex items-center gap-2 transition-colors relative",
                                 snapshot.isDragging ? "bg-background shadow-lg rounded-md" : "hover:bg-muted/50",
                                 isResizing && "select-none"
                               )}
@@ -298,7 +310,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
                                 <div 
                                   {...provided.dragHandleProps}
                                   className={cn(
-                                    "flex items-center h-full px-2 -ml-4 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity",
+                                    "absolute left-0 flex items-center h-full px-2 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity",
                                     (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
                                   )}
                                 >
@@ -306,64 +318,64 @@ export function TableGrid({ tasks, view }: TableGridProps) {
                                 </div>
                               )}
 
-                              {editingColumnId === column.id ? (
-                                <Input
-                                  value={editingTitle}
-                                  onChange={(e) => setEditingTitle(e.target.value)}
-                                  onBlur={handleFinishEditing}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') handleFinishEditing();
-                                    if (e.key === 'Escape') {
-                                      setEditingColumnId(null);
-                                      setEditingTitle('');
-                                    }
-                                  }}
-                                  className="h-6 text-sm font-medium flex-1"
-                                  autoFocus
-                                />
-                              ) : (
-                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                  <span className="truncate font-medium">{column.title}</span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn(
-                                      "h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity",
-                                      (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
-                                    )}
-                                    onClick={() => handleStartEditing(column)}
-                                  >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    <span className="sr-only">Edit column name</span>
-                                  </Button>
+                              <div className="flex-1 relative flex items-center">
+                                <div className={cn(
+                                  "truncate font-medium w-full",
+                                  index === 0 ? "text-left" : "text-center"
+                                )}>{column.title}</div>
+                                <div className="absolute right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background">
+                                  {!isTitle && (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className={cn(
+                                            "h-6 w-6 p-0",
+                                            (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
+                                          )}
+                                        >
+                                          <MoreHorizontal className="h-4 w-4" />
+                                          <span className="sr-only">More options</span>
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleStartEditing(column)}>
+                                          <Pencil className="h-4 w-4 mr-2" />
+                                          Rename
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setDeleteColumnId(column.id)}>
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Delete
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  )}
+                                  {isTitle && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={cn(
+                                        "h-6 w-6 p-0",
+                                        (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
+                                      )}
+                                      onClick={() => handleStartEditing(column)}
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                      <span className="sr-only">Edit column name</span>
+                                    </Button>
+                                  )}
                                 </div>
-                              )}
-
-                              {!isTitle && (
-                                <>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn(
-                                      "h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0",
-                                      (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
-                                    )}
-                                    onClick={() => setDeleteColumnId(column.id)}
-                                  >
-                                    <X className="h-4 w-4" />
-                                    <span className="sr-only">Delete column</span>
-                                  </Button>
-                                </>
-                              )}
-
-                              <div
-                                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 z-20"
-                                onMouseDown={(e) => handleResizeStart(e, column.id, width)}
-                                style={{
-                                  transform: 'translateX(50%)',
-                                }}
-                              />
+                              </div>
                             </div>
+
+                            <div
+                              className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 z-20"
+                              onMouseDown={(e) => handleResizeStart(e, column.id, width)}
+                              style={{
+                                transform: 'translateX(50%)',
+                              }}
+                            />
                           </th>
                         )}
                       </Draggable>
@@ -384,12 +396,14 @@ export function TableGrid({ tasks, view }: TableGridProps) {
         <tbody className="relative">
           {tasks.map((task) => (
             <tr key={task.id}>
-              {localColumns.map((column) => (
+              {localColumns.map((column, index) => (
                 <td
                   key={column.id}
                   className={cn(
                     'border-b p-2',
-                    draggedColumnId && 'transition-none'
+                    index === 0 ? 'text-left' : 'text-center',
+                    draggedColumnId && 'transition-none',
+                    index !== 0 && 'border-l border-border'
                   )}
                 >
                   {renderCell(task, column)}

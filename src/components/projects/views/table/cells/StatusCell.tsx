@@ -122,14 +122,16 @@ export function StatusCell({
           variant="ghost"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between h-8 px-2"
+          className="w-full h-8 px-2 relative"
           style={{
             backgroundColor: statusStyle.background,
             color: statusStyle.color,
           }}
         >
-          {selectedStatus.title}
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="absolute inset-0 flex items-center justify-center">
+            {selectedStatus.title}
+          </span>
+          <ChevronDown className="absolute right-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0" align="start">
@@ -142,15 +144,19 @@ export function StatusCell({
                 <button
                   key={status.id}
                   onClick={() => handleSelect(status)}
-                  className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent hover:text-accent-foreground"
+                  className="relative w-full px-2 py-1.5 hover:bg-accent hover:text-accent-foreground"
                   style={{
                     backgroundColor: style.background,
                     color: style.color,
                   }}
                 >
-                  {status.title}
+                  <span className="flex items-center justify-center">
+                    {status.title}
+                  </span>
                   {status.id === selectedStatus.id && (
-                    <Check className="ml-auto h-4 w-4" />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <Check className="h-4 w-4" />
+                    </div>
                   )}
                 </button>
               );

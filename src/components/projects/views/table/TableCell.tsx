@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useProjectStore } from '@/stores/project';
 import { supabase } from '@/lib/supabase';
 import { StatusCell } from './cells/StatusCell';
 import { DateCell } from './cells/DateCell';
-import { UserCell } from './cells/UserCell';
+import { PeopleCell } from './cells/PeopleCell';
 import { TextCell } from './cells/TextCell';
 import { NumberCell } from './cells/NumberCell';
 import type { ViewColumn, StatusConfig } from '@/types';
 import type { Database } from '@/types/supabase';
+import { cn } from '@/lib/utils';
 
 type Task = Database['public']['Tables']['tasks']['Row'];
 
@@ -30,15 +31,23 @@ export function TableCell({
   statusConfig,
   onStatusConfigChange,
 }: TableCellProps) {
-  const { optimisticUpdateTask, revertTaskUpdate } = useProjectStore();
+  const { optimisticUpdateTask, revertTaskUpdate, currentProject } = useProjectStore();
+  const isTitle = column.id === 'title';
 
   const handleChange = async (value: any) => {
     let update: Partial<Task>;
     
     if (type === 'status') {
       update = { status_id: value };
+    } else if (type === 'user' || type === 'person') {
+      const userId = Array.isArray(value) ? value[0] : value;
+      update = {
+        column_values: {
+          ...task.column_values,
+          [column.id]: userId
+        }
+      };
     } else {
-      // Store text values in the column_values JSONB field
       update = {
         column_values: {
           ...task.column_values,
@@ -68,25 +77,77 @@ export function TableCell({
     }
     return task.column_values?.[column.id] || '';
   };
+  
+  const cellContent = useMemo(() => {
+    switch (type) {
+      case 'status':
+        return (
+          <div className={cn(
+            "flex",
+            isTitle ? "justify-start" : "justify-center"
+          )}>
+            <StatusCell
+              value={getValue()}
+              config={statusConfig}
+              onConfigChange={onStatusConfigChange}
+              onChange={handleChange}
+            />
+          </div>
+        );
+      case 'user':
+      case 'person':
+        return currentProject ? (
+          <div className={cn(
+            "flex",
+            isTitle ? "justify-start" : "justify-center"
+          )}>
+            <PeopleCell 
+              value={getValue()}
+              row={task}
+              workspaceId={currentProject.workspace_id}
+              onUpdate={handleChange}
+              allowMultiple={false}
+            />
+          </div>
+        ) : null;
+      case 'date':
+        return (
+          <div className={cn(
+            "flex",
+            isTitle ? "justify-start" : "justify-center"
+          )}>
+            <DateCell 
+              value={getValue()} 
+              onChange={handleChange}
+            />
+          </div>
+        );
+      case 'number':
+        return (
+          <div className={cn(
+            "flex",
+            isTitle ? "justify-start" : "justify-center"
+          )}>
+            <NumberCell 
+              value={getValue()} 
+              onChange={handleChange}
+            />
+          </div>
+        );
+      default:
+        return (
+          <div className={cn(
+            "flex",
+            isTitle ? "justify-start" : "justify-center"
+          )}>
+            <TextCell 
+              value={getValue()} 
+              onChange={handleChange}
+            />
+          </div>
+        );
+    }
+  }, [type, task, column.id, statusConfig, onStatusConfigChange, isTitle, currentProject]);
 
-  switch (type) {
-    case 'status':
-      return (
-        <StatusCell
-          value={task.status_id}
-          config={statusConfig}
-          onConfigChange={onStatusConfigChange}
-          onChange={handleChange}
-        />
-      );
-    case 'date':
-      return <DateCell value={getValue()} onChange={handleChange} />;
-    case 'user':
-      return <UserCell value={getValue()} onChange={handleChange} />;
-    case 'number':
-      return <NumberCell value={getValue()} onChange={handleChange} />;
-    case 'text':
-    default:
-      return <TextCell value={getValue()} onChange={handleChange} />;
-  }
+  return cellContent;
 }

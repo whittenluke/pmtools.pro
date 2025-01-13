@@ -37,46 +37,27 @@ export function useWorkspaceMembers(workspaceId: string) {
 
         if (profileError) throw profileError;
 
-        // Get workspace members and project members
-        const [{ data: workspaceMembers, error: workspaceMembersError }, { data: projectMembers, error: projectMembersError }] = await Promise.all([
-          supabase
-            .from('workspace_members')
-            .select(`
-              user_id,
-              role,
-              profiles:user_id (
-                id,
-                full_name,
-                avatar_url
-              )
-            `)
-            .eq('workspace_id', workspaceId),
-          supabase
-            .from('project_members')
-            .select(`
-              user_id,
-              role,
-              profiles:user_id (
-                id,
-                full_name,
-                avatar_url
-              )
-            `)
-            .eq('project_id', workspaceId)
-        ]);
+        // Get workspace members and their profiles separately since there's no FK relationship
+        const { data: workspaceMembers, error: workspaceMembersError } = await supabase
+          .from('workspace_members')
+          .select('user_id, role')
+          .eq('workspace_id', workspaceId);
 
         if (workspaceMembersError) throw workspaceMembersError;
-        if (projectMembersError) throw projectMembersError;
 
-        // Combine and deduplicate members
-        const allMembers = [...(workspaceMembers || []), ...(projectMembers || [])];
-        const uniqueMembers = Array.from(new Map(allMembers.map(member => [member.user_id, member])).values());
+        // Get profiles for all workspace members
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', workspaceMembers.map(member => member.user_id));
+
+        if (profilesError) throw profilesError;
 
         // Transform the data to match our interface
-        const transformedMembers = uniqueMembers.map(member => ({
+        const transformedMembers = (workspaceMembers || []).map(member => ({
           user_id: member.user_id,
           role: member.role,
-          profile: member.profiles
+          profile: profiles?.find(p => p.id === member.user_id)
         }));
 
         // Add current user if not already in the list

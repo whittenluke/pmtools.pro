@@ -15,6 +15,7 @@ export default function Account() {
   const supabase = createClientComponentClient<Database>();
   const [loading, setLoading] = useState(true);
   const [fullName, setFullName] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -43,6 +44,7 @@ export default function Account() {
 
       if (profile) {
         setFullName(profile.full_name);
+        setEmail(profile.email);
         setAvatarUrl(profile.avatar_url);
       }
     } catch (error) {
@@ -58,9 +60,11 @@ export default function Account() {
 
   const updateProfile = async ({
     fullName,
+    email,
     avatarUrl,
   }: {
     fullName: string | null;
+    email: string | null;
     avatarUrl: string | null;
   }) => {
     try {
@@ -75,6 +79,7 @@ export default function Account() {
       const newProfile = {
         id: user.id,
         full_name: fullName,
+        email: email,
         avatar_url: avatarUrl,
         updated_at: new Date().toISOString(),
       };
@@ -120,7 +125,7 @@ export default function Account() {
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       
       setAvatarUrl(data.publicUrl);
-      await updateProfile({ fullName, avatarUrl: data.publicUrl });
+      await updateProfile({ fullName, email, avatarUrl: data.publicUrl });
     } catch (error) {
       console.error(error);
     } finally {
@@ -174,9 +179,20 @@ export default function Account() {
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email || ''}
+              onChange={(e) => setEmail(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+
           <div>
             <Button
-              onClick={() => updateProfile({ fullName, avatarUrl })}
+              onClick={() => updateProfile({ fullName, email, avatarUrl })}
               disabled={loading}
             >
               {loading ? (
