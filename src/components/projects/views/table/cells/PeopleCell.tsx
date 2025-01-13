@@ -21,7 +21,7 @@ export function PeopleCell({ value, row, workspaceId, onUpdate, allowMultiple = 
   const { members } = useWorkspaceMembers(workspaceId);
   const selectedUsers = Array.isArray(value) ? 
     members.filter(member => value.includes(member.user_id)) :
-    value ? [members.find(member => member.user_id === value)] : [];
+    value ? [members.find(member => member.user_id === value)].filter(Boolean) : [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -38,20 +38,20 @@ export function PeopleCell({ value, row, workspaceId, onUpdate, allowMultiple = 
             </div>
             <div className="flex -space-x-2 transition-all group-hover:translate-x-2">
               {selectedUsers.length > 0 ? (
-                selectedUsers.map((user) => (
+                selectedUsers.map((user) => user && (
                   <TooltipProvider key={user.user_id}>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Avatar className="h-7 w-7 border-2 border-background">
-                          <AvatarImage src={user.profile?.avatar_url || ''} />
+                          <AvatarImage src={user?.profile?.avatar_url || ''} />
                           <AvatarFallback>
-                            {user.profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                            {user?.profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
                           </AvatarFallback>
                         </Avatar>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="font-medium">{user.profile?.full_name}</p>
-                        <p className="text-muted-foreground text-sm">{user.profile?.email}</p>
+                        <p className="font-medium">{user?.profile?.full_name || 'Unknown User'}</p>
+                        <p className="text-muted-foreground text-sm">{user?.profile?.email || ''}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -76,7 +76,7 @@ export function PeopleCell({ value, row, workspaceId, onUpdate, allowMultiple = 
               <span className="text-muted-foreground">Unassigned</span>
               {selectedUsers.length === 0 && <Plus className="ml-auto h-4 w-4" />}
             </CommandItem>
-            {members.map((member) => (
+            {members.map((member) => member && (
               <CommandItem
                 key={member.user_id}
                 value={member.user_id}
@@ -95,12 +95,12 @@ export function PeopleCell({ value, row, workspaceId, onUpdate, allowMultiple = 
                 className="flex items-center gap-2"
               >
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={member.profile?.avatar_url || ''} />
+                  <AvatarImage src={member?.profile?.avatar_url || ''} />
                   <AvatarFallback>
-                    {member.profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                    {member?.profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <span>{member.profile?.full_name}</span>
+                <span>{member?.profile?.full_name || 'Unknown User'}</span>
                 {(Array.isArray(value) ? value.includes(member.user_id) : member.user_id === value) && (
                   <X className="ml-auto h-4 w-4" />
                 )}
