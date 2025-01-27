@@ -137,7 +137,7 @@ export function TableCell({
       default:
         return (
           <div className={cn(
-            "flex",
+            "flex w-full h-full",
             isTitle ? "justify-start" : "justify-center"
           )}>
             <TextCell 

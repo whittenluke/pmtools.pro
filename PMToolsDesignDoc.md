@@ -16,7 +16,7 @@ PMTools.pro is a project management platform designed to provide teams with a po
 - ✅ **UI Framework**: Shadcn/UI
 - ✅ **Styling**: Tailwind CSS
 - **Analytics**: Plausible (privacy-focused)
-- ✅ **Drag and Drop**: @atlaskit/pragmatic-drag-and-drop
+- ✅ **Drag and Drop**: @hello-pangea/dnd
 
 ### ✅ 2.2 Architectural Principles
 
@@ -30,13 +30,13 @@ PMTools.pro is a project management platform designed to provide teams with a po
 
 ### 2.3 Drag and Drop Implementation
 
-The application uses @atlaskit/pragmatic-drag-and-drop for all drag-and-drop functionality, chosen for:
+The application uses @hello-pangea/dnd for all drag-and-drop functionality, chosen for:
 
-- **Performance**: ~4.7kB core with incremental loading
-- **Framework Agnostic**: Works with any frontend framework
-- **Accessibility**: Built-in accessibility support
+- **Performance**: Optimized for React with minimal re-renders
+- **Accessibility**: Built-in keyboard support and ARIA attributes
 - **Cross-Platform**: Full feature support across browsers and devices
 - **Virtualization Support**: Compatible with virtual scrolling implementations
+- **TypeScript Support**: Full type definitions included
 
 Key drag-and-drop features:
 
@@ -48,9 +48,9 @@ Key drag-and-drop features:
 
 Implementation approach:
 
-- Core package for essential operations
-- Optional adapters loaded on demand
-- Custom preview rendering for optimal UX
+- DragDropContext for managing drag state
+- Droppable areas for valid drop targets
+- Draggable items with custom previews
 - Accessibility-first implementation using ARIA
 
 ### ✅ 2.3 Maintenance Strategy

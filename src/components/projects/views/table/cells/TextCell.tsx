@@ -65,16 +65,20 @@ export function TextCell({ value = '', onChange }: TextCellProps) {
       onClick={handleClick}
       className={cn(
         "min-h-[32px] max-h-[200px]",
-        "px-2 py-1",
+        "w-full h-full",
+        "px-2 py-1.5",
         "cursor-text",
         "text-foreground",
         "hover:bg-accent hover:text-accent-foreground",
         "transition-colors",
         "whitespace-pre-wrap break-words",
-        "overflow-y-auto"
+        "overflow-y-auto",
+        "flex items-center"
       )}
     >
-      {value || text}
+      {value || text || (
+        <span className="text-muted-foreground text-sm">Click to edit...</span>
+      )}
     </div>
   );
 }

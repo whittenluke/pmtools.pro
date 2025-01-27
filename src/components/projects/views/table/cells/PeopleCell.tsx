@@ -4,7 +4,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Plus, X } from 'lucide-react';
-import { Command, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PeopleCellProps {
@@ -64,50 +63,47 @@ export function PeopleCell({ value, row, workspaceId, onUpdate, allowMultiple = 
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[200px] p-0">
-        <Command value={value || ''}>
-          <CommandGroup>
-            <CommandItem
-              value="unassigned"
-              onSelect={() => {
-                onUpdate(null);
-                setOpen(false);
+        <div className="flex flex-col py-1">
+          <button
+            onClick={() => {
+              onUpdate(null);
+              setOpen(false);
+            }}
+            className="flex items-center px-2 py-1.5 hover:bg-accent hover:text-accent-foreground text-sm"
+          >
+            <span className="text-muted-foreground">Unassigned</span>
+            {selectedUsers.length === 0 && <Plus className="ml-auto h-4 w-4" />}
+          </button>
+          {members.map((member) => member && (
+            <button
+              key={member.user_id}
+              onClick={() => {
+                if (allowMultiple) {
+                  const currentValue = Array.isArray(value) ? value : value ? [value] : [];
+                  const newValue = currentValue.includes(member.user_id)
+                    ? currentValue.filter(id => id !== member.user_id)
+                    : [...currentValue, member.user_id];
+                  onUpdate(newValue.length > 0 ? newValue : null);
+                } else {
+                  onUpdate([member.user_id]);
+                }
+                if (!allowMultiple) setOpen(false);
               }}
+              className="flex items-center gap-2 w-full px-2 py-1.5 hover:bg-accent hover:text-accent-foreground text-sm"
             >
-              <span className="text-muted-foreground">Unassigned</span>
-              {selectedUsers.length === 0 && <Plus className="ml-auto h-4 w-4" />}
-            </CommandItem>
-            {members.map((member) => member && (
-              <CommandItem
-                key={member.user_id}
-                value={member.user_id}
-                onSelect={() => {
-                  if (allowMultiple) {
-                    const currentValue = Array.isArray(value) ? value : value ? [value] : [];
-                    const newValue = currentValue.includes(member.user_id)
-                      ? currentValue.filter(id => id !== member.user_id)
-                      : [...currentValue, member.user_id];
-                    onUpdate(newValue.length > 0 ? newValue : null);
-                  } else {
-                    onUpdate([member.user_id]);
-                  }
-                  if (!allowMultiple) setOpen(false);
-                }}
-                className="flex items-center gap-2"
-              >
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={member?.profile?.avatar_url || ''} />
-                  <AvatarFallback>
-                    {member?.profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
-                  </AvatarFallback>
-                </Avatar>
-                <span>{member?.profile?.full_name || 'Unknown User'}</span>
-                {(Array.isArray(value) ? value.includes(member.user_id) : member.user_id === value) && (
-                  <X className="ml-auto h-4 w-4" />
-                )}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={member?.profile?.avatar_url || ''} />
+                <AvatarFallback>
+                  {member?.profile?.full_name?.split(' ').map(n => n[0]).join('') || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <span>{member?.profile?.full_name || 'Unknown User'}</span>
+              {(Array.isArray(value) ? value.includes(member.user_id) : member.user_id === value) && (
+                <X className="ml-auto h-4 w-4" />
+              )}
+            </button>
+          ))}
+        </div>
       </PopoverContent>
     </Popover>
   );

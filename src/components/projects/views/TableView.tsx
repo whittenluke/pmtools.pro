@@ -30,6 +30,34 @@ export function TableView({ tasks, view }: TableViewProps) {
     setLocalView(view);
   }, [view]);
 
+  // Update local view when tasks change
+  useEffect(() => {
+    if (!localView.config?.tables) {
+      setLocalView(prev => ({
+        ...prev,
+        config: {
+          ...prev.config,
+          tables: [{
+            id: 'default',
+            title: title,
+            tasks: tasks
+          }]
+        }
+      }));
+    } else {
+      // Update tasks in the default table
+      setLocalView(prev => ({
+        ...prev,
+        config: {
+          ...prev.config,
+          tables: prev.config.tables.map(table => 
+            table.id === 'default' ? { ...table, tasks } : table
+          )
+        }
+      }));
+    }
+  }, [tasks]);
+
   const handleTitleChange = async (newTitle: string) => {
     try {
       await updateView(view.id, { title: newTitle });
@@ -217,7 +245,12 @@ export function TableView({ tasks, view }: TableViewProps) {
                     )}
                   </div>
                 </div>
-                {!isCollapsed && <TableGrid tasks={table.tasks} view={view} />}
+                {!isCollapsed && (
+                  <TableGrid 
+                    tasks={table.id === 'default' ? tasks : table.tasks} 
+                    view={view} 
+                  />
+                )}
               </div>
             ))}
             <Button
