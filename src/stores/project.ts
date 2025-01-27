@@ -443,9 +443,10 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       set((state) => ({
         views: state.views.map((v) => (v.id === viewId ? { ...v, ...data } : v)),
+        currentView: state.currentView?.id === viewId ? { ...state.currentView, ...data } : state.currentView,
       }));
     } catch (error) {
-      set({ error: error as Error });
+      console.error('Failed to update view:', error);
       throw error;
     }
   },

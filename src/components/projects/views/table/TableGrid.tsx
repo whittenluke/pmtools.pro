@@ -104,17 +104,24 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
   const handleDeleteColumn = async (columnId: string) => {
     const updatedColumns = localColumns.filter(col => col.id !== columnId);
+    const originalColumns = [...localColumns];
     
-    // Optimistic update
-    setLocalColumns(updatedColumns);
-    setDeleteColumnId(null);
-
     try {
-      await updateView(view.id, { columns: updatedColumns });
+      // Close the delete dialog first
+      setDeleteColumnId(null);
+      
+      // Optimistic update
+      setLocalColumns(updatedColumns);
+
+      // Update the view
+      await updateView(view.id, { 
+        columns: updatedColumns,
+        updated_at: new Date().toISOString()
+      });
     } catch (error) {
       console.error('Failed to delete column:', error);
       // Revert on failure
-      setLocalColumns(view.columns || []);
+      setLocalColumns(originalColumns);
     }
   };
 
@@ -347,7 +354,12 @@ export function TableGrid({ tasks, view }: TableGridProps) {
                                               <Pencil className="h-4 w-4 mr-2" />
                                               Rename
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => setDeleteColumnId(column.id)}>
+                                            <DropdownMenuItem 
+                                              onSelect={(e) => {
+                                                e.preventDefault();
+                                                setDeleteColumnId(column.id);
+                                              }}
+                                            >
                                               <Trash2 className="h-4 w-4 mr-2" />
                                               Delete
                                             </DropdownMenuItem>
@@ -427,8 +439,16 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
       <DeleteColumnDialog 
         open={!!deleteColumnId}
-        onOpenChange={(open) => setDeleteColumnId(open ? deleteColumnId : null)}
-        onConfirm={() => deleteColumnId && handleDeleteColumn(deleteColumnId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteColumnId(null);
+          }
+        }}
+        onConfirm={() => {
+          if (deleteColumnId) {
+            handleDeleteColumn(deleteColumnId);
+          }
+        }}
       />
     </>
   );
