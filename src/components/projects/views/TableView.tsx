@@ -82,38 +82,37 @@ export function TableView({ tasks, view }: TableViewProps) {
 
   const handleAddTable = async () => {
     try {
-      const currentTables = localView.config.tables || [{
+      const defaultTable = {
         id: 'default',
         title: title,
         tasks: tasks
-      }];
+      };
 
+      const currentTables = localView.config.tables || [defaultTable];
       const newTable = {
         id: crypto.randomUUID(),
         title: "New Table",
         tasks: [] as Task[]
       };
 
-      const updatedConfig: TableConfig = {
+      const updatedTables = [...currentTables, newTable];
+      const updatedConfig = {
         ...localView.config,
-        tables: [...currentTables, newTable]
+        tables: updatedTables
       };
 
-      const updatedView: ViewWithConfig = {
+      const updatedView = {
         ...localView,
         config: updatedConfig
       };
 
-      // Update UI immediately
       setLocalView(updatedView);
 
-      // Then update the backend
       await updateView(view.id, {
         config: JSON.parse(JSON.stringify(updatedConfig))
       });
     } catch (error) {
       console.error('Failed to add new table:', error);
-      // Revert on error
       setLocalView(view as ViewWithConfig);
     }
   };

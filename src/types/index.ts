@@ -51,7 +51,7 @@ export type StatusConfig = {
 };
 
 export type TableConfig = {
-  tables?: Array<{
+  tables: Array<{
     id: string;
     title: string;
     tasks: Task[];
@@ -61,7 +61,7 @@ export type TableConfig = {
 
 export type ProjectView = Omit<Database['public']['Tables']['project_views']['Row'], 'config'> & {
   columns: ViewColumn[];
-  config: TableConfig;
+  config: TableConfig | Record<string, any>;
 };
 
 export type ViewModel = ProjectView & {
