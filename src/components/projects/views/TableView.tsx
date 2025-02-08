@@ -11,8 +11,6 @@ import { useProjectStore } from '@/stores/project';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-type Task = Database['public']['Tables']['tasks']['Row'];
-
 interface TableViewProps {
   tasks: Task[];
   view: ProjectView;
