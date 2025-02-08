@@ -50,17 +50,18 @@ export type StatusConfig = {
   defaultStatusId: string;
 };
 
-export type ProjectView = Database['public']['Tables']['project_views']['Row'] & {
+export type TableConfig = {
+  tables?: Array<{
+    id: string;
+    title: string;
+    tasks: Task[];
+  }>;
+  [key: string]: any;
+};
+
+export type ProjectView = Omit<Database['public']['Tables']['project_views']['Row'], 'config'> & {
   columns: ViewColumn[];
-  config: Json & {
-    status_config?: StatusConfig;
-    tables?: Array<{
-      id: string;
-      title: string;
-      tasks: Task[];
-    }>;
-    [key: string]: any;
-  };
+  config: TableConfig;
 };
 
 export type ViewModel = ProjectView & {

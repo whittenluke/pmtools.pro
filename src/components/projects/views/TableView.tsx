@@ -98,7 +98,7 @@ export function TableView({ tasks, view }: TableViewProps) {
             tasks: []
           }
         ]
-      };
+      } as const;
 
       const updatedView: ViewWithConfig = {
         ...localView,
@@ -110,7 +110,7 @@ export function TableView({ tasks, view }: TableViewProps) {
 
       // Then update the backend
       await updateView(view.id, {
-        config: updatedConfig
+        config: JSON.parse(JSON.stringify(updatedConfig))
       });
     } catch (error) {
       console.error('Failed to add new table:', error);
@@ -124,12 +124,14 @@ export function TableView({ tasks, view }: TableViewProps) {
       const currentTables = localView.config.tables || [];
       if (currentTables.length <= 1) return; // Prevent deleting last table
 
+      const updatedConfig = {
+        ...localView.config,
+        tables: currentTables.filter(t => t.id !== tableId)
+      } as const;
+
       const updatedView: ViewWithConfig = {
         ...localView,
-        config: {
-          ...localView.config,
-          tables: currentTables.filter(t => t.id !== tableId)
-        }
+        config: updatedConfig
       };
 
       // Update UI immediately
@@ -137,7 +139,7 @@ export function TableView({ tasks, view }: TableViewProps) {
 
       // Then update the backend
       await updateView(view.id, {
-        config: updatedView.config
+        config: JSON.parse(JSON.stringify(updatedConfig))
       });
     } catch (error) {
       console.error('Failed to delete table:', error);
