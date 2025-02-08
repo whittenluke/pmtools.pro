@@ -26,7 +26,7 @@ interface ProjectState {
   fetchViews: (projectId: string) => Promise<void>;
   fetchTasks: (projectId: string) => Promise<void>;
   createProject: (title: string, description?: string) => Promise<Project>;
-  createView: (projectId: string, title: string, type: string) => Promise<View>;
+  createView: (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => Promise<View>;
   updateProject: (id: string, data: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   setDefaultView: (projectId: string, viewId: string) => Promise<void>;
@@ -117,26 +117,24 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  fetchViews: async (projectId) => {
+  fetchViews: async (projectId: string) => {
     try {
-      const { data: views, error: viewsError } = await supabase
+      const { data: views, error } = await supabase
         .from('project_views')
         .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
+        .eq('project_id', projectId);
 
-      if (viewsError) throw viewsError;
+      if (error) throw error;
 
-      // Find the default view or use the first view
-      const defaultView = views?.find(view => view.is_default) || views?.[0] || null;
+      // Assert that the view type is one of our valid types
+      const typedViews = views.map(view => ({
+        ...view,
+        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar'
+      }));
 
-      set({ 
-        views: views || [], 
-        currentView: defaultView,
-        loading: false 
-      });
+      set({ views: typedViews });
     } catch (error) {
-      set({ error: error as Error, loading: false });
+      set({ error: error as Error });
       throw error;
     }
   },
@@ -469,7 +467,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  createView: async (projectId, title, type) => {
+  createView: async (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => {
     try {
       const { data: view, error } = await supabase
         .from('project_views')
@@ -511,11 +509,17 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (error) throw error;
 
+      // Assert the type is correct
+      const typedView = {
+        ...view,
+        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar'
+      };
+
       set((state) => ({
-        views: [...state.views, view]
+        views: [...state.views, typedView]
       }));
 
-      return view;
+      return typedView;
     } catch (error) {
       set({ error: error as Error });
       throw error;

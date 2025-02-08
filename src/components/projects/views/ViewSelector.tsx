@@ -22,7 +22,7 @@ export function ViewSelector() {
   const { currentView, setView } = useView();
   const { views, createView } = useProjectStore();
 
-  const handleAddView = async (type: string, label: string) => {
+  const handleAddView = async (type: 'table' | 'kanban' | 'timeline' | 'calendar', label: string) => {
     try {
       if (!views[0]?.project_id) return; // Safety check
       const newView = await createView(views[0].project_id, label, type);
