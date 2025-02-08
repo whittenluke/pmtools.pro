@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronDown, GripVertical, Plus, X } from 'lucide-react';
+import { Check, ChevronDown, GripVertical, Plus, Settings2, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Settings2, Plus, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
