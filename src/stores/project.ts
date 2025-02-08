@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
-import type { Task, ProjectView } from '@/types';
+import type { Task, Project, ProjectView } from '@/types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 

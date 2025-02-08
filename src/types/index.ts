@@ -9,6 +9,14 @@ export type Task = Database['public']['Tables']['tasks']['Row'] & {
 
 export type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
 
+export type Project = Database['public']['Tables']['projects']['Row'];
+
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+
+export type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row'] & {
+  profiles?: Profile;
+};
+
 // Column value types
 export type ColumnValue = {
   value: string | number | boolean | null;
@@ -84,17 +92,6 @@ export interface ViewConfig {
   status_config?: StatusConfig;
   [key: string]: any;
 }
-
-export type Project = {
-  id: string;
-  title: string;
-  description?: string;
-  settings?: Record<string, any>;
-  workspace_id: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-};
 
 export type ProjectState = {
   projects: Project[];

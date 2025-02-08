@@ -2,8 +2,8 @@
 
 import { Draggable } from '@hello-pangea/dnd';
 import type { Database } from '@/types/supabase';
-
-type Task = Database['public']['Tables']['tasks']['Row'];
+import type { Task } from '@/types';
+import { format } from 'date-fns';
 
 interface KanbanCardProps {
   task: Task;

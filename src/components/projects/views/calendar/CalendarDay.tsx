@@ -1,8 +1,8 @@
+import { useState } from 'react';
+import type { Database } from '@/types/supabase';
+import type { Task } from '@/types';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import type { Database } from '@/types/supabase';
-
-type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface CalendarDayProps {
   date: Date;

@@ -1,11 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
-
-type WorkspaceMember = Database['public']['Tables']['workspace_members']['Row'] & {
-  full_name: string | null;
-  avatar_url: string | null;
-};
+import type { WorkspaceMember } from '@/types';
 
 interface WorkspaceStore {
   members: WorkspaceMember[];

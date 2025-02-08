@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import type { Database } from '@/types/supabase';
 import { useProjectStore } from '@/stores/project';
+import type { Database } from '@/types/supabase';
+import type { Task } from '@/types';
 import { format } from 'date-fns';
-
-type Task = Database['public']['Tables']['tasks']['Row'];
 
 export function useCalendarDragAndDrop() {
   const [draggingTask, setDraggingTask] = useState<Task | null>(null);

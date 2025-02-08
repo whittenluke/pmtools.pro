@@ -6,12 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { ProjectCard } from './ProjectCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CreateProjectButton } from './CreateProjectButton';
-import type { Database } from '@/lib/database.types';
+import type { Database } from '@/types/supabase';
+import type { Project } from '@/types';
 
 type Tables = Database['public']['Tables'];
-type Project = Omit<Tables['projects']['Row'], 'settings'> & {
-  settings: Record<string, any>;
-};
 type WorkspaceMember = Tables['workspace_members']['Row'];
 
 function ProjectSkeleton() {
