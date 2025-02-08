@@ -3,7 +3,7 @@
 import { TableGrid } from './table/TableGrid';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronRight, MoreHorizontal, Trash2 } from 'lucide-react';
-import type { ProjectView } from '@/types';
+import type { ProjectView, ViewModel } from '@/types';
 import type { Database } from '@/types/supabase';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -146,6 +146,13 @@ export function TableView({ tasks, view }: TableViewProps) {
     });
   }
 
+  // Transform ProjectView to ViewModel
+  const viewModel: ViewModel = {
+    ...view,
+    config: view.config || {},
+    columns: view.columns || []
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-6 pl-16 space-y-12 overflow-x-auto">
@@ -248,7 +255,7 @@ export function TableView({ tasks, view }: TableViewProps) {
                 {!isCollapsed && (
                   <TableGrid 
                     tasks={table.id === 'default' ? tasks : table.tasks} 
-                    view={view} 
+                    view={viewModel}
                   />
                 )}
               </div>
