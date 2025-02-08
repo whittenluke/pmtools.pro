@@ -3,7 +3,7 @@
 import { TableGrid } from './table/TableGrid';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronRight, MoreHorizontal, Trash2 } from 'lucide-react';
-import type { ProjectView, ViewModel } from '@/types';
+import type { ProjectView, ViewModel, Task } from '@/types';
 import type { Database } from '@/types/supabase';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -22,41 +22,36 @@ export function TableView({ tasks, view }: TableViewProps) {
   const [title, setTitle] = useState(view.title || "Main Table");
   const [isEditing, setIsEditing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [localView, setLocalView] = useState(view);
+  const [localView, setLocalView] = useState<ProjectView>({
+    ...view,
+    config: view.config || {},
+    columns: view.columns || []
+  });
   const { updateView } = useProjectStore();
 
   // Update local view when prop changes
   useEffect(() => {
-    setLocalView(view);
+    setLocalView({
+      ...view,
+      config: view.config || {},
+      columns: view.columns || []
+    });
   }, [view]);
 
   // Update local view when tasks change
   useEffect(() => {
-    if (!localView.config?.tables) {
-      setLocalView(prev => ({
-        ...prev,
-        config: {
-          ...prev.config,
-          tables: [{
-            id: 'default',
-            title: title,
-            tasks: tasks
-          }]
-        }
-      }));
-    } else {
-      // Update tasks in the default table
-      setLocalView(prev => ({
-        ...prev,
-        config: {
-          ...prev.config,
-          tables: prev.config.tables.map(table => 
-            table.id === 'default' ? { ...table, tasks } : table
-          )
-        }
-      }));
-    }
-  }, [tasks]);
+    setLocalView(prev => ({
+      ...prev,
+      config: {
+        ...(prev.config || {}),
+        tables: [{
+          id: 'default',
+          title: title,
+          tasks: tasks
+        }]
+      }
+    }));
+  }, [tasks, title]);
 
   const handleTitleChange = async (newTitle: string) => {
     try {
@@ -79,7 +74,7 @@ export function TableView({ tasks, view }: TableViewProps) {
       const updatedView = {
         ...localView,
         config: {
-          ...localView.config,
+          ...(localView.config || {}),
           tables: [
             ...currentTables,
             {
@@ -113,7 +108,7 @@ export function TableView({ tasks, view }: TableViewProps) {
       const updatedView = {
         ...localView,
         config: {
-          ...localView.config,
+          ...(localView.config || {}),
           tables: currentTables.filter(t => t.id !== tableId)
         }
       };
@@ -146,11 +141,22 @@ export function TableView({ tasks, view }: TableViewProps) {
     });
   }
 
-  // Transform ProjectView to ViewModel
+  // Transform ProjectView to ViewModel ensuring all required properties
   const viewModel: ViewModel = {
     ...view,
     config: view.config || {},
-    columns: view.columns || []
+    columns: view.columns || [],
+    type: view.type || 'table',
+    id: view.id,
+    project_id: view.project_id,
+    title: view.title,
+    is_default: view.is_default || false,
+    created_at: view.created_at,
+    updated_at: view.updated_at,
+    status_config: view.status_config || {
+      statuses: [],
+      defaultStatusId: 'not_started'
+    }
   };
 
   return (
