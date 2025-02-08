@@ -16,6 +16,15 @@ interface TableViewProps {
   view: ProjectView;
 }
 
+interface TableConfig {
+  tables: Array<{
+    id: string;
+    title: string;
+    taskIds: string[]; // Store task IDs instead of Task objects
+  }>;
+  [key: string]: any;
+}
+
 export function TableView({ tasks, view }: TableViewProps) {
   const [title, setTitle] = useState(view.title || "Main Table");
   const [isEditing, setIsEditing] = useState(false);
@@ -31,16 +40,22 @@ export function TableView({ tasks, view }: TableViewProps) {
       ? viewConfig.status_config as StatusConfig 
       : defaultStatusConfig;
 
+    const tables = viewConfig.tables?.map((table: any) => ({
+      ...table,
+      taskIds: table.tasks?.map((t: Task) => t.id) || []
+    })) || [{
+      id: 'default',
+      title: view.title || "Main Table",
+      taskIds: tasks.map(t => t.id)
+    }];
+
     return {
       ...view,
       type: view.type,
       config: {
-        tables: [{
-          id: 'default',
-          title: view.title || "Main Table",
-          tasks: tasks
-        }],
-        ...(typeof view.config === 'object' ? view.config : {})
+        ...viewConfig,
+        tables,
+        status_config: statusConfig
       },
       columns: view.columns || [],
       status_config: statusConfig
@@ -64,12 +79,13 @@ export function TableView({ tasks, view }: TableViewProps) {
       ...view,
       type: view.type,
       config: {
+        ...viewConfig,
         tables: [{
           id: 'default',
           title: view.title || "Main Table",
-          tasks: tasks
+          taskIds: tasks.map(t => t.id)
         }],
-        ...(typeof view.config === 'object' ? view.config : {})
+        status_config: statusConfig
       },
       columns: view.columns || [],
       status_config: statusConfig
@@ -91,7 +107,7 @@ export function TableView({ tasks, view }: TableViewProps) {
       const newTable = {
         id: crypto.randomUUID(),
         title: "New Table",
-        tasks: [] as Task[]
+        taskIds: []
       };
 
       const updatedConfig = {
@@ -99,10 +115,10 @@ export function TableView({ tasks, view }: TableViewProps) {
         tables: [...(localView.config.tables || []), newTable]
       };
 
-      setLocalView({
-        ...localView,
+      setLocalView(prev => ({
+        ...prev,
         config: updatedConfig
-      });
+      }));
 
       await updateView(view.id, {
         config: updatedConfig
@@ -123,10 +139,10 @@ export function TableView({ tasks, view }: TableViewProps) {
         tables: currentTables.filter(t => t.id !== tableId)
       };
 
-      setLocalView({
-        ...localView,
+      setLocalView(prev => ({
+        ...prev,
         config: updatedConfig
-      });
+      }));
 
       await updateView(view.id, {
         config: updatedConfig
@@ -140,14 +156,14 @@ export function TableView({ tasks, view }: TableViewProps) {
   const tables = localView.config?.tables || [{
     id: 'default',
     title: title,
-    tasks: tasks
+    taskIds: tasks.map(t => t.id)
   }];
 
   if (localView.config?.tables && localView.config.tables.length === 0) {
     tables.push({
       id: 'default',
       title: title,
-      tasks: tasks
+      taskIds: tasks.map(t => t.id)
     });
   }
 
@@ -232,16 +248,16 @@ export function TableView({ tasks, view }: TableViewProps) {
                         isCollapsed ? "opacity-100" : "opacity-0 group-hover/header:opacity-100"
                       )}
                     >
-                      {table.tasks.length} {table.tasks.length === 1 ? 'item' : 'items'}
+                      {table.taskIds.length} {table.taskIds.length === 1 ? 'item' : 'items'}
                     </span>
                     {isCollapsed && (
                       <div className="flex items-center space-x-1">
-                        {Object.entries(getStatusCounts(table.tasks)).map(([status, count]) => (
+                        {Object.entries(getStatusCounts(table.taskIds.map(id => tasks.find(t => t.id === id) as Task))).map(([status, count]) => (
                           <div
                             key={status}
                             className="h-1.5 rounded-full bg-primary"
                             style={{
-                              width: `${(count / table.tasks.length) * 100}px`,
+                              width: `${(count / table.taskIds.length) * 100}px`,
                               backgroundColor: getStatusColor(status)
                             }}
                           />
@@ -252,7 +268,7 @@ export function TableView({ tasks, view }: TableViewProps) {
                 </div>
                 {!isCollapsed && (
                   <TableGrid 
-                    tasks={table.id === 'default' ? tasks : table.tasks} 
+                    tasks={table.taskIds.map(id => tasks.find(t => t.id === id) as Task)} 
                     view={localView}
                   />
                 )}
