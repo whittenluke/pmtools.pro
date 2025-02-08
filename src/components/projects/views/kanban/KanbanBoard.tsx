@@ -2,9 +2,8 @@
 
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useProjectStore } from '@/stores/project';
-import type { Database } from '@/types/supabase';
+import type { Task, TaskUpdate, TaskColumnValues } from '@/types';
 
-type Task = Database['public']['Tables']['tasks']['Row'];
 type TaskStatus = 'todo' | 'in_progress' | 'done';
 
 export function KanbanBoard() {
@@ -12,7 +11,7 @@ export function KanbanBoard() {
 
   const getTasksByStatus = (status: TaskStatus) => {
     return tasks.filter(task => {
-      const columnValues = task.column_values as { status?: { value: TaskStatus } };
+      const columnValues = (task.column_values as TaskColumnValues) || {};
       return columnValues?.status?.value === status;
     });
   };
@@ -25,12 +24,18 @@ export function KanbanBoard() {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
     
-    await updateTask(taskId, {
+    const columnValues = (task.column_values as TaskColumnValues) || {};
+    const update: TaskUpdate = {
       column_values: {
-        ...(task.column_values as { [key: string]: any }),
-        status: { value: newStatus }
+        ...columnValues,
+        status: { 
+          value: newStatus,
+          metadata: columnValues.status?.metadata || {}
+        }
       }
-    } satisfies Database['public']['Tables']['tasks']['Update']);
+    };
+    
+    await updateTask(taskId, update);
   };
 
   return (

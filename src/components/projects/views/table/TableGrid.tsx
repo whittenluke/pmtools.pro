@@ -1,4 +1,4 @@
-import type { ViewModel, ViewColumn } from '@/types';
+import type { ViewModel, ViewColumn, Task } from '@/types';
 import type { Database } from '@/types/supabase';
 import { TableCell } from './TableCell';
 import { AddColumnButton } from './AddColumnButton';
@@ -27,8 +27,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { DeleteColumnDialog } from './DeleteColumnDialog';
-
-type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TableGridProps {
   tasks: Task[];

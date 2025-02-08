@@ -1,10 +1,7 @@
 'use client';
 
 import { TableGrid } from './TableGrid';
-import type { ProjectView, ViewModel } from '@/types';
-import type { Database } from '@/types/supabase';
-
-type Task = Database['public']['Tables']['tasks']['Row'];
+import type { ProjectView, ViewModel, Task, TaskColumnValues } from '@/types';
 
 interface TableViewProps {
   tasks: Task[];
@@ -17,17 +14,24 @@ export function TableView({ tasks, view }: TableViewProps) {
     ...view,
     config: {
       ...view.config,
-      status_config: view.status_config || {},
+      status_config: view.status_config || {
+        statuses: [],
+        defaultStatusId: 'not_started'
+      },
       tables: view.config?.tables || []
     },
     columns: view.columns || [],
-    type: view.type,
+    type: view.type || 'table',
     id: view.id,
     project_id: view.project_id,
     title: view.title,
-    is_default: view.is_default,
+    is_default: view.is_default || false,
     created_at: view.created_at,
-    updated_at: view.updated_at
+    updated_at: view.updated_at,
+    status_config: view.status_config || {
+      statuses: [],
+      defaultStatusId: 'not_started'
+    }
   };
 
   return (

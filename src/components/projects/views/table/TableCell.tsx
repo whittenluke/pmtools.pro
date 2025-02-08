@@ -8,16 +8,13 @@ import { DateCell } from './cells/DateCell';
 import { PeopleCell } from './cells/PeopleCell';
 import { TextCell } from './cells/TextCell';
 import { NumberCell } from './cells/NumberCell';
-import type { ViewColumn, StatusConfig } from '@/types';
-import type { Database } from '@/types/supabase';
+import type { ViewColumn, StatusConfig, Task, TaskUpdate, TaskColumnValues, ColumnValue } from '@/types';
 import { cn } from '@/lib/utils';
-
-type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface TableCellProps {
   task: Task;
   column: ViewColumn;
-  type?: string;
+  type?: ViewColumn['type'];
   value?: any;
   statusConfig?: StatusConfig;
   onStatusConfigChange?: (config: StatusConfig) => void;
@@ -35,22 +32,16 @@ export function TableCell({
   const isTitle = column.id === 'title';
 
   const handleChange = async (value: any) => {
-    const columnValues = task.column_values as { [key: string]: any };
-    let update: Database['public']['Tables']['tasks']['Update'] = {
+    const columnValues = (task.column_values as TaskColumnValues) || {};
+    const update: TaskUpdate = {
       column_values: {
         ...columnValues,
-        [column.id]: value
+        [type === 'status' ? 'status' : column.id]: { 
+          value,
+          metadata: columnValues[type === 'status' ? 'status' : column.id]?.metadata || {}
+        } as ColumnValue
       }
     };
-
-    if (type === 'status') {
-      update = {
-        column_values: {
-          ...columnValues,
-          status: { value }
-        }
-      };
-    }
 
     optimisticUpdateTask(task.id, update);
 
@@ -68,11 +59,11 @@ export function TableCell({
   };
 
   const getValue = () => {
-    const columnValues = task.column_values as { [key: string]: any };
+    const columnValues = (task.column_values as TaskColumnValues) || {};
     if (type === 'status') {
       return columnValues?.status?.value || '';
     }
-    return columnValues?.[column.id] || '';
+    return columnValues?.[column.id]?.value || '';
   };
   
   const cellContent = useMemo(() => {

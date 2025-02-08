@@ -2,11 +2,65 @@
 import type { Json } from './supabase';
 import type { Database } from './supabase';
 
-type BaseTask = Database['public']['Tables']['tasks']['Row'];
+// Base types from database
+export type Task = Database['public']['Tables']['tasks']['Row'] & {
+  workspace_id?: string;
+};
 
-export interface Task extends BaseTask {
-  workspace_id: string;
-}
+export type TaskUpdate = Database['public']['Tables']['tasks']['Update'];
+
+// Column value types
+export type ColumnValue = {
+  value: string | number | boolean | null;
+  metadata?: Record<string, any>;
+};
+
+export type TaskColumnValues = {
+  status?: { value: string };
+  [key: string]: ColumnValue | undefined;
+};
+
+// View types
+export type ViewColumn = {
+  id: string;
+  title: string;
+  type: 'text' | 'status' | 'user' | 'date' | 'number';
+  width?: number;
+  config?: Record<string, any>;
+};
+
+export type Status = {
+  id: string;
+  title: string;
+  color: string;
+  type: 'default' | 'custom';
+  position: number;
+};
+
+export type StatusConfig = {
+  statuses: Status[];
+  defaultStatusId: string;
+};
+
+export type ProjectView = Database['public']['Tables']['project_views']['Row'] & {
+  columns: ViewColumn[];
+  config: {
+    status_config?: StatusConfig;
+    tables?: Array<{
+      id: string;
+      title: string;
+      tasks: Task[];
+    }>;
+    [key: string]: any;
+  };
+};
+
+export type ViewModel = ProjectView & {
+  type: 'table' | 'kanban' | 'timeline' | 'calendar';
+  columns: ViewColumn[];
+  config: NonNullable<ProjectView['config']>;
+  status_config: StatusConfig;
+};
 
 export type ColumnType = 
   | 'text' 
@@ -26,42 +80,9 @@ export interface NumberColumnConfig {
   aggregation?: 'sum' | 'average' | 'min' | 'max' | 'count';
 }
 
-export interface Status {
-  id: string;
-  title: string;
-  color: string;
-  position: number;
-  type?: 'default' | 'custom';
-}
-
-export interface StatusConfig {
-  statuses: Status[];
-  defaultStatusId: string;
-}
-
 export interface ViewConfig {
   status_config?: StatusConfig;
   [key: string]: any;
-}
-
-export interface ViewColumn {
-  id: string;
-  title: string;
-  type?: string;
-  width?: number;
-  config?: Record<string, any>;
-}
-
-export interface ViewModel {
-  id: string;
-  title: string;
-  type: string;
-  project_id: string;
-  is_default: boolean;
-  columns: ViewColumn[];
-  config: ViewConfig;
-  created_at: string;
-  updated_at: string;
 }
 
 export type Project = {
@@ -71,33 +92,6 @@ export type Project = {
   settings?: Record<string, any>;
   workspace_id: string;
   created_by: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type ProjectView = {
-  id: string;
-  project_id: string;
-  title: string;
-  type: 'table' | 'kanban' | 'timeline' | 'calendar';
-  status_config?: {
-    statuses: Array<{
-      id: string;
-      type: string;
-      color: string;
-      title: string;
-      position: number;
-    }>;
-    defaultStatusId: string;
-  };
-  columns: Array<{
-    id: string;
-    title: string;
-    type: string;
-    config?: Record<string, any>;
-  }>;
-  config?: Record<string, any>;
-  is_default: boolean;
   created_at: string;
   updated_at: string;
 };
