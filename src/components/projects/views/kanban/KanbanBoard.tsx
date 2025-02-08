@@ -11,14 +11,21 @@ export function KanbanBoard() {
   const { tasks, updateTask } = useProjectStore();
 
   const getTasksByStatus = (status: TaskStatus) => {
-    return tasks.filter(task => task.status === status);
+    return tasks.filter(task => 
+      (task.column_values as Record<string, any>)?.status?.value === status
+    );
   };
 
   const handleDragEnd = async (result: any) => {
     if (!result.destination) return;
     const taskId = result.draggableId;
     const newStatus = result.destination.droppableId as TaskStatus;
-    await updateTask(taskId, { status: newStatus });
+    await updateTask(taskId, { 
+      column_values: {
+        ...(task.column_values as Record<string, any>),
+        status: { value: newStatus }
+      }
+    });
   };
 
   return (

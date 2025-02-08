@@ -73,7 +73,7 @@ export function TableCell({
 
   const getValue = () => {
     if (type === 'status') {
-      return task.status_id;
+      return (task.column_values as Record<string, any>)?.status?.value || '';
     }
     return task.column_values?.[column.id] || '';
   };
