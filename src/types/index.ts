@@ -56,18 +56,31 @@ export type TableConfig = {
     title: string;
     tasks: Task[];
   }>;
+  status_config?: StatusConfig;
   [key: string]: any;
 };
 
-export type ProjectView = Omit<Database['public']['Tables']['project_views']['Row'], 'config'> & {
+// Base ProjectView type that matches exactly what's in the database
+export type ProjectViewBase = Database['public']['Tables']['project_views']['Row'];
+
+// Extended ProjectView type for use in the application
+export type ProjectView = Omit<ProjectViewBase, 'config' | 'type'> & {
   columns: ViewColumn[];
-  config: TableConfig | Record<string, any>;
+  config: Json;
+  type: 'table' | 'kanban' | 'timeline' | 'calendar';
 };
 
-export type ViewModel = ProjectView & {
+// Fully typed view model for use in components
+export type ViewModel = {
+  id: string;
+  project_id: string;
+  title: string;
   type: 'table' | 'kanban' | 'timeline' | 'calendar';
+  is_default: boolean;
+  created_at: string | null;
+  updated_at: string | null;
   columns: ViewColumn[];
-  config: NonNullable<ProjectView['config']>;
+  config: TableConfig;
   status_config: StatusConfig;
 };
 
@@ -97,22 +110,35 @@ export interface ViewConfig {
 export type ProjectState = {
   projects: Project[];
   currentProject: Project | null;
+  currentView: ProjectView | null;
+  views: ProjectView[];
+  tasks: Task[];
   loading: boolean;
   error: Error | null;
-  views: ProjectView[];
-  currentView: ProjectView | null;
+  taskUpdates: Map<string, Task>;
   
-  // Project actions
-  fetchProject: (id: string) => Promise<void>;
-  createProject: (project: Partial<Project>) => Promise<Project>;
-  updateProject: (id: string, project: Partial<Project>) => Promise<void>;
-  deleteProject: (id: string) => Promise<void>;
+  // Actions
+  setLoading: (loading: boolean) => void;
   setCurrentProject: (project: Project | null) => void;
-  
-  // View actions
-  fetchViews: (projectId: string) => Promise<void>;
-  createView: (view: Partial<ProjectView>) => Promise<ProjectView>;
-  updateView: (id: string, view: Partial<ProjectView>) => Promise<void>;
-  deleteView: (id: string) => Promise<void>;
   setCurrentView: (view: ProjectView | null) => void;
+  fetchProjects: () => Promise<void>;
+  fetchProject: (id: string) => Promise<void>;
+  fetchViews: (projectId: string) => Promise<void>;
+  fetchTasks: (projectId: string) => Promise<void>;
+  createProject: (title: string, description?: string) => Promise<Project>;
+  createView: (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => Promise<ProjectView>;
+  updateProject: (id: string, data: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  setDefaultView: (projectId: string, viewId: string) => Promise<void>;
+  updateView: (viewId: string, data: Partial<ProjectView>) => Promise<void>;
+  deleteView: (viewId: string) => Promise<void>;
+  updateTask: (taskId: string, data: Partial<Task>) => Promise<void>;
+  optimisticUpdateTask: (taskId: string, data: Partial<Task>) => void;
+  revertTaskUpdate: (taskId: string) => void;
+  addView: (view: ProjectView) => void;
+  updateViewLocally: (viewId: string, data: Partial<ProjectView>) => void;
+  removeView: (viewId: string) => void;
+  removeTask: (taskId: string) => void;
+  createTask: (task: Partial<Task>) => Promise<Task>;
+  updateViewConfig: (viewId: string, config: Partial<ProjectView['config']>) => Promise<void>;
 };

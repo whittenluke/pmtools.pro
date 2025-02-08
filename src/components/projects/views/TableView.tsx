@@ -16,59 +16,50 @@ interface TableViewProps {
   view: ProjectView;
 }
 
-interface TableConfig {
-  tables?: Array<{
-    id: string;
-    title: string;
-    tasks: Task[];
-  }>;
-  [key: string]: any;
-}
-
-interface ViewWithConfig extends ProjectView {
-  config: TableConfig;
-}
-
 export function TableView({ tasks, view }: TableViewProps) {
   const [title, setTitle] = useState(view.title || "Main Table");
   const [isEditing, setIsEditing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [localView, setLocalView] = useState<ViewWithConfig>({
+  const [localView, setLocalView] = useState<ViewModel>(() => ({
     ...view,
+    type: view.type,
     config: {
-      ...((view.config || {}) as TableConfig),
-      tables: view.config?.tables || []
+      tables: [{
+        id: 'default',
+        title: view.title || "Main Table",
+        tasks: tasks
+      }],
+      ...(typeof view.config === 'object' ? view.config : {})
     },
-    columns: view.columns || []
-  });
+    columns: view.columns || [],
+    status_config: (typeof view.config === 'object' && 'status_config' in view.config) 
+      ? view.config.status_config 
+      : {
+          statuses: [],
+          defaultStatusId: 'not_started'
+        }
+  }));
   const { updateView } = useProjectStore();
 
   // Update local view when prop changes
   useEffect(() => {
-    setLocalView({
-      ...view,
-      config: {
-        ...((view.config || {}) as TableConfig),
-        tables: view.config?.tables || []
-      },
-      columns: view.columns || []
-    });
-  }, [view]);
-
-  // Update local view when tasks change
-  useEffect(() => {
     setLocalView(prev => ({
-      ...prev,
+      ...view,
+      type: view.type,
       config: {
-        ...prev.config,
         tables: [{
           id: 'default',
-          title: title,
+          title: view.title || "Main Table",
           tasks: tasks
-        }]
-      }
+        }],
+        ...(typeof view.config === 'object' ? view.config : {})
+      },
+      columns: view.columns || [],
+      status_config: (typeof view.config === 'object' && 'status_config' in view.config) 
+        ? view.config.status_config 
+        : prev.status_config
     }));
-  }, [tasks, title]);
+  }, [view, tasks]);
 
   const handleTitleChange = async (newTitle: string) => {
     try {
@@ -82,67 +73,52 @@ export function TableView({ tasks, view }: TableViewProps) {
 
   const handleAddTable = async () => {
     try {
-      const defaultTable = {
-        id: 'default',
-        title: title,
-        tasks: tasks
-      };
-
-      const currentTables = localView.config.tables || [defaultTable];
       const newTable = {
         id: crypto.randomUUID(),
         title: "New Table",
         tasks: [] as Task[]
       };
 
-      const updatedTables = [...currentTables, newTable];
       const updatedConfig = {
         ...localView.config,
-        tables: updatedTables
+        tables: [...(localView.config.tables || []), newTable]
       };
 
-      const updatedView = {
+      setLocalView({
         ...localView,
         config: updatedConfig
-      };
-
-      setLocalView(updatedView);
+      });
 
       await updateView(view.id, {
-        config: JSON.parse(JSON.stringify(updatedConfig))
+        config: updatedConfig
       });
     } catch (error) {
       console.error('Failed to add new table:', error);
-      setLocalView(view as ViewWithConfig);
+      setLocalView(prev => prev);
     }
   };
 
   const handleDeleteTable = async (tableId: string) => {
     try {
-      const currentTables = localView.config.tables || [];
-      if (currentTables.length <= 1) return; // Prevent deleting last table
+      const currentTables = localView.config.tables;
+      if (currentTables.length <= 1) return;
 
-      const updatedConfig: TableConfig = {
+      const updatedConfig = {
         ...localView.config,
         tables: currentTables.filter(t => t.id !== tableId)
       };
 
-      const updatedView: ViewWithConfig = {
+      setLocalView({
         ...localView,
         config: updatedConfig
-      };
+      });
 
-      // Update UI immediately
-      setLocalView(updatedView);
-
-      // Then update the backend
       await updateView(view.id, {
-        config: JSON.parse(JSON.stringify(updatedConfig))
+        config: updatedConfig
       });
     } catch (error) {
       console.error('Failed to delete table:', error);
-      // Revert on error
-      setLocalView(view as ViewWithConfig);
+      setLocalView(prev => prev);
     }
   };
 
@@ -159,24 +135,6 @@ export function TableView({ tasks, view }: TableViewProps) {
       tasks: tasks
     });
   }
-
-  // Transform ProjectView to ViewModel ensuring all required properties
-  const viewModel: ViewModel = {
-    ...view,
-    config: view.config || {},
-    columns: view.columns || [],
-    type: view.type || 'table',
-    id: view.id,
-    project_id: view.project_id,
-    title: view.title,
-    is_default: view.is_default || false,
-    created_at: view.created_at,
-    updated_at: view.updated_at,
-    status_config: view.status_config || {
-      statuses: [],
-      defaultStatusId: 'not_started'
-    }
-  };
 
   return (
     <div className="flex flex-col h-full">
@@ -280,7 +238,7 @@ export function TableView({ tasks, view }: TableViewProps) {
                 {!isCollapsed && (
                   <TableGrid 
                     tasks={table.id === 'default' ? tasks : table.tasks} 
-                    view={viewModel}
+                    view={localView}
                   />
                 )}
               </div>

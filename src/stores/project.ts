@@ -130,7 +130,6 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar',
         columns: view.columns || [],
         config: view.config || {},
-        status_config: view.status_config || {}
       }));
 
       set({ views: typedViews });
@@ -431,18 +430,29 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  updateView: async (viewId, data) => {
+  updateView: async (viewId: string, data: Partial<ProjectView>) => {
     try {
+      // Ensure we're not sending undefined values to the database
+      const cleanedData = Object.fromEntries(
+        Object.entries(data).filter(([_, v]) => v !== undefined)
+      ) as Partial<ProjectViewBase>;
+
       const { error } = await supabase
         .from('project_views')
-        .update(data)
+        .update(cleanedData)
         .eq('id', viewId);
 
       if (error) throw error;
 
       set((state) => ({
-        views: state.views.map((v) => (v.id === viewId ? { ...v, ...data } : v)),
-        currentView: state.currentView?.id === viewId ? { ...state.currentView, ...data } : state.currentView,
+        views: state.views.map((v) => 
+          v.id === viewId 
+            ? { ...v, ...data }
+            : v
+        ),
+        currentView: state.currentView?.id === viewId 
+          ? { ...state.currentView, ...data }
+          : state.currentView,
       }));
     } catch (error) {
       console.error('Failed to update view:', error);
@@ -515,8 +525,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         ...view,
         type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar',
         columns: view.columns || [],
-        config: view.config || {},
-        status_config: view.status_config || {}
+        config: view.config || {}
       };
 
       set((state) => ({
@@ -673,14 +682,16 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     if (!currentView) return;
 
     try {
+      const updatedConfig = {
+        ...currentView.config,
+        ...config,
+      };
+
       // Optimistically update the view config
       set({
         currentView: {
           ...currentView,
-          config: {
-            ...currentView.config,
-            ...config,
-          },
+          config: updatedConfig,
         },
       });
 
@@ -688,10 +699,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       const { error } = await supabase
         .from('project_views')
         .update({
-          config: {
-            ...currentView.config,
-            ...config,
-          },
+          config: updatedConfig,
         })
         .eq('id', viewId);
 
