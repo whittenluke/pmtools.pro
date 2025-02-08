@@ -82,25 +82,27 @@ export function TableView({ tasks, view }: TableViewProps) {
 
   const handleAddTable = async () => {
     try {
-      const currentTables = localView.config?.tables || [{
+      const currentTables = localView.config.tables || [{
         id: 'default',
         title: title,
         tasks: tasks
       }];
 
-      const updatedView = {
+      const updatedConfig = {
+        ...localView.config,
+        tables: [
+          ...currentTables,
+          {
+            id: crypto.randomUUID(),
+            title: "New Table",
+            tasks: []
+          }
+        ]
+      };
+
+      const updatedView: ViewWithConfig = {
         ...localView,
-        config: {
-          ...(localView.config || {}),
-          tables: [
-            ...currentTables,
-            {
-              id: crypto.randomUUID(),
-              title: "New Table",
-              tasks: []
-            }
-          ]
-        }
+        config: updatedConfig
       };
 
       // Update UI immediately
@@ -108,24 +110,24 @@ export function TableView({ tasks, view }: TableViewProps) {
 
       // Then update the backend
       await updateView(view.id, {
-        config: updatedView.config
+        config: updatedConfig
       });
     } catch (error) {
       console.error('Failed to add new table:', error);
       // Revert on error
-      setLocalView(view);
+      setLocalView(view as ViewWithConfig);
     }
   };
 
   const handleDeleteTable = async (tableId: string) => {
     try {
-      const currentTables = localView.config?.tables || [];
+      const currentTables = localView.config.tables || [];
       if (currentTables.length <= 1) return; // Prevent deleting last table
 
-      const updatedView = {
+      const updatedView: ViewWithConfig = {
         ...localView,
         config: {
-          ...(localView.config || {}),
+          ...localView.config,
           tables: currentTables.filter(t => t.id !== tableId)
         }
       };
@@ -140,7 +142,7 @@ export function TableView({ tasks, view }: TableViewProps) {
     } catch (error) {
       console.error('Failed to delete table:', error);
       // Revert on error
-      setLocalView(view);
+      setLocalView(view as ViewWithConfig);
     }
   };
 

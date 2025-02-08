@@ -52,7 +52,7 @@ export type StatusConfig = {
 
 export type ProjectView = Database['public']['Tables']['project_views']['Row'] & {
   columns: ViewColumn[];
-  config: {
+  config: Json & {
     status_config?: StatusConfig;
     tables?: Array<{
       id: string;
