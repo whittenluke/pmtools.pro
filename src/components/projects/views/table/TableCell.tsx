@@ -35,23 +35,19 @@ export function TableCell({
   const isTitle = column.id === 'title';
 
   const handleChange = async (value: any) => {
-    let update: Database['public']['Tables']['tasks']['Update'];
-    
+    const columnValues = task.column_values as { [key: string]: any };
+    let update: Database['public']['Tables']['tasks']['Update'] = {
+      column_values: {
+        ...columnValues,
+        [column.id]: value
+      }
+    };
+
     if (type === 'status') {
-      update = { status_id: value };
-    } else if (type === 'user' || type === 'person') {
-      const userId = Array.isArray(value) ? value[0] : value;
       update = {
         column_values: {
-          ...(task.column_values as Record<string, any> || {}),
-          [column.id]: userId
-        }
-      };
-    } else {
-      update = {
-        column_values: {
-          ...(task.column_values as Record<string, any> || {}),
-          [column.id]: value
+          ...columnValues,
+          status: { value }
         }
       };
     }
@@ -72,10 +68,11 @@ export function TableCell({
   };
 
   const getValue = () => {
+    const columnValues = task.column_values as { [key: string]: any };
     if (type === 'status') {
-      return (task.column_values as Record<string, any>)?.status?.value || '';
+      return columnValues?.status?.value || '';
     }
-    return task.column_values?.[column.id] || '';
+    return columnValues?.[column.id] || '';
   };
   
   const cellContent = useMemo(() => {

@@ -11,9 +11,10 @@ export function KanbanBoard() {
   const { tasks, updateTask } = useProjectStore();
 
   const getTasksByStatus = (status: TaskStatus) => {
-    return tasks.filter(task => 
-      (task.column_values as Record<string, any>)?.status?.value === status
-    );
+    return tasks.filter(task => {
+      const columnValues = task.column_values as { status?: { value: TaskStatus } };
+      return columnValues?.status?.value === status;
+    });
   };
 
   const handleDragEnd = async (result: any) => {
@@ -24,12 +25,12 @@ export function KanbanBoard() {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
     
-    await updateTask(taskId, { 
+    await updateTask(taskId, {
       column_values: {
-        ...(task.column_values as Record<string, any>),
+        ...(task.column_values as { [key: string]: any }),
         status: { value: newStatus }
       }
-    });
+    } satisfies Database['public']['Tables']['tasks']['Update']);
   };
 
   return (

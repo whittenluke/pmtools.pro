@@ -12,11 +12,22 @@ interface TableViewProps {
 }
 
 export function TableView({ tasks, view }: TableViewProps) {
-  // Transform ProjectView to ViewModel
+  // Transform ProjectView to ViewModel ensuring all required properties
   const viewModel: ViewModel = {
     ...view,
-    config: view.config || {},
-    columns: view.columns || []
+    config: {
+      ...view.config,
+      status_config: view.status_config || {},
+      tables: view.config?.tables || []
+    },
+    columns: view.columns || [],
+    type: view.type,
+    id: view.id,
+    project_id: view.project_id,
+    title: view.title,
+    is_default: view.is_default,
+    created_at: view.created_at,
+    updated_at: view.updated_at
   };
 
   return (
