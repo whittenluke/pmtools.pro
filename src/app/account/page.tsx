@@ -44,7 +44,7 @@ export default function Account() {
 
       if (profile) {
         setFullName(profile.full_name);
-        setEmail(profile.email);
+        setEmail(user.email);
         setAvatarUrl(profile.avatar_url);
       }
     } catch (error) {
@@ -79,7 +79,6 @@ export default function Account() {
       const newProfile = {
         id: user.id,
         full_name: fullName,
-        email: email,
         avatar_url: avatarUrl,
         updated_at: new Date().toISOString(),
       };
