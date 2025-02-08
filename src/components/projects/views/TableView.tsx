@@ -88,17 +88,16 @@ export function TableView({ tasks, view }: TableViewProps) {
         tasks: tasks
       }];
 
-      const updatedConfig = {
+      const newTable = {
+        id: crypto.randomUUID(),
+        title: "New Table",
+        tasks: [] as Task[]
+      };
+
+      const updatedConfig: TableConfig = {
         ...localView.config,
-        tables: [
-          ...currentTables,
-          {
-            id: crypto.randomUUID(),
-            title: "New Table",
-            tasks: []
-          }
-        ]
-      } as const;
+        tables: [...currentTables, newTable]
+      };
 
       const updatedView: ViewWithConfig = {
         ...localView,
@@ -124,10 +123,10 @@ export function TableView({ tasks, view }: TableViewProps) {
       const currentTables = localView.config.tables || [];
       if (currentTables.length <= 1) return; // Prevent deleting last table
 
-      const updatedConfig = {
+      const updatedConfig: TableConfig = {
         ...localView.config,
         tables: currentTables.filter(t => t.id !== tableId)
-      } as const;
+      };
 
       const updatedView: ViewWithConfig = {
         ...localView,
