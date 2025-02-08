@@ -43,14 +43,14 @@ export function TableCell({
       const userId = Array.isArray(value) ? value[0] : value;
       update = {
         column_values: {
-          ...task.column_values,
+          ...(task.column_values as Record<string, any> || {}),
           [column.id]: userId
         }
       };
     } else {
       update = {
         column_values: {
-          ...task.column_values,
+          ...(task.column_values as Record<string, any> || {}),
           [column.id]: value
         }
       };
