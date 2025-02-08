@@ -35,7 +35,7 @@ export function TableCell({
   const isTitle = column.id === 'title';
 
   const handleChange = async (value: any) => {
-    let update: Partial<Task>;
+    let update: Database['public']['Tables']['tasks']['Update'];
     
     if (type === 'status') {
       update = { status_id: value };
