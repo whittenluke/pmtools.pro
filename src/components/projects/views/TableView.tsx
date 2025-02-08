@@ -3,7 +3,7 @@
 import { TableGrid } from './table/TableGrid';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronRight, MoreHorizontal, Trash2 } from 'lucide-react';
-import type { ProjectView, ViewModel, Task } from '@/types';
+import type { ProjectView, ViewModel, Task, StatusConfig } from '@/types';
 import type { Database } from '@/types/supabase';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -20,25 +20,32 @@ export function TableView({ tasks, view }: TableViewProps) {
   const [title, setTitle] = useState(view.title || "Main Table");
   const [isEditing, setIsEditing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [localView, setLocalView] = useState<ViewModel>(() => ({
-    ...view,
-    type: view.type,
-    config: {
-      tables: [{
-        id: 'default',
-        title: view.title || "Main Table",
-        tasks: tasks
-      }],
-      ...(typeof view.config === 'object' ? view.config : {})
-    },
-    columns: view.columns || [],
-    status_config: (typeof view.config === 'object' && 'status_config' in view.config) 
-      ? view.config.status_config 
-      : {
-          statuses: [],
-          defaultStatusId: 'not_started'
-        }
-  }));
+  const [localView, setLocalView] = useState<ViewModel>(() => {
+    const defaultStatusConfig: StatusConfig = {
+      statuses: [],
+      defaultStatusId: 'not_started'
+    };
+
+    const viewConfig = typeof view.config === 'object' ? view.config : {};
+    const statusConfig = viewConfig && 'status_config' in viewConfig 
+      ? viewConfig.status_config as StatusConfig 
+      : defaultStatusConfig;
+
+    return {
+      ...view,
+      type: view.type,
+      config: {
+        tables: [{
+          id: 'default',
+          title: view.title || "Main Table",
+          tasks: tasks
+        }],
+        ...(typeof view.config === 'object' ? view.config : {})
+      },
+      columns: view.columns || [],
+      status_config: statusConfig
+    };
+  });
   const { updateView } = useProjectStore();
 
   // Update local view when prop changes
