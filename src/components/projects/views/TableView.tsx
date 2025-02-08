@@ -148,7 +148,7 @@ export function TableView({ tasks, view }: TableViewProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-6 pl-16 space-y-12">
+      <div className="p-6 pl-16 space-y-12 overflow-x-auto">
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <h3 className="text-lg font-semibold mb-2">No tasks yet</h3>
@@ -161,7 +161,7 @@ export function TableView({ tasks, view }: TableViewProps) {
         ) : (
           <>
             {tables.map((table) => (
-              <div key={table.id} className="space-y-4">
+              <div key={table.id} className="space-y-4 min-w-0">
                 <div className="flex items-center space-x-3 group/header">
                   <button
                     onClick={() => setIsCollapsed(!isCollapsed)}

@@ -58,6 +58,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   const [localColumns, setLocalColumns] = useState(view.columns || []);
   const [isResizing, setIsResizing] = useState(false);
   const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
+  const [draggedRowId, setDraggedRowId] = useState<string | null>(null);
   
   const resizeRef = useRef<{
     columnId: string | null;
@@ -72,7 +73,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   const tableRef = useRef<HTMLDivElement>(null);
 
   // Global state and actions
-  const { updateView, updateViewConfig } = useProjectStore();
+  const { updateView, updateViewConfig, updateTask } = useProjectStore();
 
   // Update local columns when view changes
   useEffect(() => {
@@ -190,18 +191,18 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
   const handleMouseUp = useCallback(async () => {
     if (resizeRef.current.columnId) {
-      try {
-        await updateView(view.id, { columns: localColumns });
-      } catch (error) {
-        console.error('Failed to update column width:', error);
-        setLocalColumns(view.columns || []);
+    try {
+      await updateView(view.id, { columns: localColumns });
+    } catch (error) {
+      console.error('Failed to update column width:', error);
+      setLocalColumns(view.columns || []);
+          }
       }
-    }
     
-    document.body.style.userSelect = '';
-    document.body.style.cursor = '';
-    setIsResizing(false);
-    resizeRef.current = { columnId: null, startX: 0, startWidth: 0 };
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      setIsResizing(false);
+      resizeRef.current = { columnId: null, startX: 0, startWidth: 0 };
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   }, [updateView, view.id, localColumns, view.columns]);
@@ -245,6 +246,38 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     }
   };
 
+  const handleRowDragStart = () => {
+    setDraggedRowId('dragging');
+  };
+
+  const handleRowDragEnd = async (result: any) => {
+    setDraggedRowId(null);
+    if (!result.destination) return;
+
+    const sourceIndex = result.source.index;
+    const destinationIndex = result.destination.index;
+    
+    // Calculate new position
+    const allTasks = [...tasks].sort((a, b) => (a.position || 0) - (b.position || 0));
+    const newPosition = calculateNewPosition(allTasks, destinationIndex);
+    
+    try {
+      await updateTask(result.draggableId, { position: newPosition });
+    } catch (error) {
+      console.error('Failed to reorder task:', error);
+    }
+  };
+
+  const calculateNewPosition = (tasks: Task[], destinationIndex: number): number => {
+    if (tasks.length === 0) return 0;
+    if (destinationIndex === 0) return (tasks[0]?.position || 0) - 1024;
+    if (destinationIndex >= tasks.length) return (tasks[tasks.length - 1]?.position || 0) + 1024;
+    
+    const prevTask = tasks[destinationIndex - 1];
+    const nextTask = tasks[destinationIndex];
+    return ((prevTask?.position || 0) + (nextTask?.position || 0)) / 2;
+  };
+
   const renderCell = (task: Task, column: ViewColumn) => {
     const value = task[column.id as keyof Task];
     
@@ -263,22 +296,24 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
   return (
     <>
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="relative flex-1 overflow-auto">
-          <div className="bg-background rounded-lg border shadow-sm">
-            <table className="border-separate border-spacing-0">
-              <colgroup>
-                {localColumns.map((column, index) => (
-                  <col 
-                    key={column.id} 
-                    style={{ 
-                      width: `${getColumnWidth(column)}px`,
-                    }} 
-                  />
-                ))}
-                <col style={{ width: "200px" }} />
-              </colgroup>
-              
+      <div className="relative flex-1 overflow-auto" ref={tableRef}>
+        <div className="bg-background rounded-lg border shadow-sm min-w-full w-max">
+          <table className="border-collapse w-full">
+            <colgroup>
+              {localColumns.map((column, index) => (
+                <col 
+                  key={column.id}
+                  style={{ 
+                    width: `${getColumnWidth(column)}px`,
+                    minWidth: `${MIN_COLUMN_WIDTHS[column.type || 'default']}px`,
+                  }} 
+                />
+              ))}
+              <col style={{ width: "200px", minWidth: "200px" }} />
+            </colgroup>
+            
+            {/* Column headers with their own DragDropContext */}
+            <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
               <Droppable droppableId="columns" direction="horizontal">
                 {(provided) => (
                   <thead
@@ -385,8 +420,11 @@ export function TableGrid({ tasks, view }: TableGridProps) {
                                 </div>
 
                                 <div
-                                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 z-20"
-                                  onMouseDown={(e) => handleResizeStart(e, column.id, width)}
+                                  className={cn(
+                                    "absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 z-20 group-hover:bg-primary/10",
+                                    isResizing && resizeRef.current.columnId === column.id && "bg-primary/20"
+                                  )}
+                                  onMouseDown={(e) => handleResizeStart(e, column.id, getColumnWidth(column))}
                                   style={{
                                     transform: 'translateX(50%)',
                                   }}
@@ -406,36 +444,90 @@ export function TableGrid({ tasks, view }: TableGridProps) {
                   </thead>
                 )}
               </Droppable>
+            </DragDropContext>
 
-              <tbody className="relative">
-                {tasks.map((task) => (
-                  <tr key={task.id}>
-                    {localColumns.map((column, index) => (
-                      <td
-                        key={column.id}
-                        className={cn(
-                          'border-b p-2',
-                          index === 0 ? 'text-left' : 'text-center',
-                          draggedColumnId && 'transition-none',
-                          index !== 0 && 'border-l border-border'
-                        )}
+            {/* Rows with their own DragDropContext */}
+            <DragDropContext onDragEnd={handleRowDragEnd} onDragStart={handleRowDragStart}>
+              <Droppable droppableId="tasks">
+                {(provided) => (
+                  <tbody
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className="relative"
+                  >
+                    {tasks.map((task, index) => (
+                      <Draggable
+                        key={task.id}
+                        draggableId={task.id}
+                        index={index}
                       >
-                        {renderCell(task, column)}
-                      </td>
+                        {(provided, snapshot) => (
+                          <tr
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={cn(
+                              "group relative",
+                              snapshot.isDragging && "shadow-lg bg-background"
+                            )}
+                            style={{
+                              ...provided.draggableProps.style,
+                              display: 'table-row'
+                            }}
+                          >
+                            {localColumns.map((column, colIndex) => (
+                              <td
+                                key={column.id}
+                                className={cn(
+                                  'border-b p-2',
+                                  colIndex === 0 ? 'text-left group' : 'text-center',
+                                  draggedColumnId && 'transition-none',
+                                  colIndex !== 0 && 'border-l border-border',
+                                  snapshot.isDragging && 'bg-background'
+                                )}
+                                style={{
+                                  width: `${getColumnWidth(column)}px`,
+                                    minWidth: `${MIN_COLUMN_WIDTHS[column.type || 'default']}px`                                  }}
+                              >
+                                {colIndex === 0 && (
+                                  <div 
+                                    {...provided.dragHandleProps}
+                                    className="absolute left-2 inset-y-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                  </div>
+                                )}
+                                <div className={cn(colIndex === 0 && "pl-8")}>
+                                  {renderCell(task, column)}
+                                </div>
+                              </td>
+                            ))}
+                            <td 
+                              className={cn(
+                                "border-b p-2",
+                                snapshot.isDragging && 'bg-background'
+                              )} 
+                              style={{
+                                width: 200,
+                                minWidth: 200
+                              }}
+                            />
+                          </tr>
+                        )}
+                      </Draggable>
                     ))}
-                    <td className="border-b p-2" />
-                  </tr>
-                ))}
-                <tr>
-                  <td colSpan={localColumns.length + 1} className="p-0">
-                    <AddTaskRow columns={localColumns} />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    {provided.placeholder}
+                    <tr>
+                      <td colSpan={localColumns.length + 1} className="p-0">
+                        <AddTaskRow columns={localColumns} />
+                      </td>
+                    </tr>
+                  </tbody>
+                )}
+              </Droppable>
+            </DragDropContext>
+          </table>
         </div>
-      </DragDropContext>
+      </div>
 
       <DeleteColumnDialog 
         open={!!deleteColumnId}
