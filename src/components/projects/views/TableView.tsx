@@ -278,21 +278,18 @@ export function TableView({ tasks, view }: TableViewProps) {
 
 function getStatusCounts(tasks: Task[]) {
   return tasks.reduce((acc, task) => {
-    const status = task.status || 'not_started';
+    const status = (task.column_values as Record<string, any>)?.status?.value || 'not_started';
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 }
 
 function getStatusColor(status: string): string {
-  switch (status) {
-    case 'completed':
-      return 'var(--success)';
-    case 'in_progress':
-      return 'var(--warning)';
-    case 'blocked':
-      return 'var(--destructive)';
-    default:
-      return 'var(--muted)';
-  }
+  const statusColors: Record<string, string> = {
+    completed: 'var(--success)',
+    in_progress: 'var(--warning)',
+    blocked: 'var(--destructive)',
+    not_started: 'var(--muted)'
+  };
+  return statusColors[status] || 'var(--muted)';
 } 
