@@ -20,6 +20,10 @@ export function KanbanBoard() {
     if (!result.destination) return;
     const taskId = result.draggableId;
     const newStatus = result.destination.droppableId as TaskStatus;
+    
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    
     await updateTask(taskId, { 
       column_values: {
         ...(task.column_values as Record<string, any>),
