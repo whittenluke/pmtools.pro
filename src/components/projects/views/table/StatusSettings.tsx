@@ -29,6 +29,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Settings2, Plus, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import type { StatusConfig } from '@/types';
 
 interface Status {
   id: string;
@@ -36,11 +47,6 @@ interface Status {
   color: string;
   position: number;
   type?: 'default' | 'custom';
-}
-
-interface StatusConfig {
-  statuses: Status[];
-  defaultStatusId: string;
 }
 
 interface StatusSettingsProps {

@@ -480,6 +480,40 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
   createView: async (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => {
     try {
+      const defaultStatusConfig = {
+        statuses: [
+          {
+            id: 'not_started',
+            title: 'Not Started',
+            color: '#E5E7EB',
+            position: 0,
+            type: 'default'
+          },
+          {
+            id: 'in_progress',
+            title: 'In Progress',
+            color: '#93C5FD',
+            position: 1,
+            type: 'default'
+          },
+          {
+            id: 'completed',
+            title: 'Completed',
+            color: '#86EFAC',
+            position: 2,
+            type: 'default'
+          },
+          {
+            id: 'blocked',
+            title: 'Blocked',
+            color: '#FCA5A5',
+            position: 3,
+            type: 'default'
+          }
+        ],
+        defaultStatusId: 'not_started'
+      };
+
       const { data: view, error } = await supabase
         .from('project_views')
         .insert({
@@ -512,7 +546,8 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
                 type: 'date',
                 width: 150
               }
-            ] : []
+            ] : [],
+            status_config: type === 'table' ? defaultStatusConfig : undefined
           }
         })
         .select()

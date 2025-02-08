@@ -50,6 +50,16 @@ export function TableView({ tasks, view }: TableViewProps) {
 
   // Update local view when prop changes
   useEffect(() => {
+    const defaultStatusConfig: StatusConfig = {
+      statuses: [],
+      defaultStatusId: 'not_started'
+    };
+
+    const viewConfig = typeof view.config === 'object' ? view.config : {};
+    const statusConfig = viewConfig && 'status_config' in viewConfig 
+      ? viewConfig.status_config as StatusConfig 
+      : defaultStatusConfig;
+
     setLocalView(prev => ({
       ...view,
       type: view.type,
@@ -62,9 +72,7 @@ export function TableView({ tasks, view }: TableViewProps) {
         ...(typeof view.config === 'object' ? view.config : {})
       },
       columns: view.columns || [],
-      status_config: (typeof view.config === 'object' && 'status_config' in view.config) 
-        ? view.config.status_config 
-        : prev.status_config
+      status_config: statusConfig
     }));
   }, [view, tasks]);
 
