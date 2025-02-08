@@ -1,17 +1,15 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
-import type { Task, View } from '@/types';
+import type { Task, ProjectView } from '@/types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
-type View = Database['public']['Tables']['project_views']['Row'];
-type Task = Database['public']['Tables']['tasks']['Row'];
 
 interface ProjectState {
   projects: Project[];
   currentProject: Project | null;
-  currentView: View | null;
-  views: View[];
+  currentView: ProjectView | null;
+  views: ProjectView[];
   tasks: Task[];
   loading: boolean;
   error: Error | null;
@@ -20,24 +18,24 @@ interface ProjectState {
   // Actions
   setLoading: (loading: boolean) => void;
   setCurrentProject: (project: Project | null) => void;
-  setCurrentView: (view: View | null) => void;
+  setCurrentView: (view: ProjectView | null) => void;
   fetchProjects: () => Promise<void>;
   fetchProject: (id: string) => Promise<void>;
   fetchViews: (projectId: string) => Promise<void>;
   fetchTasks: (projectId: string) => Promise<void>;
   createProject: (title: string, description?: string) => Promise<Project>;
-  createView: (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => Promise<View>;
+  createView: (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => Promise<ProjectView>;
   updateProject: (id: string, data: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   setDefaultView: (projectId: string, viewId: string) => Promise<void>;
-  updateView: (viewId: string, data: Partial<View>) => Promise<void>;
+  updateView: (viewId: string, data: Partial<ProjectView>) => Promise<void>;
   deleteView: (viewId: string) => Promise<void>;
   updateTask: (taskId: string, data: Partial<Task>) => Promise<void>;
   optimisticUpdateTask: (taskId: string, data: Partial<Task>) => void;
   revertTaskUpdate: (taskId: string) => void;
   // Real-time update handlers
-  addView: (view: View) => void;
-  updateViewLocally: (viewId: string, data: Partial<View>) => void;
+  addView: (view: ProjectView) => void;
+  updateViewLocally: (viewId: string, data: Partial<ProjectView>) => void;
   removeView: (viewId: string) => void;
   removeTask: (taskId: string) => void;
   // Task actions
@@ -46,7 +44,7 @@ interface ProjectState {
   deleteTask: (id: string) => Promise<void>;
   optimisticUpdateTask: (id: string, update: Partial<Task>) => void;
   revertTaskUpdate: (id: string) => void;
-  updateViewConfig: (viewId: string, config: Partial<View['config']>) => Promise<void>;
+  updateViewConfig: (viewId: string, config: Partial<ProjectView['config']>) => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectState>()((set, get) => ({
@@ -126,10 +124,13 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (error) throw error;
 
-      // Assert that the view type is one of our valid types
-      const typedViews = views.map(view => ({
+      // Transform and type the views
+      const typedViews: ProjectView[] = views.map(view => ({
         ...view,
-        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar'
+        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar',
+        columns: view.columns || [],
+        config: view.config || {},
+        status_config: view.status_config || {}
       }));
 
       set({ views: typedViews });
@@ -509,10 +510,13 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
 
       if (error) throw error;
 
-      // Assert the type is correct
-      const typedView = {
+      // Transform and type the view
+      const typedView: ProjectView = {
         ...view,
-        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar'
+        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar',
+        columns: view.columns || [],
+        config: view.config || {},
+        status_config: view.status_config || {}
       };
 
       set((state) => ({
@@ -594,7 +598,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  addView: (view: View) => {
+  addView: (view: ProjectView) => {
     set((state) => ({
       views: [...state.views, view],
       // If this is the first view, set it as current
@@ -602,7 +606,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }));
   },
 
-  updateViewLocally: (viewId: string, data: Partial<View>) => {
+  updateViewLocally: (viewId: string, data: Partial<ProjectView>) => {
     set((state) => ({
       views: state.views.map((v) => (v.id === viewId ? { ...v, ...data } : v)),
       currentView:
@@ -664,7 +668,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     return transformedTask;
   },
 
-  updateViewConfig: async (viewId: string, config: Partial<View['config']>) => {
+  updateViewConfig: async (viewId: string, config: Partial<ProjectView['config']>) => {
     const { currentView } = get();
     if (!currentView) return;
 
