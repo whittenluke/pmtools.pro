@@ -1,38 +1,69 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { TableGrid } from './TableGrid';
-import type { ProjectView, ViewModel, Task, TaskColumnValues } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Plus, ChevronRight, MoreHorizontal, Trash2 } from 'lucide-react';
+import type { ProjectView, Task } from '@/types';
+import { Input } from '@/components/ui/input';
+import { useProjectStore } from '@/stores/project';
+import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface TableViewProps {
   tasks: Task[];
   view: ProjectView;
 }
 
+interface TableConfig {
+  tables: Array<{
+    id: string;
+    title: string;
+    tasks: Task[];
+  }>;
+  [key: string]: any;
+}
+
 export function TableView({ tasks, view }: TableViewProps) {
-  // Transform ProjectView to ViewModel ensuring all required properties
-  const viewModel: ViewModel = {
+  const [title, setTitle] = useState(view.title || "Main Table");
+  const [isEditing, setIsEditing] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [localView, setLocalView] = useState<ProjectView & { config: TableConfig }>({
     ...view,
     config: {
-      ...view.config,
-      status_config: view.status_config || {
-        statuses: [],
-        defaultStatusId: 'not_started'
-      },
+      ...(view.config || {}),
       tables: view.config?.tables || []
     },
-    columns: view.columns || [],
-    type: view.type || 'table',
-    id: view.id,
-    project_id: view.project_id,
-    title: view.title,
-    is_default: view.is_default || false,
-    created_at: view.created_at,
-    updated_at: view.updated_at,
-    status_config: view.status_config || {
-      statuses: [],
-      defaultStatusId: 'not_started'
-    }
-  };
+    columns: view.columns || []
+  });
+  const { updateView } = useProjectStore();
+
+  // Update local view when prop changes
+  useEffect(() => {
+    setLocalView({
+      ...view,
+      config: {
+        ...(view.config || {}),
+        tables: view.config?.tables || []
+      },
+      columns: view.columns || []
+    });
+  }, [view]);
+
+  // Update local view when tasks change
+  useEffect(() => {
+    setLocalView(prev => ({
+      ...prev,
+      config: {
+        ...(prev.config || {}),
+        tables: [{
+          id: 'default',
+          title: title,
+          tasks: tasks
+        }]
+      }
+    }));
+  }, [tasks, title]);
 
   return (
     <div className="flex flex-col h-full">
@@ -44,7 +75,7 @@ export function TableView({ tasks, view }: TableViewProps) {
               <p className="text-muted-foreground mb-4">Get started by adding your first task</p>
             </div>
           ) : (
-            <TableGrid tasks={tasks} view={viewModel} />
+            <TableGrid tasks={tasks} view={localView} />
           )}
         </div>
       </div>

@@ -16,13 +16,29 @@ interface TableViewProps {
   view: ProjectView;
 }
 
+interface TableConfig {
+  tables?: Array<{
+    id: string;
+    title: string;
+    tasks: Task[];
+  }>;
+  [key: string]: any;
+}
+
+interface ViewWithConfig extends ProjectView {
+  config: TableConfig;
+}
+
 export function TableView({ tasks, view }: TableViewProps) {
   const [title, setTitle] = useState(view.title || "Main Table");
   const [isEditing, setIsEditing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [localView, setLocalView] = useState<ProjectView>({
+  const [localView, setLocalView] = useState<ViewWithConfig>({
     ...view,
-    config: view.config || {},
+    config: {
+      ...((view.config || {}) as TableConfig),
+      tables: view.config?.tables || []
+    },
     columns: view.columns || []
   });
   const { updateView } = useProjectStore();
@@ -31,7 +47,10 @@ export function TableView({ tasks, view }: TableViewProps) {
   useEffect(() => {
     setLocalView({
       ...view,
-      config: view.config || {},
+      config: {
+        ...((view.config || {}) as TableConfig),
+        tables: view.config?.tables || []
+      },
       columns: view.columns || []
     });
   }, [view]);
@@ -41,7 +60,7 @@ export function TableView({ tasks, view }: TableViewProps) {
     setLocalView(prev => ({
       ...prev,
       config: {
-        ...(prev.config || {}),
+        ...prev.config,
         tables: [{
           id: 'default',
           title: title,
