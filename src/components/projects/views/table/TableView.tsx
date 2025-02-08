@@ -12,6 +12,13 @@ interface TableViewProps {
 }
 
 export function TableView({ tasks, view }: TableViewProps) {
+  // Transform ProjectView to ViewModel
+  const viewModel: ViewModel = {
+    ...view,
+    config: view.config || {},
+    columns: view.columns || []
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-x-auto">
@@ -22,10 +29,7 @@ export function TableView({ tasks, view }: TableViewProps) {
               <p className="text-muted-foreground mb-4">Get started by adding your first task</p>
             </div>
           ) : (
-            <TableGrid 
-              tasks={tasks} 
-              view={{ ...view, config: view.config || {} }} 
-            />
+            <TableGrid tasks={tasks} view={viewModel} />
           )}
         </div>
       </div>
