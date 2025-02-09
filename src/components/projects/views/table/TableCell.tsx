@@ -8,7 +8,8 @@ import { DateCell } from './cells/DateCell';
 import { PeopleCell } from './cells/PeopleCell';
 import { TextCell } from './cells/TextCell';
 import { NumberCell } from './cells/NumberCell';
-import type { ViewColumn, StatusConfig, Task, TaskUpdate, TaskColumnValues, ColumnValue } from '@/types';
+import type { ViewColumn, StatusConfig, Task, TaskColumnValues, ColumnValue } from '@/types';
+import type { Database } from '@/types/supabase';
 import { cn } from '@/lib/utils';
 
 interface TableCellProps {
@@ -33,14 +34,16 @@ export function TableCell({
 
   const handleChange = async (value: any) => {
     const columnValues = (task.column_values as TaskColumnValues) || {};
-    const update: TaskUpdate = {
-      column_values: {
-        ...columnValues,
-        [type === 'status' ? 'status' : column.id]: { 
-          value,
-          metadata: columnValues[type === 'status' ? 'status' : column.id]?.metadata || {}
-        } as ColumnValue
-      }
+    const newColumnValues = {
+      ...columnValues,
+      [type === 'status' ? 'status' : column.id]: { 
+        value,
+        metadata: columnValues[type === 'status' ? 'status' : column.id]?.metadata || {}
+      } as ColumnValue
+    };
+
+    const update: Database['public']['Tables']['tasks']['Update'] = {
+      column_values: newColumnValues as Json
     };
 
     optimisticUpdateTask(task.id, update);
