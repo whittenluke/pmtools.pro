@@ -24,15 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import type { StatusConfig } from '@/types';
-
-interface Status {
-  id: string;
-  title: string;
-  color: string;
-  position: number;
-  type?: 'default' | 'custom';
-}
+import type { Status, StatusConfig } from '@/types';
 
 interface StatusSettingsProps {
   config: StatusConfig;
@@ -53,7 +45,7 @@ export function StatusSettings({ config, onChange }: StatusSettingsProps) {
       title: newStatusTitle.trim(),
       color: newStatusColor,
       position: config.statuses.length,
-      type: 'custom',
+      type: 'custom'
     };
 
     onChange({
