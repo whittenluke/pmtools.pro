@@ -1,9 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
-import type { Task, Project, ProjectView } from '@/types';
-
-type Project = Database['public']['Tables']['projects']['Row'];
+import type { Task, Project, ProjectView, Json } from '@/types/database';
 
 interface ProjectState {
   projects: Project[];
@@ -13,7 +11,7 @@ interface ProjectState {
   tasks: Task[];
   loading: boolean;
   error: Error | null;
-  taskUpdates: Map<string, Task>; // Store original state for rollback
+  taskUpdates: Map<string, Task>;
   
   // Actions
   setLoading: (loading: boolean) => void;
@@ -24,7 +22,7 @@ interface ProjectState {
   fetchViews: (projectId: string) => Promise<void>;
   fetchTasks: (projectId: string) => Promise<void>;
   createProject: (title: string, description?: string) => Promise<Project>;
-  createView: (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => Promise<ProjectView>;
+  createView: (projectId: string, title: string, type: ProjectView['type']) => Promise<ProjectView>;
   updateProject: (id: string, data: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   setDefaultView: (projectId: string, viewId: string) => Promise<void>;
@@ -33,21 +31,15 @@ interface ProjectState {
   updateTask: (taskId: string, data: Partial<Task>) => Promise<void>;
   optimisticUpdateTask: (taskId: string, data: Partial<Task>) => void;
   revertTaskUpdate: (taskId: string) => void;
-  // Real-time update handlers
   addView: (view: ProjectView) => void;
   updateViewLocally: (viewId: string, data: Partial<ProjectView>) => void;
   removeView: (viewId: string) => void;
   removeTask: (taskId: string) => void;
-  // Task actions
   createTask: (task: Partial<Task>) => Promise<Task>;
-  updateTask: (id: string, task: Partial<Task>) => Promise<void>;
-  deleteTask: (id: string) => Promise<void>;
-  optimisticUpdateTask: (id: string, update: Partial<Task>) => void;
-  revertTaskUpdate: (id: string) => void;
   updateViewConfig: (viewId: string, config: Partial<ProjectView['config']>) => Promise<void>;
 }
 
-export const useProjectStore = create<ProjectState>()((set, get) => ({
+export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
   currentProject: null,
   currentView: null,
@@ -67,25 +59,21 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
       const { data: user } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Get user's workspaces
       const { data: workspaces, error: workspaceError } = await supabase
         .from('workspace_members')
         .select('workspace_id')
         .eq('user_id', user.user.id);
 
       if (workspaceError) throw workspaceError;
-      if (!workspaces || workspaces.length === 0) {
+      if (!workspaces?.length) {
         set({ projects: [], loading: false });
         return;
       }
 
-      const workspaceIds = workspaces.map(w => w.workspace_id);
-
-      // Get all projects for these workspaces
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .in('workspace_id', workspaceIds)
+        .in('workspace_id', workspaces.map(w => w.workspace_id))
         .order('created_at', { ascending: false });
 
       if (projectsError) throw projectsError;
@@ -478,7 +466,7 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
     }
   },
 
-  createView: async (projectId: string, title: string, type: 'table' | 'kanban' | 'timeline' | 'calendar') => {
+  createView: async (projectId: string, title: string, type: ProjectView['type']) => {
     try {
       const defaultStatusConfig = {
         statuses: [
@@ -722,7 +710,6 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         ...config,
       };
 
-      // Optimistically update the view config
       set({
         currentView: {
           ...currentView,
@@ -730,17 +717,15 @@ export const useProjectStore = create<ProjectState>()((set, get) => ({
         },
       });
 
-      // Update in the database
       const { error } = await supabase
         .from('project_views')
         .update({
-          config: updatedConfig,
+          config: updatedConfig as Json,
         })
         .eq('id', viewId);
 
       if (error) throw error;
     } catch (error) {
-      // Revert to the original state on error
       set({ currentView });
       throw error;
     }

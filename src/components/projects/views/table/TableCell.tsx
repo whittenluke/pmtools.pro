@@ -8,8 +8,7 @@ import { DateCell } from './cells/DateCell';
 import { PeopleCell } from './cells/PeopleCell';
 import { TextCell } from './cells/TextCell';
 import { NumberCell } from './cells/NumberCell';
-import type { ViewColumn, StatusConfig, Task, TaskColumnValues, ColumnValue, Json } from '@/types';
-import type { Database } from '@/types/supabase';
+import type { ViewColumn, StatusConfig, Task, Json } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 interface TableCellProps {
@@ -33,16 +32,16 @@ export function TableCell({
   const isTitle = column.id === 'title';
 
   const handleChange = async (value: any) => {
-    const columnValues = (task.column_values as TaskColumnValues) || {};
+    const columnValues = task.column_values || {};
     const newColumnValues = {
       ...columnValues,
       [type === 'status' ? 'status' : column.id]: { 
         value,
         metadata: columnValues[type === 'status' ? 'status' : column.id]?.metadata || {}
-      } as ColumnValue
+      }
     };
 
-    const update: Database['public']['Tables']['tasks']['Update'] = {
+    const update = {
       column_values: newColumnValues as Json
     };
 
@@ -62,7 +61,7 @@ export function TableCell({
   };
 
   const getValue = () => {
-    const columnValues = (task.column_values as TaskColumnValues) || {};
+    const columnValues = task.column_values || {};
     if (type === 'status') {
       return columnValues?.status?.value || '';
     }
@@ -87,6 +86,7 @@ export function TableCell({
         );
       case 'user':
       case 'person':
+      case 'people':
         return currentProject ? (
           <div className={cn(
             "flex",
@@ -97,7 +97,7 @@ export function TableCell({
               row={task}
               workspaceId={currentProject.workspace_id}
               onUpdate={handleChange}
-              allowMultiple={false}
+              allowMultiple={type === 'people'}
             />
           </div>
         ) : null;
@@ -120,7 +120,7 @@ export function TableCell({
             isTitle ? "justify-start" : "justify-center"
           )}>
             <NumberCell 
-              value={getValue()} 
+              value={Number(getValue()) || null} 
               onChange={handleChange}
             />
           </div>
@@ -132,7 +132,7 @@ export function TableCell({
             isTitle ? "justify-start" : "justify-center"
           )}>
             <TextCell 
-              value={getValue()} 
+              value={String(getValue())} 
               onChange={handleChange}
             />
           </div>

@@ -1,8 +1,16 @@
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/supabase';
+import type { Json } from '@/types/database';
 
-type AnalyticsEvent = Database['analytics']['Tables']['events']['Insert'];
-type PageView = Database['analytics']['Tables']['page_views']['Insert'];
+interface AnalyticsEvent {
+  event_name: string;
+  properties: Json;
+  created_at: string;
+}
+
+interface PageView {
+  path: string;
+  created_at: string;
+}
 
 export class AnalyticsService {
   static async trackEvent(
@@ -12,12 +20,11 @@ export class AnalyticsService {
     try {
       const event: AnalyticsEvent = {
         event_name: eventName,
-        properties,
+        properties: properties as Json,
         created_at: new Date().toISOString(),
       };
 
       const { error } = await supabase
-        .schema('analytics')
         .from('events')
         .insert(event);
 
@@ -35,7 +42,6 @@ export class AnalyticsService {
       };
 
       const { error } = await supabase
-        .schema('analytics')
         .from('page_views')
         .insert(pageView);
 

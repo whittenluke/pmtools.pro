@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/supabase';
-import type { WorkspaceMember } from '@/types';
+import type { WorkspaceMember, Profile } from '@/types/database';
 
 interface WorkspaceStore {
   members: WorkspaceMember[];
@@ -14,10 +13,13 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
     const { data: members, error } = await supabase
       .from('workspace_members')
       .select(`
-        *,
-        profiles:user_id (
+        user_id,
+        role,
+        profile:profiles!workspace_members_user_id_fkey (
+          id,
           full_name,
-          avatar_url
+          avatar_url,
+          email
         )
       `)
       .eq('workspace_id', workspaceId);
@@ -28,9 +30,11 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
 
     set({
       members: members.map((member) => ({
-        ...member,
-        full_name: member.profiles?.full_name || null,
-        avatar_url: member.profiles?.avatar_url || null,
+        user_id: member.user_id,
+        role: member.role,
+        profile: member.profile as Profile,
+        full_name: member.profile?.full_name,
+        avatar_url: member.profile?.avatar_url
       })),
     });
   },
