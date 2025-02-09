@@ -20,8 +20,9 @@ interface TableConfig {
   tables: Array<{
     id: string;
     title: string;
-    taskIds: string[]; // Store task IDs instead of Task objects
+    taskIds: string[];
   }>;
+  status_config?: StatusConfig;
   [key: string]: any;
 }
 
@@ -35,14 +36,13 @@ export function TableView({ tasks, view }: TableViewProps) {
       defaultStatusId: 'not_started'
     };
 
-    const viewConfig = typeof view.config === 'object' ? view.config : {};
-    const statusConfig = viewConfig && 'status_config' in viewConfig 
-      ? viewConfig.status_config as StatusConfig 
-      : defaultStatusConfig;
+    const viewConfig = typeof view.config === 'object' ? view.config as TableConfig : {};
+    const statusConfig = viewConfig.status_config || defaultStatusConfig;
 
-    const tables = viewConfig.tables?.map((table: any) => ({
-      ...table,
-      taskIds: table.tasks?.map((t: Task) => t.id) || []
+    const tables = viewConfig.tables?.map(table => ({
+      id: table.id,
+      title: table.title,
+      taskIds: Array.isArray(table.tasks) ? table.tasks.map((t: any) => t.id) : []
     })) || [{
       id: 'default',
       title: view.title || "Main Table",
@@ -70,10 +70,8 @@ export function TableView({ tasks, view }: TableViewProps) {
       defaultStatusId: 'not_started'
     };
 
-    const viewConfig = typeof view.config === 'object' ? view.config : {};
-    const statusConfig = viewConfig && 'status_config' in viewConfig 
-      ? viewConfig.status_config as StatusConfig 
-      : defaultStatusConfig;
+    const viewConfig = typeof view.config === 'object' ? view.config as TableConfig : {};
+    const statusConfig = viewConfig.status_config || defaultStatusConfig;
 
     setLocalView(prev => ({
       ...view,
