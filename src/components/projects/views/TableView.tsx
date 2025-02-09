@@ -3,7 +3,7 @@
 import { TableGrid } from './table/TableGrid';
 import { Button } from '@/components/ui/button';
 import { Plus, ChevronRight, MoreHorizontal, Trash2 } from 'lucide-react';
-import type { ProjectView, ViewModel, Task, StatusConfig } from '@/types';
+import type { ProjectView, ViewModel, Task, StatusConfig, TableViewModel } from '@/types';
 import type { Database } from '@/types/supabase';
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -30,16 +30,16 @@ export function TableView({ tasks, view }: TableViewProps) {
   const [title, setTitle] = useState(view.title || "Main Table");
   const [isEditing, setIsEditing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [localView, setLocalView] = useState<ViewModel>(() => ({
+  const [localView, setLocalView] = useState<TableViewModel>(() => ({
     ...view,
-    type: view.type,
+    type: 'table',
     config: {
       tables: [{
         id: 'default',
         title: view.title || "Main Table",
-        tasks: tasks
+        taskIds: tasks.map(t => t.id)
       }],
-      status_config: {
+      status_config: view.config.status_config || {
         statuses: [],
         defaultStatusId: 'not_started'
       }
@@ -51,14 +51,14 @@ export function TableView({ tasks, view }: TableViewProps) {
   useEffect(() => {
     setLocalView(prev => ({
       ...view,
-      type: view.type,
+      type: 'table',
       config: {
         tables: [{
           id: 'default',
           title: view.title || "Main Table",
-          tasks: tasks
+          taskIds: tasks.map(t => t.id)
         }],
-        status_config: prev.config.status_config
+        status_config: view.config.status_config || prev.config.status_config
       },
       columns: view.columns || []
     }));
