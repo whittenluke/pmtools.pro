@@ -8,7 +8,7 @@ import { DateCell } from './cells/DateCell';
 import { PeopleCell } from './cells/PeopleCell';
 import { TextCell } from './cells/TextCell';
 import { NumberCell } from './cells/NumberCell';
-import type { ViewColumn, StatusConfig, Task, TaskColumnValues, ColumnValue } from '@/types';
+import type { ViewColumn, StatusConfig, Task, TaskColumnValues, ColumnValue, Json } from '@/types';
 import type { Database } from '@/types/supabase';
 import { cn } from '@/lib/utils';
 
