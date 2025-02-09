@@ -24,7 +24,7 @@ export type ColumnValue = {
 };
 
 export type TaskColumnValues = {
-  status?: { value: string };
+  status?: ColumnValue;
   [key: string]: ColumnValue | undefined;
 };
 

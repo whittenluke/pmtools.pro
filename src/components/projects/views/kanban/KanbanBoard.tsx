@@ -2,7 +2,7 @@
 
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useProjectStore } from '@/stores/project';
-import type { Task, TaskUpdate, TaskColumnValues } from '@/types';
+import type { Task, TaskUpdate, TaskColumnValues, ColumnValue } from '@/types';
 
 type TaskStatus = 'todo' | 'in_progress' | 'done';
 
@@ -25,12 +25,14 @@ export function KanbanBoard() {
     if (!task) return;
     
     const columnValues = (task.column_values as TaskColumnValues) || {};
+    const currentStatus = columnValues.status || { value: '', metadata: {} };
+    
     const update: TaskUpdate = {
       column_values: {
         ...columnValues,
-        status: { 
+        status: {
           value: newStatus,
-          metadata: columnValues.status?.metadata || {}
+          metadata: currentStatus.metadata || {}
         }
       }
     };
