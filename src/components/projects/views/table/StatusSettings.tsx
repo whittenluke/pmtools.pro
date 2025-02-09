@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronDown, GripVertical, Plus, Settings2, Trash2, X } from 'lucide-react';
+import { GripVertical, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -14,11 +14,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  Command,
-  CommandGroup,
-  CommandItem,
-} from '@/components/ui/command';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -29,15 +24,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { StatusConfig } from '@/types';
 
 interface Status {
@@ -89,32 +75,11 @@ export function StatusSettings({ config, onChange }: StatusSettingsProps) {
   };
 
   const handleDeleteStatus = (status: Status) => {
-    // Don't allow deleting default statuses
-    if (status.type === 'default') return;
-
-    // Don't allow deleting the default status
-    if (status.id === config.defaultStatusId) return;
+    if (status.type === 'default' || status.id === config.defaultStatusId) return;
 
     onChange({
       ...config,
       statuses: config.statuses.filter((s) => s.id !== status.id),
-    });
-  };
-
-  const handleReorderStatus = (fromIndex: number, toIndex: number) => {
-    const newStatuses = [...config.statuses];
-    const [movedStatus] = newStatuses.splice(fromIndex, 1);
-    newStatuses.splice(toIndex, 0, movedStatus);
-
-    // Update positions
-    const reorderedStatuses = newStatuses.map((status, index) => ({
-      ...status,
-      position: index,
-    }));
-
-    onChange({
-      ...config,
-      statuses: reorderedStatuses,
     });
   };
 
@@ -133,7 +98,6 @@ export function StatusSettings({ config, onChange }: StatusSettingsProps) {
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* Add new status */}
           <div className="flex items-center gap-2">
             <Input
               placeholder="New status name"
@@ -156,9 +120,8 @@ export function StatusSettings({ config, onChange }: StatusSettingsProps) {
             </Button>
           </div>
 
-          {/* Status list */}
           <div className="space-y-2">
-            {config.statuses.map((status, index) => (
+            {config.statuses.map((status) => (
               <div
                 key={status.id}
                 className="flex items-center gap-2 p-2 rounded-md border"
@@ -238,4 +201,4 @@ export function StatusSettings({ config, onChange }: StatusSettingsProps) {
       </DialogContent>
     </Dialog>
   );
-} 
+}

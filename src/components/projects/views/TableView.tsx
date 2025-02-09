@@ -30,81 +30,37 @@ export function TableView({ tasks, view }: TableViewProps) {
   const [title, setTitle] = useState(view.title || "Main Table");
   const [isEditing, setIsEditing] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [localView, setLocalView] = useState<ViewModel>(() => {
-    const defaultStatusConfig: StatusConfig = {
-      statuses: [],
-      defaultStatusId: 'not_started'
-    };
-
-    const defaultConfig: TableConfig = {
+  const [localView, setLocalView] = useState<ViewModel>(() => ({
+    ...view,
+    type: view.type,
+    config: {
       tables: [{
         id: 'default',
         title: view.title || "Main Table",
-        taskIds: tasks.map(t => t.id)
+        tasks: tasks
       }],
-      status_config: defaultStatusConfig
-    };
-
-    const viewConfig = typeof view.config === 'object' ? view.config as TableConfig : defaultConfig;
-    const statusConfig = viewConfig?.status_config || defaultStatusConfig;
-
-    const tables = viewConfig?.tables?.map(table => ({
-      id: table.id,
-      title: table.title,
-      taskIds: Array.isArray(table.tasks) ? table.tasks.map((t: any) => t.id) : []
-    })) || [{
-      id: 'default',
-      title: view.title || "Main Table",
-      taskIds: tasks.map(t => t.id)
-    }];
-
-    return {
-      ...view,
-      type: view.type,
-      config: {
-        ...viewConfig,
-        tables,
-        status_config: statusConfig
-      },
-      columns: view.columns || [],
-      status_config: statusConfig
-    };
-  });
+      status_config: {
+        statuses: [],
+        defaultStatusId: 'not_started'
+      }
+    },
+    columns: view.columns || []
+  }));
   const { updateView } = useProjectStore();
 
-  // Update local view when prop changes
   useEffect(() => {
-    const defaultStatusConfig: StatusConfig = {
-      statuses: [],
-      defaultStatusId: 'not_started'
-    };
-
-    const defaultConfig: TableConfig = {
-      tables: [{
-        id: 'default',
-        title: view.title || "Main Table",
-        taskIds: tasks.map(t => t.id)
-      }],
-      status_config: defaultStatusConfig
-    };
-
-    const viewConfig = typeof view.config === 'object' ? view.config as TableConfig : defaultConfig;
-    const statusConfig = viewConfig?.status_config || defaultStatusConfig;
-
     setLocalView(prev => ({
       ...view,
       type: view.type,
       config: {
-        ...viewConfig,
         tables: [{
           id: 'default',
           title: view.title || "Main Table",
-          taskIds: tasks.map(t => t.id)
+          tasks: tasks
         }],
-        status_config: statusConfig
+        status_config: prev.config.status_config
       },
-      columns: view.columns || [],
-      status_config: statusConfig
+      columns: view.columns || []
     }));
   }, [view, tasks]);
 

@@ -54,10 +54,9 @@ export type TableConfig = {
   tables: Array<{
     id: string;
     title: string;
-    tasks: Task[];
+    taskIds: string[];
   }>;
-  status_config?: StatusConfig;
-  [key: string]: any;
+  status_config: StatusConfig;
 };
 
 // Base ProjectView type that matches exactly what's in the database
@@ -66,23 +65,44 @@ export type ProjectViewBase = Database['public']['Tables']['project_views']['Row
 // Extended ProjectView type for use in the application
 export type ProjectView = Omit<ProjectViewBase, 'config' | 'type'> & {
   columns: ViewColumn[];
-  config: Json;
+  config: TableConfig;
   type: 'table' | 'kanban' | 'timeline' | 'calendar';
 };
 
-// Fully typed view model for use in components
-export type ViewModel = {
-  id: string;
-  project_id: string;
-  title: string;
-  type: 'table' | 'kanban' | 'timeline' | 'calendar';
-  is_default: boolean;
-  created_at: string | null;
-  updated_at: string | null;
-  columns: ViewColumn[];
+// View model types for specific view implementations
+export type TableViewModel = ProjectView & {
   config: TableConfig;
-  status_config: StatusConfig;
 };
+
+export type KanbanViewModel = ProjectView & {
+  config: {
+    columns: Array<{
+      id: string;
+      title: string;
+      taskIds: string[];
+    }>;
+    status_config: StatusConfig;
+  };
+};
+
+export type TimelineViewModel = ProjectView & {
+  config: {
+    timeRange: {
+      start: string;
+      end: string;
+    };
+    status_config: StatusConfig;
+  };
+};
+
+export type CalendarViewModel = ProjectView & {
+  config: {
+    view: 'month' | 'week' | 'day';
+    status_config: StatusConfig;
+  };
+};
+
+export type ViewModel = TableViewModel | KanbanViewModel | TimelineViewModel | CalendarViewModel;
 
 export type ColumnType = 
   | 'text' 
@@ -102,10 +122,7 @@ export interface NumberColumnConfig {
   aggregation?: 'sum' | 'average' | 'min' | 'max' | 'count';
 }
 
-export interface ViewConfig {
-  status_config?: StatusConfig;
-  [key: string]: any;
-}
+export type ViewConfig = TableConfig | KanbanViewModel['config'] | TimelineViewModel['config'] | CalendarViewModel['config'];
 
 export type ProjectState = {
   projects: Project[];
@@ -140,5 +157,5 @@ export type ProjectState = {
   removeView: (viewId: string) => void;
   removeTask: (taskId: string) => void;
   createTask: (task: Partial<Task>) => Promise<Task>;
-  updateViewConfig: (viewId: string, config: Partial<ProjectView['config']>) => Promise<void>;
+  updateViewConfig: (viewId: string, config: Partial<ViewConfig>) => Promise<void>;
 };

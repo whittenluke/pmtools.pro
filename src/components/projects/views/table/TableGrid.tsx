@@ -1,10 +1,9 @@
-import type { ViewModel, ViewColumn, Task } from '@/types';
-import type { Database } from '@/types/supabase';
+import type { TableViewModel, ViewColumn, Task } from '@/types';
 import { TableCell } from './TableCell';
 import { AddColumnButton } from './AddColumnButton';
 import { AddTaskRow } from './AddTaskRow';
 import { useProjectStore } from '@/stores/project';
-import { X, Pencil, GripVertical, MoreHorizontal, Trash2 } from 'lucide-react';
+import { GripVertical, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
@@ -30,7 +29,7 @@ import { DeleteColumnDialog } from './DeleteColumnDialog';
 
 interface TableGridProps {
   tasks: Task[];
-  view: ViewModel;
+  view: TableViewModel;
 }
 
 const MIN_COLUMN_WIDTHS = {
@@ -53,7 +52,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   const [editingColumnId, setEditingColumnId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [deleteColumnId, setDeleteColumnId] = useState<string | null>(null);
-  const [localColumns, setLocalColumns] = useState(view.columns || []);
+  const [localColumns, setLocalColumns] = useState(view.columns);
   const [isResizing, setIsResizing] = useState(false);
   const [draggedColumnId, setDraggedColumnId] = useState<string | null>(null);
   const [draggedRowId, setDraggedRowId] = useState<string | null>(null);
@@ -75,7 +74,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
   // Update local columns when view changes
   useEffect(() => {
-    setLocalColumns(view.columns || []);
+    setLocalColumns(view.columns);
   }, [view.columns]);
 
   const handleStartEditing = (column: ViewColumn) => {
@@ -103,24 +102,14 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
   const handleDeleteColumn = async (columnId: string) => {
     const updatedColumns = localColumns.filter(col => col.id !== columnId);
-    const originalColumns = [...localColumns];
     
     try {
-      // Close the delete dialog first
       setDeleteColumnId(null);
-      
-      // Optimistic update
       setLocalColumns(updatedColumns);
-
-      // Update the view
-      await updateView(view.id, { 
-        columns: updatedColumns,
-        updated_at: new Date().toISOString()
-      });
+      await updateView(view.id, { columns: updatedColumns });
     } catch (error) {
       console.error('Failed to delete column:', error);
-      // Revert on failure
-      setLocalColumns(originalColumns);
+      setLocalColumns(view.columns);
     }
   };
 
@@ -128,16 +117,13 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     const newColumn = {
       ...column,
       id: crypto.randomUUID(),
-    };
+    } as ViewColumn;
 
-    // Optimistic update
     setLocalColumns(prev => {
       const newColumns = [...prev, newColumn];
-      // Update view with the new state
       updateView(view.id, { columns: newColumns }).catch(error => {
         console.error('Failed to add column:', error);
-        // Revert on failure
-        setLocalColumns(view.columns || []);
+        setLocalColumns(view.columns);
       });
       return newColumns;
     });
@@ -189,18 +175,18 @@ export function TableGrid({ tasks, view }: TableGridProps) {
 
   const handleMouseUp = useCallback(async () => {
     if (resizeRef.current.columnId) {
-    try {
-      await updateView(view.id, { columns: localColumns });
-    } catch (error) {
-      console.error('Failed to update column width:', error);
-      setLocalColumns(view.columns || []);
-          }
+      try {
+        await updateView(view.id, { columns: localColumns });
+      } catch (error) {
+        console.error('Failed to update column width:', error);
+        setLocalColumns(view.columns);
       }
+    }
     
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-      setIsResizing(false);
-      resizeRef.current = { columnId: null, startX: 0, startWidth: 0 };
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    setIsResizing(false);
+    resizeRef.current = { columnId: null, startX: 0, startWidth: 0 };
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
   }, [updateView, view.id, localColumns, view.columns]);
@@ -213,13 +199,10 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     setDraggedColumnId(null);
     if (!result.destination) return;
     
-    // Prevent moving the title column
     if (result.draggableId === localColumns[0]?.id) return;
     
     const newColumns = Array.from(localColumns);
     const [removed] = newColumns.splice(result.source.index, 1);
-    
-    // Ensure title column stays first by preventing drops at index 0
     const destinationIndex = result.destination.index === 0 ? 1 : result.destination.index;
     newColumns.splice(destinationIndex, 0, removed);
     
@@ -229,7 +212,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
       await updateView(view.id, { columns: newColumns });
     } catch (error) {
       console.error('Failed to reorder columns:', error);
-      setLocalColumns(view.columns || []);
+      setLocalColumns(view.columns);
     }
   };
 
@@ -255,7 +238,6 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     const sourceIndex = result.source.index;
     const destinationIndex = result.destination.index;
     
-    // Calculate new position
     const allTasks = [...tasks].sort((a, b) => (a.position || 0) - (b.position || 0));
     const newPosition = calculateNewPosition(allTasks, destinationIndex);
     
@@ -276,21 +258,16 @@ export function TableGrid({ tasks, view }: TableGridProps) {
     return ((prevTask?.position || 0) + (nextTask?.position || 0)) / 2;
   };
 
-  const renderCell = (task: Task, column: ViewColumn) => {
-    const value = task[column.id as keyof Task];
-    
-    return (
-      <TableCell
-        key={column.id}
-        type={column.type}
-        value={value}
-        task={task}
-        column={column}
-        statusConfig={column.type === 'status' ? view.config?.status_config : undefined}
-        onStatusConfigChange={column.type === 'status' ? handleStatusConfigChange : undefined}
-      />
-    );
-  };
+  const renderCell = (task: Task, column: ViewColumn) => (
+    <TableCell
+      key={column.id}
+      type={column.type}
+      task={task}
+      column={column}
+      statusConfig={view.config.status_config}
+      onStatusConfigChange={handleStatusConfigChange}
+    />
+  );
 
   return (
     <>
@@ -298,7 +275,7 @@ export function TableGrid({ tasks, view }: TableGridProps) {
         <div className="bg-background rounded-lg border shadow-sm min-w-full w-max">
           <table className="border-collapse w-full">
             <colgroup>
-              {localColumns.map((column, index) => (
+              {localColumns.map(column => (
                 <col 
                   key={column.id}
                   style={{ 
@@ -310,7 +287,6 @@ export function TableGrid({ tasks, view }: TableGridProps) {
               <col style={{ width: "200px", minWidth: "200px" }} />
             </colgroup>
             
-            {/* Column headers with their own DragDropContext */}
             <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
               <Droppable droppableId="columns" direction="horizontal">
                 {(provided) => (
@@ -444,7 +420,6 @@ export function TableGrid({ tasks, view }: TableGridProps) {
               </Droppable>
             </DragDropContext>
 
-            {/* Rows with their own DragDropContext */}
             <DragDropContext onDragEnd={handleRowDragEnd} onDragStart={handleRowDragStart}>
               <Droppable droppableId="tasks">
                 {(provided) => (
@@ -484,7 +459,8 @@ export function TableGrid({ tasks, view }: TableGridProps) {
                                 )}
                                 style={{
                                   width: `${getColumnWidth(column)}px`,
-                                    minWidth: `${MIN_COLUMN_WIDTHS[column.type || 'default']}px`                                  }}
+                                  minWidth: `${MIN_COLUMN_WIDTHS[column.type || 'default']}px`
+                                }}
                               >
                                 {colIndex === 0 && (
                                   <div 
