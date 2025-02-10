@@ -2,10 +2,10 @@ import { useState, useCallback } from 'react';
 import type { ViewColumn } from '@/types';
 
 const defaultColumns: ViewColumn[] = [
-  { id: 'title', key: 'title', title: 'Title', type: 'text' },
-  { id: 'status', key: 'status', title: 'Status', type: 'status' },
-  { id: 'assignee', key: 'assignee_id', title: 'Assignee', type: 'user' },
-  { id: 'due_date', key: 'due_date', title: 'Due Date', type: 'date' }
+  { id: 'title', title: 'Title', type: 'text' },
+  { id: 'status', title: 'Status', type: 'status' },
+  { id: 'assignee', title: 'Assignee', type: 'user' },
+  { id: 'due_date', title: 'Due Date', type: 'date' }
 ];
 
 export function useTableColumns() {

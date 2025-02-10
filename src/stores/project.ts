@@ -3,6 +3,17 @@ import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 import type { Task, Project, ProjectView, Json } from '@/types/database';
 
+type Tables = Database['public']['Tables'];
+type ProjectRow = Tables['projects']['Row'];
+type ProjectInsert = Tables['projects']['Insert'];
+type ProjectUpdate = Tables['projects']['Update'];
+type TaskRow = Tables['tasks']['Row'];
+type TaskInsert = Tables['tasks']['Insert'];
+type TaskUpdate = Tables['tasks']['Update'];
+type ProjectViewRow = Tables['project_views']['Row'];
+type ProjectViewInsert = Tables['project_views']['Insert'];
+type ProjectViewUpdate = Tables['project_views']['Update'];
+
 interface ProjectState {
   projects: Project[];
   currentProject: Project | null;
@@ -78,7 +89,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       if (projectsError) throw projectsError;
 
-      set({ projects: projects || [], loading: false });
+      set({ projects: projects as Project[] || [], loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;
@@ -96,7 +107,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       if (error) throw error;
 
-      set({ currentProject: project, loading: false });
+      set({ currentProject: project as Project, loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;
@@ -113,11 +124,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (error) throw error;
 
       // Transform and type the views
-      const typedViews: ProjectView[] = views.map(view => ({
+      const typedViews: ProjectView[] = (views || []).map(view => ({
         ...view,
         type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar',
-        columns: view.columns || [],
-        config: view.config || {},
+        columns: view.columns as ProjectView['columns'] || [],
+        config: view.config as ProjectView['config'] || {},
       }));
 
       set({ views: typedViews });
@@ -143,10 +154,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (error) throw error;
 
       // Transform tasks to include workspace_id at top level
-      const transformedTasks = tasks?.map(task => ({
+      const transformedTasks = (tasks || []).map(task => ({
         ...task,
         workspace_id: task.projects?.workspace_id
-      })) || [];
+      })) as Task[];
 
       set({ tasks: transformedTasks, loading: false });
     } catch (error) {
@@ -174,89 +185,95 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       const workspace_id = workspaces[0].workspace_id;
 
+      const projectData: ProjectInsert = {
+        title,
+        description,
+        workspace_id,
+        created_by: user.user.id,
+      };
+
       const { data, error } = await supabase
         .from('projects')
-        .insert({
-          title,
-          description,
-          workspace_id,
-          created_by: user.user.id,
-        })
+        .insert(projectData)
         .select()
         .single();
 
       if (error) throw error;
 
+      const project = data as Project;
+
       // Create default table view with columns
+      const viewData: ProjectViewInsert = {
+        project_id: project.id,
+        title: 'Main Table',
+        type: 'table',
+        is_default: true,
+        columns: [
+          {
+            id: 'title',
+            title: 'Title',
+            type: 'text',
+            width: 300
+          },
+          {
+            id: 'status',
+            title: 'Status',
+            type: 'status',
+            width: 150
+          },
+          {
+            id: 'assignee',
+            title: 'Assignee',
+            type: 'user',
+            width: 150
+          },
+          {
+            id: 'due_date',
+            title: 'Due Date',
+            type: 'date',
+            width: 150
+          }
+        ] as Json,
+        config: {
+          status_config: {
+            statuses: [
+              {
+                id: 'not_started',
+                title: 'Not Started',
+                color: '#E5E7EB',
+                position: 0,
+                type: 'default'
+              },
+              {
+                id: 'in_progress',
+                title: 'In Progress',
+                color: '#93C5FD',
+                position: 1,
+                type: 'default'
+              },
+              {
+                id: 'completed',
+                title: 'Completed',
+                color: '#86EFAC',
+                position: 2,
+                type: 'default'
+              },
+              {
+                id: 'blocked',
+                title: 'Blocked',
+                color: '#FCA5A5',
+                position: 3,
+                type: 'default'
+              }
+            ],
+            defaultStatusId: 'not_started'
+          }
+        } as Json
+      };
+
       const { data: view, error: viewError } = await supabase
         .from('project_views')
-        .insert({
-          project_id: data.id,
-          title: 'Main Table',
-          type: 'table',
-          is_default: true,
-          columns: [
-            {
-              id: 'title',
-              title: 'Title',
-              type: 'text',
-              width: 300
-            },
-            {
-              id: 'status',
-              title: 'Status',
-              type: 'status',
-              width: 150
-            },
-            {
-              id: 'assignee',
-              title: 'Assignee',
-              type: 'user',
-              width: 150
-            },
-            {
-              id: 'due_date',
-              title: 'Due Date',
-              type: 'date',
-              width: 150
-            }
-          ],
-          config: {
-            status_config: {
-              statuses: [
-                {
-                  id: 'not_started',
-                  title: 'Not Started',
-                  color: '#E5E7EB',
-                  position: 0,
-                  type: 'default'
-                },
-                {
-                  id: 'in_progress',
-                  title: 'In Progress',
-                  color: '#93C5FD',
-                  position: 1,
-                  type: 'default'
-                },
-                {
-                  id: 'completed',
-                  title: 'Completed',
-                  color: '#86EFAC',
-                  position: 2,
-                  type: 'default'
-                },
-                {
-                  id: 'blocked',
-                  title: 'Blocked',
-                  color: '#FCA5A5',
-                  position: 3,
-                  type: 'default'
-                }
-              ],
-              defaultStatusId: 'not_started'
-            }
-          }
-        })
+        .insert(viewData)
         .select()
         .single();
 
@@ -266,7 +283,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const { data: table, error: tableError } = await supabase
         .from('tables')
         .insert({
-          project_id: data.id,
+          project_id: project.id,
           title: 'Main Table',
           position: 0,
           settings: {
@@ -283,33 +300,33 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (tableError) throw tableError;
 
       // Create three default tasks in the table
-      const defaultTasks = [
+      const defaultTasks: TaskInsert[] = [
         {
           title: 'Plan project scope',
           description: 'Define the project goals, deliverables, and timeline',
           status_id: 'not_started',
-          project_id: data.id,
+          project_id: project.id,
           table_id: table.id,
           position: 0,
-          column_values: {}
+          column_values: {} as Json
         },
         {
           title: 'Set up project resources',
           description: 'Gather necessary tools and resources for the project',
           status_id: 'not_started',
-          project_id: data.id,
+          project_id: project.id,
           table_id: table.id,
           position: 1,
-          column_values: {}
+          column_values: {} as Json
         },
         {
           title: 'Schedule kickoff meeting',
           description: 'Organize initial team meeting to align on project goals',
           status_id: 'not_started',
-          project_id: data.id,
+          project_id: project.id,
           table_id: table.id,
           position: 2,
-          column_values: {}
+          column_values: {} as Json
         }
       ];
 
@@ -320,16 +337,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       if (tasksError) throw tasksError;
 
+      const typedView = {
+        ...view,
+        type: view.type as ProjectView['type'],
+        columns: view.columns as ProjectView['columns'] || [],
+        config: view.config as ProjectView['config'] || {}
+      } as ProjectView;
+
+      const typedTasks = createdTasks as Task[];
+
       set((state) => ({
-        projects: [...state.projects, data],
-        currentProject: data,
-        views: [view],
-        tasks: createdTasks,
+        projects: [...state.projects, project],
+        currentProject: project,
+        views: [typedView],
+        tasks: typedTasks,
         loading: false,
         error: null
       }));
 
-      return data;
+      return project;
     } catch (error) {
       console.error('Project creation error:', error);
       set({ error: error as Error, loading: false });
@@ -339,9 +365,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateProject: async (id, data) => {
     try {
+      const updateData = data as ProjectUpdate;
       const { error } = await supabase
         .from('projects')
-        .update(data)
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
@@ -423,7 +450,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // Ensure we're not sending undefined values to the database
       const cleanedData = Object.fromEntries(
         Object.entries(data).filter(([_, v]) => v !== undefined)
-      ) as Partial<ProjectViewBase>;
+      ) as ProjectViewUpdate;
 
       const { error } = await supabase
         .from('project_views')
@@ -502,42 +529,44 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         defaultStatusId: 'not_started'
       };
 
+      const viewData: ProjectViewInsert = {
+        project_id: projectId,
+        title,
+        type,
+        columns: type === 'table' ? [
+          {
+            id: 'title',
+            title: 'Title',
+            type: 'text',
+            width: 300
+          },
+          {
+            id: 'status',
+            title: 'Status',
+            type: 'status',
+            width: 150
+          },
+          {
+            id: 'assignee',
+            title: 'Assignee',
+            type: 'user',
+            width: 150
+          },
+          {
+            id: 'due_date',
+            title: 'Due Date',
+            type: 'date',
+            width: 150
+          }
+        ] as Json : [] as Json,
+        config: {
+          status_config: type === 'table' ? defaultStatusConfig : undefined
+        } as Json
+      };
+
       const { data: view, error } = await supabase
         .from('project_views')
-        .insert({
-          project_id: projectId,
-          title,
-          type,
-          config: {
-            columns: type === 'table' ? [
-              {
-                id: 'title',
-                title: 'Title',
-                type: 'text',
-                width: 300
-              },
-              {
-                id: 'status',
-                title: 'Status',
-                type: 'status',
-                width: 150
-              },
-              {
-                id: 'assignee',
-                title: 'Assignee',
-                type: 'user',
-                width: 150
-              },
-              {
-                id: 'due_date',
-                title: 'Due Date',
-                type: 'date',
-                width: 150
-              }
-            ] : [],
-            status_config: type === 'table' ? defaultStatusConfig : undefined
-          }
-        })
+        .insert(viewData)
         .select()
         .single();
 
@@ -546,9 +575,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       // Transform and type the view
       const typedView: ProjectView = {
         ...view,
-        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar',
-        columns: view.columns || [],
-        config: view.config || {}
+        type: view.type as ProjectView['type'],
+        columns: view.columns as ProjectView['columns'] || [],
+        config: view.config as ProjectView['config'] || {}
       };
 
       set((state) => ({
@@ -595,9 +624,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateTask: async (taskId: string, data: Partial<Task>) => {
     try {
+      const updateData = data as TaskUpdate;
       const { data: updatedTask, error } = await supabase
         .from('tasks')
-        .update(data)
+        .update(updateData)
         .eq('id', taskId)
         .select(`
           *,
@@ -613,7 +643,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const transformedTask = {
         ...updatedTask,
         workspace_id: updatedTask.projects?.workspace_id
-      };
+      } as Task;
 
       // Update the task in state
       set((state) => ({
@@ -673,10 +703,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }));
   },
 
-  createTask: async (task) => {
+  createTask: async (task: Partial<Task>) => {
+    const taskData = task as TaskInsert;
     const { data, error } = await supabase
       .from('tasks')
-      .insert([task])
+      .insert([taskData])
       .select(`
         *,
         projects:project_id (
@@ -691,7 +722,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const transformedTask = {
       ...data,
       workspace_id: data.projects?.workspace_id
-    };
+    } as Task;
 
     set((state) => ({
       tasks: [...state.tasks, transformedTask],
@@ -717,11 +748,13 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         },
       });
 
+      const updateData: ProjectViewUpdate = {
+        config: updatedConfig as Json,
+      };
+
       const { error } = await supabase
         .from('project_views')
-        .update({
-          config: updatedConfig as Json,
-        })
+        .update(updateData)
         .eq('id', viewId);
 
       if (error) throw error;

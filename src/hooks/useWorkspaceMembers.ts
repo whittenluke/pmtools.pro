@@ -1,88 +1,66 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-
-interface Profile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
-
-interface WorkspaceMember {
-  user_id: string;
-  role: string;
-  profile?: Profile;
-}
+import type { WorkspaceMember, Profile, DbWorkspaceMember, DbProfile } from '@/types/database';
 
 export function useWorkspaceMembers(workspaceId: string) {
-  const [members, setMembers] = useState<WorkspaceMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  return useQuery({
+    queryKey: ['workspace-members', workspaceId],
+    queryFn: async () => {
+      // Fetch workspace members
+      const { data: workspaceMembers, error: membersError } = await supabase
+        .from('workspace_members')
+        .select('*')
+        .eq('workspace_id', workspaceId);
 
-  useEffect(() => {
-    async function fetchMembers() {
-      try {
-        setIsLoading(true);
-        setError(null);
+      if (membersError) throw membersError;
+      if (!workspaceMembers) return [];
 
-        // Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
+      // Fetch profiles for all members
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', workspaceMembers.map(member => member.user_id));
 
-        // Get current user's profile
-        const { data: currentUserProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .eq('id', user?.id)
-          .single();
+      if (profilesError) throw profilesError;
 
-        if (profileError) throw profileError;
+      // Get current user's email from auth
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
 
-        // Get workspace members and their profiles separately since there's no FK relationship
-        const { data: workspaceMembers, error: workspaceMembersError } = await supabase
-          .from('workspace_members')
-          .select('user_id, role')
-          .eq('workspace_id', workspaceId);
+      // Transform the data to include profiles
+      const transformedMembers = workspaceMembers.map((member: DbWorkspaceMember) => {
+        const profile = profiles?.find(p => p.id === member.user_id) as DbProfile | undefined;
+        
+        const defaultProfile: Profile = {
+          id: member.user_id,
+          full_name: 'Unknown User',
+          avatar_url: null,
+          bio: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
 
-        if (workspaceMembersError) throw workspaceMembersError;
+        const memberProfile: Profile = profile ? {
+          ...profile,
+          avatar_url: profile.avatar_url || null,
+          bio: profile.bio || null
+        } : defaultProfile;
 
-        // Get profiles for all workspace members
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
-          .in('id', workspaceMembers.map(member => member.user_id));
+        const transformedMember: WorkspaceMember = {
+          ...member,
+          joined_at: member.joined_at || new Date().toISOString(),
+          permissions: member.permissions || {},
+          profile: memberProfile
+        };
 
-        if (profilesError) throw profilesError;
-
-        // Transform the data to match our interface
-        const transformedMembers = (workspaceMembers || []).map(member => ({
-          user_id: member.user_id,
-          role: member.role,
-          profile: profiles?.find(p => p.id === member.user_id)
-        }));
-
-        // Add current user if not already in the list
-        const currentUserInList = transformedMembers.some(member => member.user_id === user?.id);
-        if (!currentUserInList && user) {
-          transformedMembers.unshift({
-            user_id: user.id,
-            role: 'member',
-            profile: currentUserProfile
-          });
+        // Only include email for the current user
+        if (currentUser && currentUser.id === member.user_id) {
+          transformedMember.email = currentUser.email;
         }
 
-        setMembers(transformedMembers);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch members'));
-        console.error('Error fetching members:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
+        return transformedMember;
+      });
 
-    if (workspaceId) {
-      fetchMembers();
+      return transformedMembers;
     }
-  }, [workspaceId]);
-
-  return { members, isLoading, error };
+  });
 } 

@@ -10,16 +10,17 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandGroup, CommandItem } from '@/components/ui/command';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useWorkspaceStore } from '@/store/workspaceStore';
+import type { WorkspaceMember } from '@/types/database';
 
 interface UserCellProps {
   value: string | null;
-  onChange: (userId: string) => void;
+  onChange: (userId: string) => Promise<void>;
 }
 
 export function UserCell({ value, onChange }: UserCellProps) {
   const [open, setOpen] = useState(false);
   const { members } = useWorkspaceStore();
-  const selectedUser = members.find((member) => member.user_id === value);
+  const selectedUser = members.find((member: WorkspaceMember) => member.user_id === value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -34,12 +35,12 @@ export function UserCell({ value, onChange }: UserCellProps) {
             {selectedUser ? (
               <>
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={selectedUser.avatar_url || ''} />
+                  <AvatarImage src={selectedUser.profile.avatar_url || ''} />
                   <AvatarFallback>
-                    {selectedUser.full_name?.charAt(0) || 'U'}
+                    {selectedUser.profile.full_name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <span>{selectedUser.full_name}</span>
+                <span>{selectedUser.profile.full_name}</span>
               </>
             ) : (
               <span className="text-muted-foreground">Unassigned</span>
@@ -51,7 +52,7 @@ export function UserCell({ value, onChange }: UserCellProps) {
       <PopoverContent className="w-[200px] p-0">
         <Command>
           <CommandGroup>
-            {members.map((member) => (
+            {members.map((member: WorkspaceMember) => (
               <CommandItem
                 key={member.user_id}
                 onSelect={() => {
@@ -61,12 +62,12 @@ export function UserCell({ value, onChange }: UserCellProps) {
                 className="flex items-center gap-2"
               >
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={member.avatar_url || ''} />
+                  <AvatarImage src={member.profile.avatar_url || ''} />
                   <AvatarFallback>
-                    {member.full_name?.charAt(0) || 'U'}
+                    {member.profile.full_name?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <span>{member.full_name}</span>
+                <span>{member.profile.full_name}</span>
                 {member.user_id === selectedUser?.user_id && (
                   <Check className="ml-auto h-4 w-4" />
                 )}
