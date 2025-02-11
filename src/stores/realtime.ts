@@ -62,14 +62,43 @@ export const useRealtimeStore = create<RealtimeState>()((set, get) => ({
           const projectStore = useProjectStore.getState();
           
           switch (payload.eventType) {
-            case 'INSERT':
-              projectStore.addView(payload.new);
+            case 'INSERT': {
+              const insertedView: ProjectView = {
+                ...payload.new,
+                type: payload.new.type || 'table',
+                columns: payload.new.columns || [],
+                config: payload.new.config || {},
+                status_config: payload.new.status_config || {},
+                is_default: payload.new.is_default || false,
+                project_id: payload.new.project_id,
+                title: payload.new.title,
+                id: payload.new.id,
+                created_at: payload.new.created_at,
+                updated_at: payload.new.updated_at
+              };
+              projectStore.addView(insertedView);
               break;
-            case 'UPDATE':
-              projectStore.updateViewLocally(payload.new.id, payload.new);
+            }
+            case 'UPDATE': {
+              const updatedView: ProjectView = {
+                ...payload.new,
+                type: payload.new.type || 'table',
+                columns: payload.new.columns || [],
+                config: payload.new.config || {},
+                status_config: payload.new.status_config || {},
+                is_default: payload.new.is_default || false,
+                project_id: payload.new.project_id,
+                title: payload.new.title,
+                id: payload.new.id,
+                created_at: payload.new.created_at,
+                updated_at: payload.new.updated_at
+              };
+              projectStore.updateViewLocally(updatedView.id, updatedView);
               break;
+            }
             case 'DELETE':
-              projectStore.removeView(payload.old.id);
+              const viewId = payload.old.id;
+              projectStore.removeView(viewId);
               break;
           }
         }
@@ -137,20 +166,34 @@ export function useRealtimeUpdates(projectId: string) {
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const view = {
+            const view: ProjectView = {
               ...payload.new,
               type: payload.new.type || 'table',
               columns: payload.new.columns || [],
-              config: payload.new.config || {}
-            } as ProjectView;
+              config: payload.new.config || {},
+              status_config: payload.new.status_config || {},
+              is_default: payload.new.is_default || false,
+              project_id: payload.new.project_id,
+              title: payload.new.title,
+              id: payload.new.id,
+              created_at: payload.new.created_at,
+              updated_at: payload.new.updated_at
+            };
             projectStore.addView(view);
           } else if (payload.eventType === 'UPDATE') {
-            const view = {
+            const view: ProjectView = {
               ...payload.new,
               type: payload.new.type || 'table',
               columns: payload.new.columns || [],
-              config: payload.new.config || {}
-            } as ProjectView;
+              config: payload.new.config || {},
+              status_config: payload.new.status_config || {},
+              is_default: payload.new.is_default || false,
+              project_id: payload.new.project_id,
+              title: payload.new.title,
+              id: payload.new.id,
+              created_at: payload.new.created_at,
+              updated_at: payload.new.updated_at
+            };
             projectStore.updateViewLocally(view.id, view);
           } else if (payload.eventType === 'DELETE') {
             const viewId = payload.old.id;

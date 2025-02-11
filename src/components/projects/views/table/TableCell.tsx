@@ -43,7 +43,7 @@ export function TableCell({
     };
 
     const update: TaskUpdate = {
-      column_values: newColumnValues as Json
+      column_values: newColumnValues
     };
 
     optimisticUpdateTask(task.id, { ...task, column_values: newColumnValues });

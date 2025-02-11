@@ -14,7 +14,9 @@ export type DbWorkspaceMember = Tables['workspace_members']['Row'];
 export type DbProfile = Tables['profiles']['Row'];
 
 // Export Supabase operation types
-export type TaskUpdate = Tables['tasks']['Update'];
+export type TaskUpdate = Omit<Tables['tasks']['Update'], 'column_values'> & {
+  column_values?: Record<string, any>;
+};
 export type TaskInsert = Tables['tasks']['Insert'];
 export type ProjectViewUpdate = Tables['project_views']['Update'];
 export type ProjectViewInsert = Tables['project_views']['Insert'];
@@ -86,10 +88,8 @@ export type TaskColumnValue = {
 };
 
 export type Task = Omit<DbTask, 'column_values'> & {
-  workspace_id?: string;
-  projects?: {
-    workspace_id: string;
-  };
+  workspace_id: string;
+  projects: Array<{ workspace_id: string; }>;
   start_date?: string;
   due_date?: string;
   column_values: Record<string, TaskColumnValue>;

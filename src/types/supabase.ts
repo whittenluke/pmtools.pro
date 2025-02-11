@@ -140,6 +140,9 @@ export interface Database {
         }
       }
     }
+    Views: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
   public: {
     Tables: {
@@ -958,173 +961,9 @@ export interface Database {
         Relationships: []
       }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      can_access_project: {
-        Args: {
-          project_id: string
-          user_id?: string
-        }
-        Returns: boolean
-      }
-      check_due_date_automations: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      check_rls_status: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          schema_name: string
-          table_name: string
-          rls_enabled: boolean
-        }[]
-      }
-      check_table_policies: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          schema_name: string
-          table_name: string
-          policy_count: number
-        }[]
-      }
-      get_user_workspace_role: {
-        Args: {
-          workspace_id: string
-          user_id?: string
-        }
-        Returns: string
-      }
-      get_workspace_member_count: {
-        Args: {
-          workspace_id: string
-        }
-        Returns: number
-      }
-      is_workspace_member: {
-        Args: {
-          workspace_id: string
-          user_id?: string
-        }
-        Returns: boolean
-      }
-      log_feature_usage: {
-        Args: {
-          feature_name: string
-          action: string
-          workspace_id?: string
-          metadata?: Json
-        }
-        Returns: string
-      }
-      log_page_view: {
-        Args: {
-          path: string
-          workspace_id?: string
-          referrer?: string
-          user_agent?: string
-          session_id?: string
-        }
-        Returns: string
-      }
-      log_performance_metric: {
-        Args: {
-          metric_name: string
-          value: number
-          workspace_id?: string
-          metadata?: Json
-        }
-        Returns: string
-      }
-      maintenance_vacuum_analyze: {
-        Args: {
-          tables: string[]
-        }
-        Returns: undefined
-      }
-      mark_notifications_read: {
-        Args: {
-          p_notification_ids: string[]
-        }
-        Returns: string[]
-      }
-      move_task: {
-        Args: {
-          task_id: string
-          new_group_id: string
-          new_position: number
-          user_id?: string
-        }
-        Returns: undefined
-      }
-      search_comments: {
-        Args: {
-          search_query: string
-          project_id?: string
-        }
-        Returns: {
-          comment_id: string
-          content: string
-          task_id: string
-          rank: number
-        }[]
-      }
-      search_tasks: {
-        Args: {
-          search_query: string
-          project_id?: string
-        }
-        Returns: {
-          task_id: string
-          title: string
-          description: string
-          rank: number
-        }[]
-      }
-      send_notification: {
-        Args: {
-          p_user_id: string
-          p_workspace_id: string
-          p_project_id: string
-          p_type: string
-          p_title: string
-          p_content?: string
-          p_link?: string
-          p_metadata?: Json
-        }
-        Returns: string
-      }
-      unaccent: {
-        Args: {
-          "": string
-        }
-        Returns: string
-      }
-      unaccent_init: {
-        Args: {
-          "": unknown
-        }
-        Returns: unknown
-      }
-    }
-    Enums: {
-      automation_action_type:
-        | "assign_task"
-        | "update_status"
-        | "add_comment"
-        | "send_notification"
-      automation_trigger_type:
-        | "task_created"
-        | "task_updated"
-        | "task_status_changed"
-        | "task_assigned"
-        | "comment_added"
-        | "due_date_approaching"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    Views: Record<string, never>
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
   }
 }
 

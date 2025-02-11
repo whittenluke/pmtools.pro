@@ -25,12 +25,14 @@ export function KanbanBoard({ tasks, onTaskMove }: KanbanBoardProps) {
 
   const handleTaskUpdate = useCallback(async (taskId: string, update: Partial<Task>) => {
     const columnValues = update.column_values || {};
-    const taskUpdate = {
+    const taskUpdate: TaskUpdate = {
       ...update,
-      column_values: Object.entries(columnValues).reduce((acc, [key, value]) => ({
-        ...acc,
-        [key]: value as TaskColumnValue
-      }), {})
+      column_values: Object.fromEntries(
+        Object.entries(columnValues).map(([key, value]) => [
+          key,
+          typeof value === 'object' ? value : { value, metadata: {} }
+        ])
+      )
     };
     
     await updateTask(taskId, taskUpdate);

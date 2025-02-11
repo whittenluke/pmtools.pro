@@ -30,7 +30,7 @@ export class SearchService {
     filters: Record<string, any> = {}
   ): Promise<SearchResult[]> {
     try {
-      const { data, error } = await supabase.rpc('search_documents', {
+      const { data, error } = await supabase.rpc('search_workspace_content', {
         p_workspace_id: workspaceId,
         p_query: query,
         p_filters: filters as Json

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
-import type { Task, Project, ProjectView, Json, TableConfig } from '@/types/database';
+import type { Task, Project, ProjectView, Json, TableConfig, ViewColumn, TaskColumnValue } from '@/types/database';
 
 type Tables = Database['public']['Tables'];
 type ProjectRow = Tables['projects']['Row'];
@@ -14,6 +14,14 @@ type ProjectViewRow = Tables['project_views']['Row'];
 type ProjectViewInsert = Tables['project_views']['Insert'];
 type ProjectViewUpdate = Tables['project_views']['Update'];
 type WorkspaceMemberRow = Tables['workspace_members']['Row'];
+
+// Add this type at the top of the file after imports
+type TaskWithProjects = TaskRow & {
+  projects?: Array<{ workspace_id: string }>;
+  start_date?: string;
+  due_date?: string;
+  column_values?: Record<string, any>;
+};
 
 interface ProjectState {
   projects: Project[];
@@ -75,6 +83,33 @@ function isTasksArrayResponse(data: any): data is TaskRow[] {
 function isProjectViewResponse(data: any): data is ProjectViewRow {
   return data && typeof data === 'object' && 'id' in data && 'project_id' in data;
 }
+
+const transformTask = (rawTask: unknown): Task => {
+  const task = rawTask as TaskWithProjects;
+  const workspaceId = task.projects?.[0]?.workspace_id;
+  if (!workspaceId || typeof workspaceId !== 'string') {
+    throw new Error('No workspace ID found for task');
+  }
+
+  const columnValues = task.column_values ? 
+    Object.entries(task.column_values).reduce((acc, [key, value]) => ({
+      ...acc,
+      [key]: {
+        value: value?.value ?? value,
+        metadata: value?.metadata ?? {}
+      }
+    }), {} as Record<string, TaskColumnValue>) 
+    : {};
+
+  return {
+    ...task,
+    workspace_id: workspaceId,
+    projects: [{ workspace_id: workspaceId }],
+    column_values: columnValues,
+    start_date: task.start_date,
+    due_date: task.due_date
+  } as Task;
+};
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
   projects: [],
@@ -163,7 +198,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         type: view.type as ProjectView['type'],
         columns: (view.columns || []) as ViewColumn[],
         config: (view.config || {}) as TableConfig
-      }));
+      })) as ProjectView[];
 
       set({ views: views || [] });
     } catch (error) {
@@ -188,19 +223,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (error) throw error;
       if (!data) throw new Error('No data returned');
 
-      const transformedTasks: Task[] = data.map(task => ({
-        ...task,
-        workspace_id: task.projects?.[0]?.workspace_id,
-        column_values: task.column_values ? 
-          Object.entries(task.column_values as Record<string, any>).reduce((acc, [key, value]) => ({
-            ...acc,
-            [key]: {
-              value,
-              metadata: {}
-            }
-          }), {}) : {}
-      }));
-
+      const transformedTasks = data.map(task => transformTask(task));
       set({ tasks: transformedTasks, loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
@@ -321,12 +344,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       if (viewError) throw viewError;
 
-      // Create default table
-      const { data: table, error: tableError } = await supabase
-        .from('tables')
+      // Create default group
+      const { data: group, error: groupError } = await supabase
+        .from('groups')
         .insert({
           project_id: project.id,
-          title: 'Main Table',
+          title: 'Main Group',
           position: 0,
           settings: {
             collapsed: false,
@@ -339,16 +362,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         .select()
         .single();
 
-      if (tableError) throw tableError;
+      if (groupError) throw groupError;
 
-      // Create three default tasks in the table
+      // Create three default tasks in the group
       const defaultTasks: TaskInsert[] = [
         {
           title: 'Plan project scope',
           description: 'Define the project goals, deliverables, and timeline',
           status_id: 'not_started',
           project_id: project.id,
-          table_id: table.id,
+          group_id: group.id,
           position: 0,
           column_values: {} as Json
         },
@@ -357,7 +380,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           description: 'Gather necessary tools and resources for the project',
           status_id: 'not_started',
           project_id: project.id,
-          table_id: table.id,
+          group_id: group.id,
           position: 1,
           column_values: {} as Json
         },
@@ -366,7 +389,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           description: 'Organize initial team meeting to align on project goals',
           status_id: 'not_started',
           project_id: project.id,
-          table_id: table.id,
+          group_id: group.id,
           position: 2,
           column_values: {} as Json
         }
@@ -375,9 +398,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       const { data: createdTasks, error: tasksError } = await supabase
         .from('tasks')
         .insert(defaultTasks)
-        .select();
+        .select(`
+          *,
+          projects:project_id (
+            workspace_id
+          )
+        `);
 
       if (tasksError) throw tasksError;
+      if (!createdTasks) throw new Error('No tasks created');
 
       const typedView = {
         ...view,
@@ -386,7 +415,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         config: view.config as ProjectView['config'] || {}
       } as ProjectView;
 
-      const typedTasks = createdTasks as Task[];
+      const typedTasks = createdTasks.map(task => ({
+        ...task,
+        workspace_id: project.workspace_id,
+        column_values: {} as Record<string, TaskColumnValue>
+      })) as Task[];
 
       set((state) => ({
         projects: [...state.projects, project],
@@ -686,19 +719,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (error) throw error;
       if (!updatedTask) throw new Error('No data returned');
 
-      const transformedTask: Task = {
-        ...updatedTask,
-        workspace_id: updatedTask.projects?.[0]?.workspace_id,
-        column_values: updatedTask.column_values ? 
-          Object.entries(updatedTask.column_values as Record<string, any>).reduce((acc, [key, value]) => ({
-            ...acc,
-            [key]: {
-              value,
-              metadata: {}
-            }
-          }), {}) : {}
-      };
-
+      const transformedTask = transformTask(updatedTask);
       set((state) => ({
         tasks: state.tasks.map(t => t.id === taskId ? transformedTask : t)
       }));
@@ -778,19 +799,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (error) throw error;
     if (!data) throw new Error('No data returned');
 
-    const transformedTask: Task = {
-      ...data,
-      workspace_id: data.projects?.[0]?.workspace_id,
-      column_values: data.column_values ? 
-        Object.entries(data.column_values as Record<string, any>).reduce((acc, [key, value]) => ({
-          ...acc,
-          [key]: {
-            value,
-            metadata: {}
-          }
-        }), {}) : {}
-    };
-
+    const transformedTask = transformTask(data);
     set((state) => ({
       tasks: [...state.tasks, transformedTask],
     }));

@@ -18,12 +18,9 @@ export interface PageView extends Omit<PageViewInsert, 'created_at'> {
   user_agent?: string;
 }
 
-// First, let's check our table structure
-const { data, error } = await supabase
-  .from('information_schema.tables')
-  .select('table_schema, table_name')
-  .eq('table_schema', 'analytics')
-  .order('table_name');
+// Check analytics tables existence using RPC
+const { data: analyticsEnabled } = await supabase
+  .rpc('check_analytics_enabled');
 
 export async function trackEvent(event: AnalyticsEvent) {
   try {
