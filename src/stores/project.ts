@@ -86,8 +86,8 @@ function isProjectViewResponse(data: any): data is ProjectViewRow {
 
 const transformTask = (rawTask: unknown): Task => {
   const task = rawTask as TaskWithProjects;
-  const workspaceId = task.projects?.[0]?.workspace_id;
-  if (!workspaceId || typeof workspaceId !== 'string') {
+  const workspaceId = task.project_id ? task.projects?.workspace_id : undefined;
+  if (!workspaceId) {
     throw new Error('No workspace ID found for task');
   }
 
@@ -209,21 +209,38 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   fetchTasks: async (projectId) => {
     try {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('workspace_id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+
       const { data, error } = await supabase
         .from('tasks')
-        .select(`
-          *,
-          projects:project_id (
-            workspace_id
-          )
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .order('position', { ascending: true });
 
       if (error) throw error;
       if (!data) throw new Error('No data returned');
 
-      const transformedTasks = data.map(task => transformTask(task));
+      const transformedTasks = data.map(task => ({
+        ...task,
+        workspace_id: project.workspace_id,
+        projects: [{ workspace_id: project.workspace_id }],
+        column_values: task.column_values ? 
+          Object.entries(task.column_values as Record<string, any>).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: {
+              value: value?.value ?? value,
+              metadata: value?.metadata ?? {}
+            }
+          }), {} as Record<string, TaskColumnValue>) 
+          : {}
+      } as Task));
+
       set({ tasks: transformedTasks, loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
@@ -344,12 +361,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
       if (viewError) throw viewError;
 
-      // Create default group
-      const { data: group, error: groupError } = await supabase
-        .from('groups')
+      // Create default table (previously called group)
+      const { data: table, error: tableError } = await supabase
+        .from('tables')
         .insert({
           project_id: project.id,
-          title: 'Main Group',
+          title: 'Main Table',
           position: 0,
           settings: {
             collapsed: false,
@@ -362,16 +379,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         .select()
         .single();
 
-      if (groupError) throw groupError;
+      if (tableError) throw tableError;
 
-      // Create three default tasks in the group
+      // Create three default tasks in the table
       const defaultTasks: TaskInsert[] = [
         {
           title: 'Plan project scope',
           description: 'Define the project goals, deliverables, and timeline',
           status_id: 'not_started',
           project_id: project.id,
-          group_id: group.id,
+          table_id: table.id,
           position: 0,
           column_values: {} as Json
         },
@@ -380,7 +397,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           description: 'Gather necessary tools and resources for the project',
           status_id: 'not_started',
           project_id: project.id,
-          group_id: group.id,
+          table_id: table.id,
           position: 1,
           column_values: {} as Json
         },
@@ -389,7 +406,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           description: 'Organize initial team meeting to align on project goals',
           status_id: 'not_started',
           project_id: project.id,
-          group_id: group.id,
+          table_id: table.id,
           position: 2,
           column_values: {} as Json
         }
@@ -778,6 +795,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   createTask: async (task: Partial<Task>) => {
     const taskData = {
       ...task,
+      table_id: task.table_id,
       column_values: task.column_values ? 
         Object.entries(task.column_values).reduce((acc, [key, value]) => ({
           ...acc,

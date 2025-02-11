@@ -92,6 +92,7 @@ export type Task = Omit<DbTask, 'column_values'> & {
   projects: Array<{ workspace_id: string; }>;
   start_date?: string;
   due_date?: string;
+  table_id?: string;
   column_values: Record<string, TaskColumnValue>;
 };
 
