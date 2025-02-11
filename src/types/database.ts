@@ -2,8 +2,8 @@ import type { Database as GeneratedDatabase } from './supabase';
 
 // Core database types from Supabase
 export type Database = GeneratedDatabase;
-export type SchemaName = 'public';
-export type Tables = Database['public']['Tables'];
+export type SchemaName = keyof Database;
+export type Tables<S extends SchemaName = 'public'> = Database[S]['Tables'];
 export type Json = Database['public']['Tables']['projects']['Row']['settings'];
 
 // Base database row types
@@ -48,12 +48,31 @@ export type StatusConfig = {
 };
 
 export type TableConfig = {
-  tables: Array<{
+  tables?: Array<{
     id: string;
     title: string;
     taskIds: string[];
   }>;
-  status_config: StatusConfig;
+  status_config?: StatusConfig;
+};
+
+// View model types
+export type ViewModel = {
+  id: string;
+  title: string;
+  type: 'table' | 'kanban' | 'timeline' | 'calendar';
+  columns: ViewColumn[];
+  config: TableConfig;
+  project_id: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TableViewModel = ViewModel & {
+  type: 'table';
+  columns: ViewColumn[];
+  config: TableConfig;
 };
 
 // Extended application types with additional properties
@@ -61,20 +80,33 @@ export type Project = DbProject & {
   settings?: Json;
 };
 
-export type Task = DbTask & {
+export type TaskColumnValue = {
+  value: any;
+  metadata: Record<string, any>;
+};
+
+export type Task = Omit<DbTask, 'column_values'> & {
   workspace_id?: string;
   projects?: {
     workspace_id: string;
   };
   start_date?: string;
   due_date?: string;
-  column_values: Json;
+  column_values: Record<string, TaskColumnValue>;
 };
 
-export type ProjectView = DbProjectView & {
+export type ProjectView = Omit<DbProjectView, 'columns' | 'config'> & {
   type: 'table' | 'kanban' | 'timeline' | 'calendar';
   columns: ViewColumn[];
   config: TableConfig;
+};
+
+export type Workspace = {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+  settings?: Json;
 };
 
 export type WorkspaceMember = DbWorkspaceMember & {
@@ -99,4 +131,5 @@ export type ColumnValue = {
   value: string | number | boolean | null;
   label?: string;
   color?: string;
+  metadata?: Record<string, any>;
 }; 

@@ -18,11 +18,17 @@ interface PeopleCellProps {
 export function PeopleCell({ value, row, workspaceId, onUpdate, allowMultiple = false }: PeopleCellProps) {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(false);
-  const { data: members = [] } = useWorkspaceMembers(workspaceId);
+  const { data: members = [], isLoading } = useWorkspaceMembers(workspaceId);
 
   const selectedUsers = Array.isArray(value) ? 
     members.filter(member => value.includes(member.user_id)) :
     value ? [members.find(member => member.user_id === value)].filter(Boolean) : [];
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-8 animate-pulse bg-muted rounded" />
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

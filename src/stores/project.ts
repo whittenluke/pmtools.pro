@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
-import type { Task, Project, ProjectView, Json } from '@/types/database';
+import type { Task, Project, ProjectView, Json, TableConfig } from '@/types/database';
 
 type Tables = Database['public']['Tables'];
 type ProjectRow = Tables['projects']['Row'];
@@ -13,6 +13,7 @@ type TaskUpdate = Tables['tasks']['Update'];
 type ProjectViewRow = Tables['project_views']['Row'];
 type ProjectViewInsert = Tables['project_views']['Insert'];
 type ProjectViewUpdate = Tables['project_views']['Update'];
+type WorkspaceMemberRow = Tables['workspace_members']['Row'];
 
 interface ProjectState {
   projects: Project[];
@@ -47,7 +48,32 @@ interface ProjectState {
   removeView: (viewId: string) => void;
   removeTask: (taskId: string) => void;
   createTask: (task: Partial<Task>) => Promise<Task>;
-  updateViewConfig: (viewId: string, config: Partial<ProjectView['config']>) => Promise<void>;
+  updateViewConfig: (viewId: string, config: Partial<TableConfig>) => Promise<void>;
+}
+
+// Add type guards at the top after imports
+function isError<T>(data: T | { error: any }): data is { error: any } {
+  return data && typeof data === 'object' && 'error' in data;
+}
+
+function isWorkspaceMembersResponse(data: any): data is WorkspaceMemberRow[] {
+  return Array.isArray(data) && data.every(item => 'workspace_id' in item);
+}
+
+function isProjectResponse(data: any): data is ProjectRow {
+  return data && typeof data === 'object' && 'id' in data && 'title' in data;
+}
+
+function isProjectsArrayResponse(data: any): data is ProjectRow[] {
+  return Array.isArray(data) && data.every(item => 'id' in item && 'title' in item);
+}
+
+function isTasksArrayResponse(data: any): data is TaskRow[] {
+  return Array.isArray(data) && data.every(item => 'id' in item && 'project_id' in item);
+}
+
+function isProjectViewResponse(data: any): data is ProjectViewRow {
+  return data && typeof data === 'object' && 'id' in data && 'project_id' in data;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -67,29 +93,36 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   fetchProjects: async () => {
     set({ loading: true, error: null });
     try {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      const userResponse = await supabase.auth.getUser();
+      if (isError(userResponse) || !userResponse.data.user) {
+        throw new Error('No user found');
+      }
 
-      const { data: workspaces, error: workspaceError } = await supabase
+      const workspacesResponse = await supabase
         .from('workspace_members')
         .select('workspace_id')
-        .eq('user_id', user.user.id);
+        .eq('user_id', userResponse.data.user.id);
 
-      if (workspaceError) throw workspaceError;
-      if (!workspaces?.length) {
+      if (isError(workspacesResponse) || !isWorkspaceMembersResponse(workspacesResponse.data)) {
+        throw workspacesResponse.error || new Error('Invalid workspace response');
+      }
+
+      if (!workspacesResponse.data.length) {
         set({ projects: [], loading: false });
         return;
       }
 
-      const { data: projects, error: projectsError } = await supabase
+      const projectsResponse = await supabase
         .from('projects')
         .select('*')
-        .in('workspace_id', workspaces.map(w => w.workspace_id))
+        .in('workspace_id', workspacesResponse.data.map(w => w.workspace_id))
         .order('created_at', { ascending: false });
 
-      if (projectsError) throw projectsError;
+      if (isError(projectsResponse) || !isProjectsArrayResponse(projectsResponse.data)) {
+        throw projectsResponse.error || new Error('Invalid projects response');
+      }
 
-      set({ projects: projects as Project[] || [], loading: false });
+      set({ projects: projectsResponse.data as Project[], loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;
@@ -99,15 +132,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   fetchProject: async (id) => {
     set({ loading: true, error: null });
     try {
-      const { data: project, error } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .select('*')
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      if (error || !isProjectResponse(data)) {
+        throw error || new Error('Invalid project response');
+      }
 
-      set({ currentProject: project as Project, loading: false });
+      set({ currentProject: data as Project, loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;
@@ -116,22 +151,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   fetchViews: async (projectId: string) => {
     try {
-      const { data: views, error } = await supabase
+      const { data, error } = await supabase
         .from('project_views')
         .select('*')
         .eq('project_id', projectId);
 
       if (error) throw error;
 
-      // Transform and type the views
-      const typedViews: ProjectView[] = (views || []).map(view => ({
+      const views = data?.map(view => ({
         ...view,
-        type: view.type as 'table' | 'kanban' | 'timeline' | 'calendar',
-        columns: view.columns as ProjectView['columns'] || [],
-        config: view.config as ProjectView['config'] || {},
+        type: view.type as ProjectView['type'],
+        columns: (view.columns || []) as ViewColumn[],
+        config: (view.config || {}) as TableConfig
       }));
 
-      set({ views: typedViews });
+      set({ views: views || [] });
     } catch (error) {
       set({ error: error as Error });
       throw error;
@@ -140,7 +174,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   fetchTasks: async (projectId) => {
     try {
-      const { data: tasks, error } = await supabase
+      const { data, error } = await supabase
         .from('tasks')
         .select(`
           *,
@@ -151,12 +185,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         .eq('project_id', projectId)
         .order('position', { ascending: true });
 
-      if (error) throw error;
+      if (error || !isTasksArrayResponse(data)) {
+        throw error || new Error('Invalid tasks response');
+      }
 
-      // Transform tasks to include workspace_id at top level
-      const transformedTasks = (tasks || []).map(task => ({
+      const transformedTasks = data.map(task => ({
         ...task,
-        workspace_id: task.projects?.workspace_id
+        workspace_id: task.projects?.workspace_id,
+        column_values: task.column_values || {}
       })) as Task[];
 
       set({ tasks: transformedTasks, loading: false });
@@ -731,7 +767,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     return transformedTask;
   },
 
-  updateViewConfig: async (viewId: string, config: Partial<ProjectView['config']>) => {
+  updateViewConfig: async (viewId: string, config: Partial<TableConfig>) => {
     const { currentView } = get();
     if (!currentView) return;
 

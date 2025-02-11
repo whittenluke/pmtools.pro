@@ -6,7 +6,141 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+export interface Database {
+  analytics: {
+    Tables: {
+      daily_active_users: {
+        Row: {
+          active_workspaces: number
+          active_users: number
+          date: string
+        }
+        Insert: {
+          active_workspaces: number
+          active_users: number
+          date: string
+        }
+        Update: {
+          active_workspaces?: number
+          active_users?: number
+          date?: string
+        }
+      }
+      feature_usage: {
+        Row: {
+          id: string
+          user_id: string | null
+          workspace_id: string | null
+          feature_name: string
+          action: string
+          metadata: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          feature_name: string
+          action: string
+          metadata?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          feature_name?: string
+          action?: string
+          metadata?: Json | null
+          created_at?: string | null
+        }
+      }
+      page_views: {
+        Row: {
+          id: string
+          user_id: string | null
+          workspace_id: string | null
+          path: string
+          referrer: string | null
+          user_agent: string | null
+          session_id: string | null
+          duration: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          path: string
+          referrer?: string | null
+          user_agent?: string | null
+          session_id?: string | null
+          duration?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          path?: string
+          referrer?: string | null
+          user_agent?: string | null
+          session_id?: string | null
+          duration?: number | null
+          created_at?: string | null
+        }
+      }
+      performance_metrics: {
+        Row: {
+          id: string
+          user_id: string | null
+          workspace_id: string | null
+          metric_name: string
+          metadata: Json | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          metric_name: string
+          metadata?: Json | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          workspace_id?: string | null
+          metric_name?: string
+          metadata?: Json | null
+          created_at?: string | null
+        }
+      }
+      system_health: {
+        Row: {
+          total_workspaces: number
+          total_users: number
+          total_projects: number
+          total_tasks: number
+          storage_usage: Json
+        }
+        Insert: {
+          total_workspaces: number
+          total_users: number
+          total_projects: number
+          total_tasks: number
+          storage_usage: Json
+        }
+        Update: {
+          total_workspaces?: number
+          total_users?: number
+          total_projects?: number
+          total_tasks?: number
+          storage_usage?: Json
+        }
+      }
+    }
+  }
   public: {
     Tables: {
       activity_log: {

@@ -8,7 +8,7 @@ import { DateCell } from './cells/DateCell';
 import { PeopleCell } from './cells/PeopleCell';
 import { TextCell } from './cells/TextCell';
 import { NumberCell } from './cells/NumberCell';
-import type { ViewColumn, StatusConfig, Task, Json } from '@/types/database';
+import type { ViewColumn, StatusConfig, Task, Json, TaskUpdate, TaskColumnValue } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 interface TableCellProps {
@@ -33,19 +33,20 @@ export function TableCell({
 
   const handleChange = async (value: any) => {
     const columnValues = task.column_values || {};
+    const columnKey = type === 'status' ? 'status' : column.id;
     const newColumnValues = {
       ...columnValues,
-      [type === 'status' ? 'status' : column.id]: { 
+      [columnKey]: { 
         value,
-        metadata: columnValues[type === 'status' ? 'status' : column.id]?.metadata || {}
-      }
+        metadata: columnValues[columnKey]?.metadata || {}
+      } as TaskColumnValue
     };
 
-    const update = {
+    const update: TaskUpdate = {
       column_values: newColumnValues as Json
     };
 
-    optimisticUpdateTask(task.id, update);
+    optimisticUpdateTask(task.id, { ...task, column_values: newColumnValues });
 
     try {
       const { error } = await supabase
@@ -62,10 +63,8 @@ export function TableCell({
 
   const getValue = () => {
     const columnValues = task.column_values || {};
-    if (type === 'status') {
-      return columnValues?.status?.value || '';
-    }
-    return columnValues?.[column.id]?.value || '';
+    const columnKey = type === 'status' ? 'status' : column.id;
+    return columnValues[columnKey]?.value ?? '';
   };
   
   const cellContent = useMemo(() => {

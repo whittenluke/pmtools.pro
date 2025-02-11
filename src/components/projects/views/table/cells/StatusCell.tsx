@@ -10,19 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { StatusSettings } from '../StatusSettings';
 import { Separator } from '@/components/ui/separator';
-
-interface Status {
-  id: string;
-  title: string;
-  color: string;
-  position: number;
-  type?: 'default' | 'custom';
-}
-
-interface StatusConfig {
-  statuses: Status[];
-  defaultStatusId: string;
-}
+import type { Status, StatusConfig } from '@/types/database';
 
 const defaultConfig: StatusConfig = {
   statuses: [

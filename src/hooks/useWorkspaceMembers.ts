@@ -1,66 +1,81 @@
-import { useQuery } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { WorkspaceMember, Profile, DbWorkspaceMember, DbProfile } from '@/types/database';
+import type { Profile, WorkspaceMember, Json } from '@/types/database';
+import type { Database } from '@/types/supabase';
+
+type Tables = Database['public']['Tables'];
+type WorkspaceMemberRow = Tables['workspace_members']['Row'];
+type ProfileRow = Tables['profiles']['Row'];
+
+const defaultProfile: Profile = {
+  id: '',
+  full_name: '',
+  avatar_url: null,
+  bio: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+};
 
 export function useWorkspaceMembers(workspaceId: string) {
-  return useQuery({
-    queryKey: ['workspace-members', workspaceId],
-    queryFn: async () => {
-      // Fetch workspace members
-      const { data: workspaceMembers, error: membersError } = await supabase
-        .from('workspace_members')
-        .select('*')
-        .eq('workspace_id', workspaceId);
+  const [data, setData] = useState<WorkspaceMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-      if (membersError) throw membersError;
-      if (!workspaceMembers) return [];
+  useEffect(() => {
+    async function fetchMembers() {
+      try {
+        setIsLoading(true);
+        const { data: workspaceMembers, error: membersError } = await supabase
+          .from('workspace_members')
+          .select('*')
+          .eq('workspace_id', workspaceId)
+          .returns<WorkspaceMemberRow[]>();
 
-      // Fetch profiles for all members
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', workspaceMembers.map(member => member.user_id));
-
-      if (profilesError) throw profilesError;
-
-      // Get current user's email from auth
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-
-      // Transform the data to include profiles
-      const transformedMembers = workspaceMembers.map((member: DbWorkspaceMember) => {
-        const profile = profiles?.find(p => p.id === member.user_id) as DbProfile | undefined;
-        
-        const defaultProfile: Profile = {
-          id: member.user_id,
-          full_name: 'Unknown User',
-          avatar_url: null,
-          bio: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        const memberProfile: Profile = profile ? {
-          ...profile,
-          avatar_url: profile.avatar_url || null,
-          bio: profile.bio || null
-        } : defaultProfile;
-
-        const transformedMember: WorkspaceMember = {
-          ...member,
-          joined_at: member.joined_at || new Date().toISOString(),
-          permissions: member.permissions || {},
-          profile: memberProfile
-        };
-
-        // Only include email for the current user
-        if (currentUser && currentUser.id === member.user_id) {
-          transformedMember.email = currentUser.email;
+        if (membersError) throw membersError;
+        if (!workspaceMembers?.length) {
+          setData([]);
+          return;
         }
 
-        return transformedMember;
-      });
+        const userIds = workspaceMembers.map(m => m.user_id);
+        
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', userIds)
+          .returns<ProfileRow[]>();
 
-      return transformedMembers;
+        if (profilesError) throw profilesError;
+
+        const transformedMembers: WorkspaceMember[] = workspaceMembers.map(member => {
+          const profile = profiles?.find(p => p.id === member.user_id) || defaultProfile;
+          
+          return {
+            user_id: member.user_id,
+            workspace_id: member.workspace_id,
+            joined_at: member.joined_at,
+            permissions: member.permissions as Json,
+            role: member.role,
+            profile: {
+              ...profile,
+              full_name: profile.full_name || '',
+              avatar_url: profile.avatar_url || null,
+              bio: profile.bio || null
+            }
+          };
+        });
+
+        setData(transformedMembers);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('An error occurred'));
+      } finally {
+        setIsLoading(false);
+      }
     }
-  });
+
+    fetchMembers();
+  }, [workspaceId]);
+
+  return { data, isLoading, error };
 } 

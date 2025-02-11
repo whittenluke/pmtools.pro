@@ -2,15 +2,17 @@
 
 import { useState, useEffect } from 'react';
 import { TableGrid } from './TableGrid';
-import type { ProjectView, Task } from '@/types';
+import type { ProjectView, Task, TableViewModel } from '@/types';
+import { useProjectStore } from '@/stores/project';
 
 interface TableViewProps {
+  view: TableViewModel;
   tasks: Task[];
-  view: ProjectView;
 }
 
-export function TableView({ tasks, view }: TableViewProps) {
-  const [localView, setLocalView] = useState<ProjectView>(view);
+export function TableView({ view, tasks }: TableViewProps) {
+  const { currentProject } = useProjectStore();
+  const [localView, setLocalView] = useState<TableViewModel>(view);
 
   useEffect(() => {
     setLocalView(view);

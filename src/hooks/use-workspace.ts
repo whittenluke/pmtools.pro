@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Workspace } from '@/types';
+import type { Workspace } from '@/types/database';
 
 export function useWorkspace(workspaceId: string) {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -10,6 +10,7 @@ export function useWorkspace(workspaceId: string) {
   useEffect(() => {
     async function fetchWorkspace() {
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from('workspaces')
           .select('*')
@@ -17,9 +18,19 @@ export function useWorkspace(workspaceId: string) {
           .single();
 
         if (error) throw error;
-        setWorkspace(data);
-      } catch (e) {
-        setError(e as Error);
+
+        if (data) {
+          const workspace: Workspace = {
+            id: data.id,
+            name: data.name,
+            created_at: data.created_at || new Date().toISOString(),
+            updated_at: data.updated_at || new Date().toISOString(),
+            settings: data.settings || null
+          };
+          setWorkspace(workspace);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('An error occurred'));
       } finally {
         setLoading(false);
       }

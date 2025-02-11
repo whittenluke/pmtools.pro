@@ -1,53 +1,59 @@
 import { supabase } from '@/lib/supabase';
-import type { Json } from '@/types/database';
+import type { Database } from '@/types/supabase';
 
-interface AnalyticsEvent {
-  event_name: string;
-  properties: Json;
-  created_at: string;
+type AnalyticsTables = Database['analytics']['Tables'];
+type FeatureUsageInsert = AnalyticsTables['feature_usage']['Insert'];
+type PageViewInsert = AnalyticsTables['page_views']['Insert'];
+
+export interface AnalyticsEvent extends Omit<FeatureUsageInsert, 'created_at'> {
+  feature_name: string;
+  action: string;
+  metadata?: Record<string, any>;
 }
 
-interface PageView {
+export interface PageView extends Omit<PageViewInsert, 'created_at'> {
   path: string;
-  created_at: string;
+  referrer?: string;
+  user_agent?: string;
 }
 
-export class AnalyticsService {
-  static async trackEvent(
-    eventName: string,
-    properties: Record<string, any> = {}
-  ) {
-    try {
-      const event: AnalyticsEvent = {
-        event_name: eventName,
-        properties: properties as Json,
-        created_at: new Date().toISOString(),
-      };
+// First, let's check our table structure
+const { data, error } = await supabase
+  .from('information_schema.tables')
+  .select('table_schema, table_name')
+  .eq('table_schema', 'analytics')
+  .order('table_name');
 
-      const { error } = await supabase
-        .from('events')
-        .insert(event);
+export async function trackEvent(event: AnalyticsEvent) {
+  try {
+    const eventData: FeatureUsageInsert = {
+      ...event,
+      created_at: new Date().toISOString()
+    };
 
-      if (error) throw error;
-    } catch (error) {
-      console.error('Failed to track event:', error);
-    }
+    const { error } = await supabase
+      .from('analytics.feature_usage')
+      .insert([eventData]);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Failed to track event:', error);
   }
+}
 
-  static async trackPageView(path: string) {
-    try {
-      const pageView: PageView = {
-        path,
-        created_at: new Date().toISOString(),
-      };
+export async function trackPageView(pageView: PageView) {
+  try {
+    const pageViewData: PageViewInsert = {
+      ...pageView,
+      created_at: new Date().toISOString()
+    };
 
-      const { error } = await supabase
-        .from('page_views')
-        .insert(pageView);
+    const { error } = await supabase
+      .from('analytics.page_views')
+      .insert([pageViewData]);
 
-      if (error) throw error;
-    } catch (error) {
-      console.error('Failed to track page view:', error);
-    }
+    if (error) throw error;
+  } catch (error) {
+    console.error('Failed to track page view:', error);
   }
 }

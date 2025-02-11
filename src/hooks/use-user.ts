@@ -1,38 +1,44 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Database } from '@/types/supabase';
-import type { Profile } from '@/types';
+import type { Profile } from '@/types/database';
 
-export function useUser(userId: string | null) {
+export function useUser(userId: string) {
   const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     async function fetchUser() {
-      if (!userId) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
       try {
-        const { data } = await supabase
+        setLoading(true);
+        const { data, error } = await supabase
           .from('profiles')
-          .select()
+          .select('*')
           .eq('id', userId)
           .single();
 
-        setUser(data);
-      } catch (error) {
-        console.error('Error fetching user:', error);
-        setUser(null);
+        if (error) throw error;
+
+        if (data) {
+          const profile: Profile = {
+            ...data,
+            full_name: data.full_name || '',
+            avatar_url: data.avatar_url || null,
+            bio: data.bio || null
+          };
+          setUser(profile);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('An error occurred'));
       } finally {
         setLoading(false);
       }
     }
 
-    fetchUser();
+    if (userId) {
+      fetchUser();
+    }
   }, [userId]);
 
-  return { user, loading };
+  return { user, loading, error };
 } 

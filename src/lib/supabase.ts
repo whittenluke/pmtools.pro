@@ -15,7 +15,9 @@ export const supabase = createClientComponentClient<Database>({
       }
     },
     realtime: {
-      reconnect: true
+      params: {
+        eventsPerSecond: 10
+      }
     }
   }
 });
