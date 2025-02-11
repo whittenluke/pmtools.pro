@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useProjectStore } from '@/stores/project';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/lib/supabase';
 
 interface TableViewProps {
   tasks: Task[];
@@ -34,7 +35,7 @@ export function TableView({ tasks, view }: TableViewProps) {
     ...view,
     type: 'table',
     config: {
-      tables: [{
+      tables: view.config?.tables || [{
         id: 'default',
         title: view.title || "Main Table",
         taskIds: tasks.map(t => t.id)
@@ -53,7 +54,7 @@ export function TableView({ tasks, view }: TableViewProps) {
       ...view,
       type: 'table',
       config: {
-        tables: [{
+        tables: view.config?.tables || [{
           id: 'default',
           title: view.title || "Main Table",
           taskIds: tasks.map(t => t.id)
@@ -64,11 +65,25 @@ export function TableView({ tasks, view }: TableViewProps) {
     }));
   }, [view, tasks]);
 
-  const handleTitleChange = async (newTitle: string) => {
+  const handleTitleChange = async (newTitle: string, tableId: string) => {
     try {
-      await updateView(view.id, { title: newTitle });
-      setTitle(newTitle);
-      setIsEditing(false);
+      const updatedConfig = {
+        ...localView.config,
+        tables: localView.config.tables.map(t => 
+          t.id === tableId ? { ...t, title: newTitle } : t
+        )
+      };
+
+      // Update local state immediately for smooth UI
+      setLocalView(prev => ({
+        ...prev,
+        config: updatedConfig
+      }));
+
+      // Then persist to database
+      await updateView(view.id, {
+        config: updatedConfig
+      });
     } catch (error) {
       console.error('Failed to update table title:', error);
     }
@@ -84,19 +99,22 @@ export function TableView({ tasks, view }: TableViewProps) {
 
       const updatedConfig = {
         ...localView.config,
-        tables: [...(localView.config.tables || []), newTable]
+        tables: [...localView.config.tables, newTable]
       };
 
+      // Update local state immediately for smooth UI
       setLocalView(prev => ({
         ...prev,
         config: updatedConfig
       }));
 
+      // Then persist to database
       await updateView(view.id, {
         config: updatedConfig
       });
     } catch (error) {
       console.error('Failed to add new table:', error);
+      // Revert local state on error
       setLocalView(prev => prev);
     }
   };
@@ -111,16 +129,19 @@ export function TableView({ tasks, view }: TableViewProps) {
         tables: currentTables.filter(t => t.id !== tableId)
       };
 
+      // Update local state immediately for smooth UI
       setLocalView(prev => ({
         ...prev,
         config: updatedConfig
       }));
 
+      // Then persist to database
       await updateView(view.id, {
         config: updatedConfig
       });
     } catch (error) {
       console.error('Failed to delete table:', error);
+      // Revert local state on error
       setLocalView(prev => prev);
     }
   };
@@ -174,10 +195,10 @@ export function TableView({ tasks, view }: TableViewProps) {
                           autoFocus
                           defaultValue={table.title}
                           className="h-8 px-2 w-[200px] text-lg font-semibold"
-                          onBlur={(e) => handleTitleChange(e.target.value)}
+                          onBlur={(e) => handleTitleChange(e.target.value, table.id)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                              handleTitleChange(e.currentTarget.value);
+                              handleTitleChange(e.currentTarget.value, table.id);
                             }
                           }}
                         />
