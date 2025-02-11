@@ -1,22 +1,16 @@
-import { useProjectStore } from '@/stores/project';
-import { useTimelineContext } from '@/hooks/use-timeline-context';
+import React from 'react';
 import { TimelineRow } from './TimelineRow';
-import { TimelineBar } from './TimelineBar';
+import type { Task } from '@/types/database';
 
-export function TimelineGrid() {
-  const { tasks } = useProjectStore();
-  const { visibleDates, columnWidth } = useTimelineContext();
+interface TimelineGridProps {
+  tasks: Task[];
+}
 
+export function TimelineGrid({ tasks }: TimelineGridProps) {
   return (
-    <div className="relative">
+    <div className="flex flex-col gap-2">
       {tasks.map((task) => (
-        <TimelineRow key={task.id} task={task}>
-          <TimelineBar
-            task={task}
-            columnWidth={columnWidth}
-            visibleDates={visibleDates}
-          />
-        </TimelineRow>
+        <TimelineRow key={task.id} task={task} />
       ))}
     </div>
   );

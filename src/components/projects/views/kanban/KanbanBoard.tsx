@@ -3,11 +3,18 @@
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useProjectStore } from '@/stores/project';
 import type { Task, TaskUpdate, TaskColumnValues, ColumnValue } from '@/types';
+import { useCallback } from 'react';
+import type { TaskColumnValue } from '@/types/database';
 
 type TaskStatus = 'todo' | 'in_progress' | 'done';
 
-export function KanbanBoard() {
-  const { tasks, updateTask } = useProjectStore();
+interface KanbanBoardProps {
+  tasks: Task[];
+  onTaskMove?: (taskId: string, groupId: string, position: number) => void;
+}
+
+export function KanbanBoard({ tasks, onTaskMove }: KanbanBoardProps) {
+  const { updateTask } = useProjectStore();
 
   const getTasksByStatus = (status: TaskStatus) => {
     return tasks.filter(task => {
@@ -15,6 +22,19 @@ export function KanbanBoard() {
       return columnValues?.status?.value === status;
     });
   };
+
+  const handleTaskUpdate = useCallback(async (taskId: string, update: Partial<Task>) => {
+    const columnValues = update.column_values || {};
+    const taskUpdate = {
+      ...update,
+      column_values: Object.entries(columnValues).reduce((acc, [key, value]) => ({
+        ...acc,
+        [key]: value as TaskColumnValue
+      }), {})
+    };
+    
+    await updateTask(taskId, taskUpdate);
+  }, [updateTask]);
 
   const handleDragEnd = async (result: any) => {
     if (!result.destination) return;
@@ -37,7 +57,7 @@ export function KanbanBoard() {
       }
     };
     
-    await updateTask(taskId, update);
+    await handleTaskUpdate(taskId, update);
   };
 
   return (

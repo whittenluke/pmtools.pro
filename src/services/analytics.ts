@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@/types/supabase';
 
+type Tables = Database['public']['Tables'];
 type AnalyticsTables = Database['analytics']['Tables'];
 type FeatureUsageInsert = AnalyticsTables['feature_usage']['Insert'];
 type PageViewInsert = AnalyticsTables['page_views']['Insert'];
@@ -32,7 +33,8 @@ export async function trackEvent(event: AnalyticsEvent) {
     };
 
     const { error } = await supabase
-      .from('analytics.feature_usage')
+      .schema('analytics')
+      .from('feature_usage')
       .insert([eventData]);
 
     if (error) throw error;
@@ -49,7 +51,8 @@ export async function trackPageView(pageView: PageView) {
     };
 
     const { error } = await supabase
-      .from('analytics.page_views')
+      .schema('analytics')
+      .from('page_views')
       .insert([pageViewData]);
 
     if (error) throw error;

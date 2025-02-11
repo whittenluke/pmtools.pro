@@ -93,36 +93,36 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   fetchProjects: async () => {
     set({ loading: true, error: null });
     try {
-      const userResponse = await supabase.auth.getUser();
-      if (isError(userResponse) || !userResponse.data.user) {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData.user) {
         throw new Error('No user found');
       }
 
-      const workspacesResponse = await supabase
+      const { data: workspaces, error: workspaceError } = await supabase
         .from('workspace_members')
         .select('workspace_id')
-        .eq('user_id', userResponse.data.user.id);
+        .eq('user_id', userData.user.id);
 
-      if (isError(workspacesResponse) || !isWorkspaceMembersResponse(workspacesResponse.data)) {
-        throw workspacesResponse.error || new Error('Invalid workspace response');
+      if (workspaceError || !workspaces) {
+        throw workspaceError || new Error('Invalid workspace response');
       }
 
-      if (!workspacesResponse.data.length) {
+      if (!workspaces.length) {
         set({ projects: [], loading: false });
         return;
       }
 
-      const projectsResponse = await supabase
+      const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .in('workspace_id', workspacesResponse.data.map(w => w.workspace_id))
+        .in('workspace_id', workspaces.map(w => w.workspace_id))
         .order('created_at', { ascending: false });
 
-      if (isError(projectsResponse) || !isProjectsArrayResponse(projectsResponse.data)) {
-        throw projectsResponse.error || new Error('Invalid projects response');
+      if (projectsError || !projects) {
+        throw projectsError || new Error('Invalid projects response');
       }
 
-      set({ projects: projectsResponse.data as Project[], loading: false });
+      set({ projects: projects as Project[], loading: false });
     } catch (error) {
       set({ error: error as Error, loading: false });
       throw error;
@@ -185,15 +185,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         .eq('project_id', projectId)
         .order('position', { ascending: true });
 
-      if (error || !isTasksArrayResponse(data)) {
-        throw error || new Error('Invalid tasks response');
-      }
+      if (error) throw error;
+      if (!data) throw new Error('No data returned');
 
-      const transformedTasks = data.map(task => ({
+      const transformedTasks: Task[] = data.map(task => ({
         ...task,
-        workspace_id: task.projects?.workspace_id,
-        column_values: task.column_values || {}
-      })) as Task[];
+        workspace_id: task.projects?.[0]?.workspace_id,
+        column_values: task.column_values ? 
+          Object.entries(task.column_values as Record<string, any>).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: {
+              value,
+              metadata: {}
+            }
+          }), {}) : {}
+      }));
 
       set({ tasks: transformedTasks, loading: false });
     } catch (error) {
@@ -427,23 +433,19 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   deleteProject: async (projectId: string) => {
     set({ loading: true, error: null });
     try {
-      // Call the database function to handle deletion
       const { error } = await supabase
-        .rpc('delete_project', {
-          project_id: projectId
-        });
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
 
       if (error) throw error;
 
-      // Update local state
       set((state) => ({
         projects: state.projects.filter((p) => p.id !== projectId),
         currentProject: state.currentProject?.id === projectId ? null : state.currentProject,
         views: state.currentProject?.id === projectId ? [] : state.views,
         loading: false
       }));
-
-      return true;
     } catch (error) {
       console.error('Error deleting project:', error);
       set({ error: error as Error, loading: false });
@@ -660,7 +662,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   updateTask: async (taskId: string, data: Partial<Task>) => {
     try {
-      const updateData = data as TaskUpdate;
+      const updateData = {
+        ...data,
+        column_values: data.column_values ? 
+          Object.entries(data.column_values).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: value.value
+          }), {}) : undefined
+      } as TaskUpdate;
+
       const { data: updatedTask, error } = await supabase
         .from('tasks')
         .update(updateData)
@@ -674,23 +684,28 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         .single();
 
       if (error) throw error;
+      if (!updatedTask) throw new Error('No data returned');
 
-      // Transform task to include workspace_id at top level
-      const transformedTask = {
+      const transformedTask: Task = {
         ...updatedTask,
-        workspace_id: updatedTask.projects?.workspace_id
-      } as Task;
+        workspace_id: updatedTask.projects?.[0]?.workspace_id,
+        column_values: updatedTask.column_values ? 
+          Object.entries(updatedTask.column_values as Record<string, any>).reduce((acc, [key, value]) => ({
+            ...acc,
+            [key]: {
+              value,
+              metadata: {}
+            }
+          }), {}) : {}
+      };
 
-      // Update the task in state
       set((state) => ({
         tasks: state.tasks.map(t => t.id === taskId ? transformedTask : t)
       }));
 
-      // Clear the stored original state on successful update
       get().taskUpdates.delete(taskId);
     } catch (error) {
       console.error('Failed to update task:', error);
-      // Revert to original state on failure
       get().revertTaskUpdate(taskId);
       throw error;
     }
@@ -740,7 +755,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   createTask: async (task: Partial<Task>) => {
-    const taskData = task as TaskInsert;
+    const taskData = {
+      ...task,
+      column_values: task.column_values ? 
+        Object.entries(task.column_values).reduce((acc, [key, value]) => ({
+          ...acc,
+          [key]: value.value
+        }), {}) : {}
+    } as TaskInsert;
+
     const { data, error } = await supabase
       .from('tasks')
       .insert([taskData])
@@ -753,12 +776,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       .single();
 
     if (error) throw error;
+    if (!data) throw new Error('No data returned');
 
-    // Transform task to include workspace_id at top level
-    const transformedTask = {
+    const transformedTask: Task = {
       ...data,
-      workspace_id: data.projects?.workspace_id
-    } as Task;
+      workspace_id: data.projects?.[0]?.workspace_id,
+      column_values: data.column_values ? 
+        Object.entries(data.column_values as Record<string, any>).reduce((acc, [key, value]) => ({
+          ...acc,
+          [key]: {
+            value,
+            metadata: {}
+          }
+        }), {}) : {}
+    };
 
     set((state) => ({
       tasks: [...state.tasks, transformedTask],
@@ -784,13 +815,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         },
       });
 
-      const updateData: ProjectViewUpdate = {
-        config: updatedConfig as Json,
-      };
-
       const { error } = await supabase
         .from('project_views')
-        .update(updateData)
+        .update({ config: updatedConfig })
         .eq('id', viewId);
 
       if (error) throw error;

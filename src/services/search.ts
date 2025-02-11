@@ -2,11 +2,25 @@ import { supabase } from '@/lib/supabase';
 import type { Json } from '@/types/database';
 
 interface SearchResult {
-  id: string;
-  type: 'task' | 'project' | 'comment';
+  task_id: string;
   title: string;
-  content: string;
-  metadata: Json;
+  description: string;
+  rank: number;
+}
+
+export async function searchTasks(query: string, projectId?: string): Promise<SearchResult[]> {
+  try {
+    const { data, error } = await supabase.rpc('search_tasks', {
+      search_query: query,
+      project_id: projectId
+    });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Search error:', error);
+    return [];
+  }
 }
 
 export class SearchService {
