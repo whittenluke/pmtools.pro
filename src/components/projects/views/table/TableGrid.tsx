@@ -196,23 +196,38 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   };
 
   const handleDragEnd = async (result: any) => {
-    setDraggedColumnId(null);
-    if (!result.destination) return;
+    const { source, destination, type } = result;
     
-    if (result.draggableId === localColumns[0]?.id) return;
+    if (!destination) return;
+
+    // Handle column reordering
+    if (type === 'COLUMN') {
+      if (result.draggableId === localColumns[0]?.id) return;
+      
+      const newColumns = Array.from(localColumns);
+      const [removed] = newColumns.splice(source.index, 1);
+      const destinationIndex = destination.index === 0 ? 1 : destination.index;
+      newColumns.splice(destinationIndex, 0, removed);
+      
+      setLocalColumns(newColumns);
+      try {
+        await updateView(view.id, { columns: newColumns });
+      } catch (error) {
+        console.error('Failed to reorder columns:', error);
+        setLocalColumns(view.columns);
+      }
+    }
     
-    const newColumns = Array.from(localColumns);
-    const [removed] = newColumns.splice(result.source.index, 1);
-    const destinationIndex = result.destination.index === 0 ? 1 : result.destination.index;
-    newColumns.splice(destinationIndex, 0, removed);
-    
-    setLocalColumns(newColumns);
-    
-    try {
-      await updateView(view.id, { columns: newColumns });
-    } catch (error) {
-      console.error('Failed to reorder columns:', error);
-      setLocalColumns(view.columns);
+    // Handle row reordering
+    if (type === 'ROW') {
+      const allTasks = [...tasks].sort((a, b) => (a.position || 0) - (b.position || 0));
+      const newPosition = calculateNewPosition(allTasks, destination.index);
+      
+      try {
+        await updateTask(result.draggableId, { position: newPosition });
+      } catch (error) {
+        console.error('Failed to reorder task:', error);
+      }
     }
   };
 
@@ -270,236 +285,195 @@ export function TableGrid({ tasks, view }: TableGridProps) {
   );
 
   return (
-    <>
-      <div className="relative flex-1 overflow-auto" ref={tableRef}>
-        <div className="bg-background rounded-lg border shadow-sm min-w-full w-max">
-          <table className="border-collapse w-full">
-            <colgroup>
-              {localColumns.map(column => (
-                <col 
-                  key={column.id}
-                  style={{ 
-                    width: `${getColumnWidth(column)}px`,
-                    minWidth: `${MIN_COLUMN_WIDTHS[column.type || 'default']}px`,
-                  }} 
-                />
-              ))}
-              <col style={{ width: "200px", minWidth: "200px" }} />
-            </colgroup>
-            
-            <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
-              <Droppable droppableId="columns" direction="horizontal">
-                {(provided) => (
-                  <thead
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                  >
-                    <tr>
-                      {localColumns.map((column, index) => {
-                        const width = getColumnWidth(column);
-                        const isTitle = index === 0;
-                        
-                        return (
-                          <Draggable
-                            key={column.id}
-                            draggableId={column.id}
-                            index={index}
-                            isDragDisabled={isTitle}
-                          >
-                            {(provided, snapshot) => (
-                              <th
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={cn(
-                                  "relative group border-b border-border p-0 bg-background",
-                                  isTitle && "bg-muted/5",
-                                  snapshot.isDragging ? "z-50" : "",
-                                  isResizing && resizeRef.current.columnId === column.id ? "select-none" : "",
-                                  index !== 0 && "border-l border-border"
-                                )}
+    <div className="relative flex-1 overflow-auto" ref={tableRef}>
+      <div className="bg-background rounded-lg border shadow-sm min-w-full w-max">
+        {/* Main Table Container */}
+        <div className="flex flex-col">
+          {/* Header */}
+          <DragDropContext onDragEnd={handleDragEnd} onDragStart={handleDragStart}>
+            <Droppable droppableId="columns" direction="horizontal">
+              {(provided) => (
+                <div 
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="flex border-b border-border"
+                >
+                  {localColumns.map((column, index) => (
+                    <Draggable
+                      key={column.id}
+                      draggableId={column.id}
+                      index={index}
+                      isDragDisabled={index === 0}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={cn(
+                            "h-9 flex items-center shrink-0",
+                            index === 0 && "bg-muted/5",
+                            snapshot.isDragging && "z-50 shadow-sm",
+                            index !== 0 && "border-l border-border"
+                          )}
+                          style={{
+                            width: getColumnWidth(column),
+                            minWidth: MIN_COLUMN_WIDTHS[column.type || 'default'],
+                          }}
+                        >
+                          {/* Column Header Content */}
+                          <div className="flex items-center w-full px-4">
+                            {!index && (
+                              <div 
+                                {...provided.dragHandleProps}
+                                className="absolute left-2 flex items-center h-full opacity-0 group-hover:opacity-100"
                               >
-                                <div 
-                                  className={cn(
-                                    "h-9 px-4 py-2 text-sm font-medium text-foreground flex items-center gap-2 transition-colors relative",
-                                    snapshot.isDragging ? "bg-background shadow-lg rounded-md" : "hover:bg-muted/50",
-                                    isResizing && "select-none"
-                                  )}
-                                >
-                                  {!isTitle && (
-                                    <div 
-                                      {...provided.dragHandleProps}
+                                <GripVertical className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className={cn(
+                              "flex-1",
+                              index === 0 ? "pl-8 text-left" : "text-center"
+                            )}>
+                              {column.title}
+                            </div>
+                            {/* Column Actions */}
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                              {!index && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
                                       className={cn(
-                                        "absolute left-0 flex items-center h-full px-2 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity",
+                                        "h-6 w-6 p-0",
                                         (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
                                       )}
                                     >
-                                      <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                    </div>
-                                  )}
-
-                                  <div className="flex-1 relative flex items-center">
-                                    <div className={cn(
-                                      "truncate font-medium w-full",
-                                      index === 0 ? "text-left" : "text-center"
-                                    )}>{column.title}</div>
-                                    <div className="absolute right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-background">
-                                      {!isTitle && (
-                                        <DropdownMenu>
-                                          <DropdownMenuTrigger asChild>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className={cn(
-                                                "h-6 w-6 p-0",
-                                                (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
-                                              )}
-                                            >
-                                              <MoreHorizontal className="h-4 w-4" />
-                                              <span className="sr-only">More options</span>
-                                            </Button>
-                                          </DropdownMenuTrigger>
-                                          <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => handleStartEditing(column)}>
-                                              <Pencil className="h-4 w-4 mr-2" />
-                                              Rename
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem 
-                                              onSelect={(e) => {
-                                                e.preventDefault();
-                                                setDeleteColumnId(column.id);
-                                              }}
-                                            >
-                                              <Trash2 className="h-4 w-4 mr-2" />
-                                              Delete
-                                            </DropdownMenuItem>
-                                          </DropdownMenuContent>
-                                        </DropdownMenu>
-                                      )}
-                                      {isTitle && (
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className={cn(
-                                            "h-6 w-6 p-0",
-                                            (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
-                                          )}
-                                          onClick={() => handleStartEditing(column)}
-                                        >
-                                          <Pencil className="h-3.5 w-3.5" />
-                                          <span className="sr-only">Edit column name</span>
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div
+                                      <MoreHorizontal className="h-4 w-4" />
+                                      <span className="sr-only">More options</span>
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleStartEditing(column)}>
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        setDeleteColumnId(column.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                              {index && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   className={cn(
-                                    "absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 z-20 group-hover:bg-primary/10",
-                                    isResizing && resizeRef.current.columnId === column.id && "bg-primary/20"
+                                    "h-6 w-6 p-0",
+                                    (isResizing || draggedColumnId) && "pointer-events-none opacity-0"
                                   )}
-                                  onMouseDown={(e) => handleResizeStart(e, column.id, getColumnWidth(column))}
-                                  style={{
-                                    transform: 'translateX(50%)',
-                                  }}
-                                />
-                              </th>
-                            )}
-                          </Draggable>
-                        );
-                      })}
-                      {provided.placeholder}
-                      <th className="border-b border-border p-0">
-                        <div className="px-4 py-2">
-                          <AddColumnButton onAddColumn={handleAddColumn} />
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                )}
-              </Droppable>
-            </DragDropContext>
-
-            <DragDropContext onDragEnd={handleRowDragEnd} onDragStart={handleRowDragStart}>
-              <Droppable droppableId="tasks">
-                {(provided) => (
-                  <tbody
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="relative"
-                  >
-                    {tasks.map((task, index) => (
-                      <Draggable
-                        key={task.id}
-                        draggableId={task.id}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <tr
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
+                                  onClick={() => handleStartEditing(column)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                  <span className="sr-only">Edit column name</span>
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                          {/* Column Resize Handle */}
+                          <div
                             className={cn(
-                              "group relative",
-                              snapshot.isDragging && "shadow-lg bg-background"
+                              "absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 z-20",
+                              isResizing && resizeRef.current.columnId === column.id && "bg-primary/20"
                             )}
-                            style={{
-                              ...provided.draggableProps.style,
-                              display: 'table-row'
-                            }}
-                          >
-                            {localColumns.map((column, colIndex) => (
-                              <td
-                                key={column.id}
-                                className={cn(
-                                  'border-b p-2',
-                                  colIndex === 0 ? 'text-left group' : 'text-center',
-                                  draggedColumnId && 'transition-none',
-                                  colIndex !== 0 && 'border-l border-border',
-                                  snapshot.isDragging && 'bg-background'
-                                )}
-                                style={{
-                                  width: `${getColumnWidth(column)}px`,
-                                  minWidth: `${MIN_COLUMN_WIDTHS[column.type || 'default']}px`
-                                }}
-                              >
-                                {colIndex === 0 && (
-                                  <div 
-                                    {...provided.dragHandleProps}
-                                    className="absolute left-2 inset-y-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                  </div>
-                                )}
-                                <div className={cn(colIndex === 0 && "pl-8")}>
-                                  {renderCell(task, column)}
-                                </div>
-                              </td>
-                            ))}
-                            <td 
+                            onMouseDown={(e) => handleResizeStart(e, column.id, getColumnWidth(column))}
+                            style={{ transform: 'translateX(50%)' }}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  <div className="h-9 flex items-center px-4 shrink-0 border-l border-border" style={{ width: 200 }}>
+                    <AddColumnButton onAddColumn={handleAddColumn} />
+                  </div>
+                </div>
+              )}
+            </Droppable>
+
+            {/* Table Body */}
+            <Droppable droppableId="tasks">
+              {(provided) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  className="flex flex-col"
+                >
+                  {tasks.map((task, index) => (
+                    <Draggable
+                      key={task.id}
+                      draggableId={task.id}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={cn(
+                            "flex group relative",
+                            snapshot.isDragging && "z-50 shadow-sm bg-background"
+                          )}
+                        >
+                          {localColumns.map((column, colIndex) => (
+                            <div
+                              key={column.id}
                               className={cn(
-                                "border-b p-2",
-                                snapshot.isDragging && 'bg-background'
-                              )} 
+                                "flex items-center border-b p-2 shrink-0",
+                                colIndex === 0 ? "text-left relative" : "text-center",
+                                colIndex !== 0 && "border-l border-border"
+                              )}
                               style={{
-                                width: 200,
-                                minWidth: 200
+                                width: getColumnWidth(column),
+                                minWidth: MIN_COLUMN_WIDTHS[column.type || 'default'],
                               }}
-                            />
-                          </tr>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                    <tr>
-                      <td colSpan={localColumns.length + 1} className="p-0">
-                        <AddTaskRow columns={localColumns} />
-                      </td>
-                    </tr>
-                  </tbody>
-                )}
-              </Droppable>
-            </DragDropContext>
-          </table>
+                            >
+                              {colIndex === 0 && (
+                                <div
+                                  {...provided.dragHandleProps}
+                                  className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 z-10 h-8 w-8"
+                                >
+                                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                              )}
+                              <div className={cn("w-full", colIndex === 0 && "pl-8")}>
+                                {renderCell(task, column)}
+                              </div>
+                            </div>
+                          ))}
+                          <div 
+                            className="border-b border-l border-border p-2 shrink-0" 
+                            style={{ width: 200 }}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  <div className="flex">
+                    <div className="w-full p-0">
+                      <AddTaskRow columns={localColumns} />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         </div>
       </div>
 
@@ -516,6 +490,6 @@ export function TableGrid({ tasks, view }: TableGridProps) {
           }
         }}
       />
-    </>
+    </div>
   );
 }
